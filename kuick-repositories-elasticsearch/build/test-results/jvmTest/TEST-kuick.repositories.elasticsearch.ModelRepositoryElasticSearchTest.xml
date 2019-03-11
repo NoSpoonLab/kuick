@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="kuick.repositories.elasticsearch.ModelRepositoryElasticSearchTest" tests="12" skipped="1" failures="0" errors="0" timestamp="2019-02-25T13:53:54" hostname="Carloss-MBP.lan" time="16.884">
+  <properties/>
+  <testcase name="should searchBy$kuick_repositories_elasticsearch" classname="kuick.repositories.elasticsearch.ModelRepositoryElasticSearchTest" time="4.108"/>
+  <testcase name="should insert$kuick_repositories_elasticsearch" classname="kuick.repositories.elasticsearch.ModelRepositoryElasticSearchTest" time="1.787"/>
+  <testcase name="should findById$kuick_repositories_elasticsearch" classname="kuick.repositories.elasticsearch.ModelRepositoryElasticSearchTest" time="2.464"/>
+  <testcase name="should init properly$kuick_repositories_elasticsearch" classname="kuick.repositories.elasticsearch.ModelRepositoryElasticSearchTest" time="2.028"/>
+  <testcase name="should delete$kuick_repositories_elasticsearch" classname="kuick.repositories.elasticsearch.ModelRepositoryElasticSearchTest" time="0.94"/>
+  <testcase name="should deleteBy$kuick_repositories_elasticsearch" classname="kuick.repositories.elasticsearch.ModelRepositoryElasticSearchTest" time="2.259"/>
+  <testcase name="should update$kuick_repositories_elasticsearch" classname="kuick.repositories.elasticsearch.ModelRepositoryElasticSearchTest" time="0.598"/>
+  <testcase name="should findOneBy$kuick_repositories_elasticsearch" classname="kuick.repositories.elasticsearch.ModelRepositoryElasticSearchTest" time="0.835"/>
+  <testcase name="should updateBy$kuick_repositories_elasticsearch" classname="kuick.repositories.elasticsearch.ModelRepositoryElasticSearchTest" time="0.0">
+    <skipped/>
+  </testcase>
+  <testcase name="should insertMany$kuick_repositories_elasticsearch" classname="kuick.repositories.elasticsearch.ModelRepositoryElasticSearchTest" time="0.457"/>
+  <testcase name="should updateMany$kuick_repositories_elasticsearch" classname="kuick.repositories.elasticsearch.ModelRepositoryElasticSearchTest" time="0.693"/>
+  <testcase name="should findBy$kuick_repositories_elasticsearch" classname="kuick.repositories.elasticsearch.ModelRepositoryElasticSearchTest" time="0.443"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[Feb 25, 2019 2:53:56 PM org.elasticsearch.client.RestClient logResponse
+WARNING: request [PUT http://127.0.0.1:9200/testmodel?master_timeout=30s&timeout=30s] returned 1 warnings: [299 Elasticsearch-6.6.0-a9861f4 "the default number of shards will change from [5] to [1] in 7.0.0; if you wish to continue using the default of [5] shards, you must manage this on the create index request or with an index template" "Mon, 25 Feb 2019 13:53:55 GMT"]
+ERROR StatusLogger Log4j2 could not find a logging implementation. Please add log4j-core to the classpath. Using SimpleLogger to log to the console...
+Feb 25, 2019 2:54:00 PM org.elasticsearch.client.RestClient logResponse
+WARNING: request [PUT http://127.0.0.1:9200/testmodel?master_timeout=30s&timeout=30s] returned 1 warnings: [299 Elasticsearch-6.6.0-a9861f4 "the default number of shards will change from [5] to [1] in 7.0.0; if you wish to continue using the default of [5] shards, you must manage this on the create index request or with an index template" "Mon, 25 Feb 2019 13:53:59 GMT"]
+Feb 25, 2019 2:54:01 PM org.elasticsearch.client.RestClient logResponse
+WARNING: request [PUT http://127.0.0.1:9200/testmodel?master_timeout=30s&timeout=30s] returned 1 warnings: [299 Elasticsearch-6.6.0-a9861f4 "the default number of shards will change from [5] to [1] in 7.0.0; if you wish to continue using the default of [5] shards, you must manage this on the create index request or with an index template" "Mon, 25 Feb 2019 13:54:00 GMT"]
+Feb 25, 2019 2:54:04 PM org.elasticsearch.client.RestClient logResponse
+WARNING: request [PUT http://127.0.0.1:9200/testmodel?master_timeout=30s&timeout=30s] returned 1 warnings: [299 Elasticsearch-6.6.0-a9861f4 "the default number of shards will change from [5] to [1] in 7.0.0; if you wish to continue using the default of [5] shards, you must manage this on the create index request or with an index template" "Mon, 25 Feb 2019 13:54:03 GMT"]
+Feb 25, 2019 2:54:05 PM org.elasticsearch.client.RestClient logResponse
+WARNING: request [PUT http://127.0.0.1:9200/testmodel?master_timeout=30s&timeout=30s] returned 1 warnings: [299 Elasticsearch-6.6.0-a9861f4 "the default number of shards will change from [5] to [1] in 7.0.0; if you wish to continue using the default of [5] shards, you must manage this on the create index request or with an index template" "Mon, 25 Feb 2019 13:54:05 GMT"]
+Feb 25, 2019 2:54:07 PM org.elasticsearch.client.RestClient logResponse
+WARNING: request [PUT http://127.0.0.1:9200/testmodel?master_timeout=30s&timeout=30s] returned 1 warnings: [299 Elasticsearch-6.6.0-a9861f4 "the default number of shards will change from [5] to [1] in 7.0.0; if you wish to continue using the default of [5] shards, you must manage this on the create index request or with an index template" "Mon, 25 Feb 2019 13:54:06 GMT"]
+Feb 25, 2019 2:54:09 PM org.elasticsearch.client.RestClient logResponse
+WARNING: request [PUT http://127.0.0.1:9200/testmodel?master_timeout=30s&timeout=30s] returned 1 warnings: [299 Elasticsearch-6.6.0-a9861f4 "the default number of shards will change from [5] to [1] in 7.0.0; if you wish to continue using the default of [5] shards, you must manage this on the create index request or with an index template" "Mon, 25 Feb 2019 13:54:08 GMT"]
+Feb 25, 2019 2:54:09 PM org.elasticsearch.client.RestClient logResponse
+WARNING: request [PUT http://127.0.0.1:9200/testmodel?master_timeout=30s&timeout=30s] returned 1 warnings: [299 Elasticsearch-6.6.0-a9861f4 "the default number of shards will change from [5] to [1] in 7.0.0; if you wish to continue using the default of [5] shards, you must manage this on the create index request or with an index template" "Mon, 25 Feb 2019 13:54:09 GMT"]
+Feb 25, 2019 2:54:10 PM org.elasticsearch.client.RestClient logResponse
+WARNING: request [PUT http://127.0.0.1:9200/testmodel?master_timeout=30s&timeout=30s] returned 1 warnings: [299 Elasticsearch-6.6.0-a9861f4 "the default number of shards will change from [5] to [1] in 7.0.0; if you wish to continue using the default of [5] shards, you must manage this on the create index request or with an index template" "Mon, 25 Feb 2019 13:54:10 GMT"]
+Feb 25, 2019 2:54:10 PM org.elasticsearch.client.RestClient logResponse
+WARNING: request [PUT http://127.0.0.1:9200/testmodel?master_timeout=30s&timeout=30s] returned 1 warnings: [299 Elasticsearch-6.6.0-a9861f4 "the default number of shards will change from [5] to [1] in 7.0.0; if you wish to continue using the default of [5] shards, you must manage this on the create index request or with an index template" "Mon, 25 Feb 2019 13:54:10 GMT"]
+Feb 25, 2019 2:54:11 PM org.elasticsearch.client.RestClient logResponse
+WARNING: request [PUT http://127.0.0.1:9200/testmodel?master_timeout=30s&timeout=30s] returned 1 warnings: [299 Elasticsearch-6.6.0-a9861f4 "the default number of shards will change from [5] to [1] in 7.0.0; if you wish to continue using the default of [5] shards, you must manage this on the create index request or with an index template" "Mon, 25 Feb 2019 13:54:11 GMT"]
+]]></system-err>
+</testsuite>

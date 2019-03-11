@@ -1,0 +1,78 @@
+apply plugin: KoanPlugin
+
+koan {
+    projectDependency(":modules:kuick-core")
+    projectDependency(":modules:kuick-repositories-squash")
+    dependencies {
+        jvmApi "org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinx_coroutines_version"
+        jvmApi 'com.google.code.gson:gson:2.2.4'
+        jvmApi 'com.google.inject:guice:4.2.0'
+        jvmApi 'com.google.guava:guava:23.5-jre'
+        jvmApi 'org.elasticsearch.client:elasticsearch-rest-high-level-client:6.4.3'
+    }
+}
+
+apply plugin: 'com.bmuschko.docker-remote-api'
+
+import java.util.concurrent.TimeUnit
+import com.bmuschko.gradle.docker.tasks.container.*
+import com.bmuschko.gradle.docker.tasks.image.*
+
+docker {
+    //url = 'tcp://localhost:2375'
+}
+
+task pullImage(type: DockerPullImage) {
+    repository = 'docker.elastic.co/elasticsearch/elasticsearch'
+    tag = '6.6.0'
+}
+
+task removeContainerIfExists(type: DockerRemoveContainer) {
+    targetContainerId("gokoan-elasticsearch-test")
+    onError { exception ->
+    }
+}
+
+task createContainer(type: DockerCreateContainer) {
+    dependsOn removeContainerIfExists, pullImage
+    targetImageId(pullImage.getImageId())
+    portBindings = ['9200:9200']
+    containerName = "gokoan-elasticsearch-test"
+    envVars = ["discovery.type": "single-node"]
+    onError { exception ->
+        if (!exception.message.contains('is already in use by container')) {
+            throw exception
+        }
+    }
+}
+
+task startContainer(type: DockerStartContainer) {
+    dependsOn createContainer
+    targetContainerId(createContainer.getContainerName())
+    doLast { waitForElasticSearch(60) }
+}
+
+def waitForElasticSearch(int timeout) {
+    def port = 9200
+    println "Waiting for ElasticSearch..."
+    def startTime = System.currentTimeMillis()
+    def maxWaitMillis = TimeUnit.SECONDS.toMillis(timeout)
+    while (System.currentTimeMillis() - startTime < maxWaitMillis) {
+        try {
+            new URL("http://127.0.0.1:${port}").text
+            return
+        } catch (Exception ignored) {
+            sleep(500)
+        }
+    }
+    throw new RuntimeException('ElasticSearch doesnt respond: FAILED')
+}
+
+task stopContainer(type: DockerStopContainer) {
+    targetContainerId(createContainer.getContainerName())
+}
+
+jvmTest {
+    dependsOn startContainer
+    finalizedBy stopContainer
+}

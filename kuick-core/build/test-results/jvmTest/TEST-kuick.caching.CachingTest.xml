@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="kuick.caching.CachingTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2019-03-11T14:00:13" hostname="Carloss-MBP.lan" time="0.157">
+  <properties/>
+  <testcase name="simple cache and invalidation" classname="kuick.caching.CachingTest" time="0.148"/>
+  <testcase name="1 derivated cache and invalidation" classname="kuick.caching.CachingTest" time="0.008"/>
+  <system-out><![CDATA[Invalidating cache: demousers/app1
+Caching: getAllAppUsers/app1 based on [Ljava.lang.String;@4b0de5c7/app1
+Invalidating cache: demousers/app1
+Invalidating derivated cache: getAllAppUsers/app1 based on demousers/app1
+Caching: getAllAppUsers/app1 based on [Ljava.lang.String;@4634af8/app1
+Invalidating cache: demousers/app1
+Caching: getAdultAppUsers/app1 based on [Ljava.lang.String;@35c8f6e9/app1
+Caching: getAllAppUsers/app1 based on [Ljava.lang.String;@623a2165/app1
+Invalidating cache: demousers/app1
+Invalidating derivated cache: getAllAppUsers/app1 based on demousers/app1
+Invalidating derivated cache: getAdultAppUsers/app1 based on getAllAppUsers/app1
+Caching: getAdultAppUsers/app1 based on [Ljava.lang.String;@78345889/app1
+Caching: getAllAppUsers/app1 based on [Ljava.lang.String;@669ee9fd/app1
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

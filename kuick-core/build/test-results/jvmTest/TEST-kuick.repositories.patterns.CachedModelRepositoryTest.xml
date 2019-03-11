@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="kuick.repositories.patterns.CachedModelRepositoryTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2019-03-11T14:00:13" hostname="Carloss-MBP.lan" time="0.588">
+  <properties/>
+  <testcase name="cached subsets work" classname="kuick.repositories.patterns.CachedModelRepositoryTest" time="0.567"/>
+  <testcase name="caching items works" classname="kuick.repositories.patterns.CachedModelRepositoryTest" time="0.01"/>
+  <testcase name="updating cached items works" classname="kuick.repositories.patterns.CachedModelRepositoryTest" time="0.009"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
