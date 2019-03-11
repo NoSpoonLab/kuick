@@ -24,7 +24,7 @@ task pullImage(type: DockerPullImage) {
 }
 
 task removeContainerIfExists(type: DockerRemoveContainer) {
-    targetContainerId("gokoan-elasticsearch-test")
+    targetContainerId("kuick-elasticsearch-test")
     onError { exception ->
     }
 }
@@ -33,7 +33,7 @@ task createContainer(type: DockerCreateContainer) {
     dependsOn removeContainerIfExists, pullImage
     targetImageId(pullImage.getImageId())
     portBindings = ['9200:9200']
-    containerName = "gokoan-elasticsearch-test"
+    containerName = "kuick-elasticsearch-test"
     envVars = ["discovery.type": "single-node"]
     onError { exception ->
         if (!exception.message.contains('is already in use by container')) {
