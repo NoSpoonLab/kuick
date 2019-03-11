@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="kuick.repositories.elasticsearch.orm.SchemaGenerationTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2019-02-25T13:54:19" hostname="Carloss-MBP.lan" time="0.033">
-  <properties/>
-  <testcase name="should generate schema" classname="kuick.repositories.elasticsearch.orm.SchemaGenerationTest" time="0.027"/>
-  <testcase name="should generate schema with custom fields" classname="kuick.repositories.elasticsearch.orm.SchemaGenerationTest" time="0.006"/>
-  <system-out><![CDATA[]]></system-out>
-  <system-err><![CDATA[]]></system-err>
-</testsuite>

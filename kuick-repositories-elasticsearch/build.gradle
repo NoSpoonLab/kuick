@@ -1,15 +1,11 @@
-apply plugin: KoanPlugin
-
-koan {
-    projectDependency(":modules:kuick-core")
-    projectDependency(":modules:kuick-repositories-squash")
-    dependencies {
-        jvmApi "org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinx_coroutines_version"
-        jvmApi 'com.google.code.gson:gson:2.2.4'
-        jvmApi 'com.google.inject:guice:4.2.0'
-        jvmApi 'com.google.guava:guava:23.5-jre'
-        jvmApi 'org.elasticsearch.client:elasticsearch-rest-high-level-client:6.4.3'
-    }
+dependencies {
+    commonMainApi project(":kuick-core")
+    commonMainApi project(":kuick-repositories-squash")
+    jvmMainApi "org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinx_coroutines_version"
+    jvmMainApi 'com.google.code.gson:gson:2.2.4'
+    jvmMainApi 'com.google.inject:guice:4.2.0'
+    jvmMainApi 'com.google.guava:guava:23.5-jre'
+    jvmMainApi 'org.elasticsearch.client:elasticsearch-rest-high-level-client:6.4.3'
 }
 
 apply plugin: 'com.bmuschko.docker-remote-api'
