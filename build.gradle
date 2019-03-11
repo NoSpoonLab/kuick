@@ -2,6 +2,8 @@ buildscript {
     repositories {
         mavenLocal()
         mavenCentral()
+        jcenter()
+        maven { url = "https://dl.bintray.com/nospoonlab/nospoonlab/" }
         gradlePluginPortal()
     }
 
@@ -25,6 +27,9 @@ subprojects {
     repositories {
         mavenLocal()
         mavenCentral()
+        jcenter()
+        maven { url = "https://dl.bintray.com/nospoonlab/nospoonlab/" }
+        gradlePluginPortal()
     }
 
     kotlin {
@@ -47,8 +52,6 @@ subprojects {
     }
 
 
-
-
     dependencies {
         commonMainImplementation "org.jetbrains.kotlin:kotlin-stdlib-common"
         commonTestImplementation "org.jetbrains.kotlin:kotlin-test-common"
@@ -61,6 +64,10 @@ subprojects {
         jvmTestImplementation "org.jetbrains.kotlin:kotlin-test-junit"
         jvmTestImplementation "org.jetbrains.kotlin:kotlin-test"
         jvmTestImplementation "junit:junit:4.12"
+
+        jvmTestImplementation "org.mockito:mockito-core:2.24.0"
+        jvmTestImplementation "org.assertj:assertj-core:3.11.1"
+        jvmTestImplementation "io.mockk:mockk:1.9"
     }
 
     def publishUser = (rootProject.findProperty("BINTRAY_USER") ?: project.findProperty("bintrayUser") ?: System.getenv("BINTRAY_USER"))?.toString()
