@@ -40,7 +40,15 @@ subprojects {
                 }
             }
         }
-        js()
+        js() {
+            configure([compilations.main, compilations.test]) {
+                kotlinOptions {
+                    target = "v5"
+                    moduleKind = "umd"
+                    sourceMap = true
+                }
+            }
+        }
 
         configure([targets["metadata"], jvm(), js()]) {
             configure([compilations.main]) {
