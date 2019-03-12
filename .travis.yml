@@ -1,0 +1,10 @@
+language: java
+sudo: false
+services:
+- docker
+env:
+- AWS_REGION=eu-west-1
+install:
+- echo No installation required
+script:
+- "./gradlew build check"
