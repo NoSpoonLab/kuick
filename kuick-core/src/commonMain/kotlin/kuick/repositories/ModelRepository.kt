@@ -22,3 +22,6 @@ interface ModelRepository<I : Any, T : Any> : ViewRepository<I, T> {
 suspend fun <I : Any, T : Any> ModelRepository<I, T>.updateBy(q: ModelQuery<T>, updater: (T) -> T) {
     for (it in findBy(q)) update(updater(it))
 }
+
+suspend fun <I : Any, T : Any> ModelRepository<I, T>.updateOneBy(q: ModelQuery<T>, updater: (T) -> T): T =
+        update(updater(findOneBy(q)!!))
