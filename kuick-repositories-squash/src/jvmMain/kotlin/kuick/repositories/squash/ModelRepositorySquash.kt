@@ -19,8 +19,8 @@ import kotlin.reflect.full.starProjectedType
 
 
 open class ModelRepositorySquash<I : Any, T : Any>(
-    val modelClass: KClass<T>,
-    val idField: KProperty1<T, I>
+        val modelClass: KClass<T>,
+        val idField: KProperty1<T, I>
 ) : ModelRepository<I, T> {
 
     val table = ORMTableDefinition(modelClass)
@@ -78,10 +78,10 @@ open class ModelRepositorySquash<I : Any, T : Any>(
     override suspend fun findById(i: I): T? = findOneBy(idField eq i)
 
     override suspend fun findOneBy(q: ModelQuery<T>): T? =
-        table.selectOne(domainTransaction()) { q.toSquash() }
+            table.selectOne(domainTransaction()) { q.toSquash() }
 
     override suspend fun findBy(q: ModelQuery<T>): List<T> =
-        table.select(domainTransaction()) { q.toSquash() }
+            table.select(domainTransaction()) { q.toSquash() }
 
     override suspend fun getAll(): List<T> = table.selectAll(domainTransaction())
 
@@ -94,8 +94,8 @@ open class ModelRepositorySquash<I : Any, T : Any>(
         is FieldGte<T, *> -> table[field] gteq value
         is FieldLt<T, *> -> table[field] lt value
         is FieldLte<T, *> -> table[field] lteq value
-        is FieldWithin<T, *> -> table[field] within value
-        is FieldWithinComplex<T, *> -> table[field] within value.map { Json.toJson(it) }
+        is FieldWithin<T, *> -> table[field] within (value ?: emptySet())
+        is FieldWithinComplex<T, *> -> table[field] within (value?.map { Json.toJson(it) } ?: emptySet())
         is FilterExpAnd<T> -> left.toSquash() and right.toSquash()
         is FilterExpOr<T> -> left.toSquash() or right.toSquash()
         is FilterExpNot<T> -> not(exp.toSquash())

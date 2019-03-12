@@ -7,8 +7,8 @@ import kotlin.reflect.KProperty1
 
 
 open class ModelRepositoryMemory<I : Any, T : Any>(
-    val modelClass: KClass<T>,
-    val idField: KProperty1<T, I>
+        val modelClass: KClass<T>,
+        val idField: KProperty1<T, I>
 ) : ModelRepository<I, T>, ScoredViewRepository<I, T> {
 
     val table = mutableMapOf<I, T>()
@@ -32,20 +32,20 @@ open class ModelRepositoryMemory<I : Any, T : Any>(
     }
 
     override suspend fun deleteBy(q: ModelQuery<T>) =
-        findBy(q).forEach { delete(idField.get(it)) }
+            findBy(q).forEach { delete(idField.get(it)) }
 
     override suspend fun findById(i: I): T? = table[i]
 
     override suspend fun findOneBy(q: ModelQuery<T>): T? = findBy(q).firstOrNull()
 
     override suspend fun findBy(q: ModelQuery<T>): List<T> =
-        table.values.filter { it.match(q) }
+            table.values.filter { it.match(q) }
 
     override suspend fun getAll(): List<T> = table.values.toList()
 
     override suspend fun searchBy(q: ModelQuery<T>): List<ScoredModel<T>> =
-        findBy(q)
-            .map { ScoredModel(1.0F, it) }
+            findBy(q)
+                    .map { ScoredModel(1.0F, it) }
 
     private fun id(t: T): I = idField.get(t)
 
@@ -61,7 +61,7 @@ open class ModelRepositoryMemory<I : Any, T : Any>(
                 is FieldEqs<T, *> ->
                     q.field.get(this) == q.value
                 is FieldLike<T> ->
-                    q.field.get(this)?.contains(q.value) ?: false
+                    q.value?.let { q.field.get(this)?.contains(q.value) ?: false } ?: false
                 is FieldGt<T, *> ->
                     compare(q).let { if (it == null) false else it > 0 }
                 is FieldGte<T, *> ->
@@ -71,9 +71,9 @@ open class ModelRepositoryMemory<I : Any, T : Any>(
                 is FieldLte<T, *> ->
                     compare(q).let { if (it == null) false else it <= 0 }
                 is FieldWithin<T, *> ->
-                    q.value.contains(q.field(this))
+                    q.value?.contains(q.field(this)) ?: false
                 is FieldWithinComplex<T, *> ->
-                    q.value.contains(q.field(this))
+                    q.value?.contains(q.field(this)) ?: false
                 else -> throw NotImplementedError("Missing implementation of .toSquash() for ${this}")
             }
         }
@@ -84,7 +84,7 @@ open class ModelRepositoryMemory<I : Any, T : Any>(
     }
 
     private fun T.compare(q: SimpleFieldBinop<T, *>) =
-        (q.field.get(this) as Comparable<Any>?)?.compareTo(q.value as Comparable<Any>)
+            (q.field.get(this) as Comparable<Any>?)?.compareTo(q.value as Comparable<Any>)
 
 }
 
