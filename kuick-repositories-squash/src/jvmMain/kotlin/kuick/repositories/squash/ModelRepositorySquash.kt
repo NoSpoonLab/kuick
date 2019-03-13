@@ -21,7 +21,7 @@ import kotlin.reflect.full.starProjectedType
 open class ModelRepositorySquash<I : Any, T : Any>(
         val modelClass: KClass<T>,
         val idField: KProperty1<T, I>,
-        val textLengths : Map<KProperty1<T, String>,Int>
+        val textLengths : Map<KProperty1<T, String>,Int> = mapOf()
 ) : ModelRepository<I, T> {
 
     val table = ORMTableDefinition(modelClass)
