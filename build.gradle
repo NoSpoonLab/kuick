@@ -60,6 +60,11 @@ subprojects {
         }
     }
 
+    jvmTest {
+        testLogging {
+            exceptionFormat = 'full'
+        }
+    }
 
     dependencies {
         commonMainImplementation "org.jetbrains.kotlin:kotlin-stdlib-common"
