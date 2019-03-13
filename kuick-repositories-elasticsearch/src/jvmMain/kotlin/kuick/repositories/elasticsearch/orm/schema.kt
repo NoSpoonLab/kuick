@@ -1,12 +1,12 @@
 package kuick.repositories.elasticsearch.orm
 
 
+import kuick.repositories.annotations.*
 import kuick.repositories.elasticsearch.orm.ElasticSearchFieldType.KEYWORD
 import kuick.utils.nonStaticFields
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
-import kotlin.reflect.full.declaredMemberProperties
-import kotlin.reflect.full.starProjectedType
+import kotlin.reflect.full.*
 
 class ElasticSearchIndexSchema<T : Any?> {
 
@@ -43,6 +43,7 @@ class ElasticSearchIndexSchema<T : Any?> {
                     }.filter {
                         this.get(it) == null
                     }.forEach { prop ->
+                        val maxLength = prop.findAnnotation<MaxLength>()?.maxLength
                         val nullableProp = prop.returnType.isMarkedNullable
                         val returnType = prop.returnType.classifier!!.starProjectedType
                         val columnName = prop.name

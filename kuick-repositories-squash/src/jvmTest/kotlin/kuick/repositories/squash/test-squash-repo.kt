@@ -1,20 +1,16 @@
 package kuick.repositories.squash
 
-import kuick.db.DomainTransactionContext
-import kuick.models.Id
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withContext
-import kuick.repositories.ModelQuery
-import kuick.repositories.eq
-import kuick.repositories.gt
-import kuick.repositories.gte
-import kuick.repositories.squash.orm.DomainTransactionSquash
-import org.jetbrains.squash.connection.DatabaseConnection
-import org.jetbrains.squash.connection.transaction
-import org.jetbrains.squash.dialects.h2.H2Connection
+import kotlinx.coroutines.*
+import kuick.db.*
+import kuick.models.*
+import kuick.repositories.*
+import kuick.repositories.annotations.*
+import kuick.repositories.squash.orm.*
+import org.jetbrains.squash.connection.*
+import org.jetbrains.squash.dialects.h2.*
+import org.junit.*
 
-
-data class UserId(override val id: String): Id
+data class UserId(override val id: String) : Id
 
 data class User(val userId: UserId,
                 val firstName: String,
@@ -24,7 +20,7 @@ data class User(val userId: UserId,
 )
 
 
-fun DatabaseConnection.runInTransaction(actions: suspend () -> Unit)  = transaction {
+fun DatabaseConnection.runInTransaction(actions: suspend () -> Unit) = transaction {
     val tr = DomainTransactionSquash(this)
     runBlocking {
         withContext(DomainTransactionContext(tr)) {

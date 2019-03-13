@@ -4,6 +4,7 @@ import kuick.db.domainTransaction
 import kuick.json.Json
 import kuick.models.Id
 import kuick.repositories.*
+import kuick.repositories.annotations.*
 import kuick.repositories.squash.orm.*
 import kuick.utils.nonStaticFields
 import org.jetbrains.squash.definition.*
@@ -13,15 +14,14 @@ import java.time.LocalDate
 import java.util.*
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
-import kotlin.reflect.full.declaredMemberProperties
-import kotlin.reflect.full.isSubtypeOf
-import kotlin.reflect.full.starProjectedType
+import kotlin.reflect.full.*
+import kotlin.reflect.jvm.*
 
 
 open class ModelRepositorySquash<I : Any, T : Any>(
         val modelClass: KClass<T>,
         val idField: KProperty1<T, I>,
-        val textLength: Int = LONG_TEXT_LEN
+        val defaultMaxLength: Int = LONG_TEXT_LEN
 ) : ModelRepository<I, T> {
 
     val table = ORMTableDefinition(modelClass)
@@ -30,13 +30,15 @@ open class ModelRepositorySquash<I : Any, T : Any>(
         modelClass.java.nonStaticFields().forEach { field ->
             val prop = modelClass.declaredMemberProperties.firstOrNull { it.name == field.name }
             if (prop == null) throw IllegalStateException("Property not found for field: ${field.name}")
+
+            val maxLength: Int? = prop.javaField?.getAnnotation(MaxLength::class.java)?.maxLength
             val nullableProp = prop.returnType.isMarkedNullable
             val returnType = prop.returnType.classifier!!.starProjectedType
             val columnName = prop.name.toSnakeCase()
             //println("Registering field ${prop} with return type: ${prop.returnType}")
             with(table) {
                 var columnDefinition: ColumnDefinition<Any?> = when {
-                    returnType == String::class.starProjectedType -> varchar(columnName, textLength)
+                    returnType == String::class.starProjectedType -> varchar(columnName, maxLength ?: defaultMaxLength)
                     returnType == Int::class.starProjectedType -> integer(columnName)
                     returnType == Long::class.starProjectedType -> long(columnName)
                     returnType == Double::class.starProjectedType -> decimal(columnName, 5, 4)
@@ -44,7 +46,7 @@ open class ModelRepositorySquash<I : Any, T : Any>(
                     returnType == Date::class.starProjectedType -> long(columnName)
                     returnType == LocalDate::class.starProjectedType -> varchar(columnName, LOCAL_DATE_TIME_LEN)
                     returnType.isSubtypeOf(Id::class.starProjectedType) -> (varchar(columnName, ID_LEN))
-                    else -> varchar(columnName, textLength)
+                    else -> varchar(columnName, defaultMaxLength)
                 }
                 if (nullableProp) columnDefinition = columnDefinition.nullable()
                 prop to columnDefinition
