@@ -20,11 +20,14 @@ class SquashRepoTest {
         db.runInTransaction {
             repo.insert(User("1234", "12"))
         }
-        assertFailsWith<JdbcSQLException> {
-            db.runInTransaction {
-                repo.insert(User("12345", "123"))
-            }
-        }
-        Unit
+        assertEquals(
+            "Value too long for column \"A VARCHAR(4) NOT NULL\": \"'12345' (5)\"; SQL statement:\n" +
+            "INSERT INTO \"User\" (a, b) VALUES (?, ?) [22001-197]",
+            assertFailsWith<JdbcSQLException> {
+                db.runInTransaction {
+                    repo.insert(User("12345", "123"))
+                }
+            }.message
+        )
     }
 }
