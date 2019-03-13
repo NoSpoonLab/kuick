@@ -20,7 +20,8 @@ import kotlin.reflect.full.starProjectedType
 
 open class ModelRepositorySquash<I : Any, T : Any>(
         val modelClass: KClass<T>,
-        val idField: KProperty1<T, I>
+        val idField: KProperty1<T, I>,
+        val textLength: Int = LONG_TEXT_LEN
 ) : ModelRepository<I, T> {
 
     val table = ORMTableDefinition(modelClass)
@@ -35,7 +36,7 @@ open class ModelRepositorySquash<I : Any, T : Any>(
             //println("Registering field ${prop} with return type: ${prop.returnType}")
             with(table) {
                 var columnDefinition: ColumnDefinition<Any?> = when {
-                    returnType == String::class.starProjectedType -> varchar(columnName, LONG_TEXT_LEN)
+                    returnType == String::class.starProjectedType -> varchar(columnName, textLength)
                     returnType == Int::class.starProjectedType -> integer(columnName)
                     returnType == Long::class.starProjectedType -> long(columnName)
                     returnType == Double::class.starProjectedType -> decimal(columnName, 5, 4)
@@ -43,8 +44,7 @@ open class ModelRepositorySquash<I : Any, T : Any>(
                     returnType == Date::class.starProjectedType -> long(columnName)
                     returnType == LocalDate::class.starProjectedType -> varchar(columnName, LOCAL_DATE_TIME_LEN)
                     returnType.isSubtypeOf(Id::class.starProjectedType) -> (varchar(columnName, ID_LEN))
-                    returnType.toString().startsWith("koan") -> varchar(columnName, LONG_TEXT_LEN)
-                    else -> varchar(columnName, LONG_TEXT_LEN)
+                    else -> varchar(columnName, textLength)
                 }
                 if (nullableProp) columnDefinition = columnDefinition.nullable()
                 prop to columnDefinition
