@@ -21,14 +21,16 @@ import kotlin.reflect.full.starProjectedType
 open class ModelRepositorySquash<I : Any, T : Any>(
         val modelClass: KClass<T>,
         val idField: KProperty1<T, I>,
-        val textLength: Int = LONG_TEXT_LEN
+        val textLengths : Map<KProperty1<T, String>,Int>
 ) : ModelRepository<I, T> {
 
     val table = ORMTableDefinition(modelClass)
 
+    private fun getColumnLength(prop: KProperty1<T,*>) = textLengths[prop]?:LONG_TEXT_LEN
+
     init {
         modelClass.java.nonStaticFields().forEach { field ->
-            val prop = modelClass.declaredMemberProperties.firstOrNull { it.name == field.name }
+            val prop  = modelClass.declaredMemberProperties.firstOrNull { it.name == field.name }
             if (prop == null) throw IllegalStateException("Property not found for field: ${field.name}")
             val nullableProp = prop.returnType.isMarkedNullable
             val returnType = prop.returnType.classifier!!.starProjectedType
@@ -36,7 +38,7 @@ open class ModelRepositorySquash<I : Any, T : Any>(
             //println("Registering field ${prop} with return type: ${prop.returnType}")
             with(table) {
                 var columnDefinition: ColumnDefinition<Any?> = when {
-                    returnType == String::class.starProjectedType -> varchar(columnName, textLength)
+                    returnType == String::class.starProjectedType -> varchar(columnName, getColumnLength(prop))
                     returnType == Int::class.starProjectedType -> integer(columnName)
                     returnType == Long::class.starProjectedType -> long(columnName)
                     returnType == Double::class.starProjectedType -> decimal(columnName, 5, 4)
@@ -44,7 +46,7 @@ open class ModelRepositorySquash<I : Any, T : Any>(
                     returnType == Date::class.starProjectedType -> long(columnName)
                     returnType == LocalDate::class.starProjectedType -> varchar(columnName, LOCAL_DATE_TIME_LEN)
                     returnType.isSubtypeOf(Id::class.starProjectedType) -> (varchar(columnName, ID_LEN))
-                    else -> varchar(columnName, textLength)
+                    else -> varchar(columnName, getColumnLength(prop))
                 }
                 if (nullableProp) columnDefinition = columnDefinition.nullable()
                 prop to columnDefinition
