@@ -86,6 +86,10 @@ private fun <T:Any> ResultRow.readColumnValue(clazz: KClass<T>, field: Field, co
         }
         type == Int::class.java  || type == Integer::class.java -> columnValue(Int::class, columnName, tableName)
         type == Long::class.java -> columnValue(Long::class, columnName, tableName)
+        type.name == "java.lang.Long" -> {
+            val longValue = columnValue(Long::class, columnName, tableName)
+            if (longValue == null) null else longValue
+        }
         type== Date::class.java ->{
             val timestamp = columnValue(Long::class, columnName, tableName) as Long?
             if (timestamp == null) null else Date(timestamp)
