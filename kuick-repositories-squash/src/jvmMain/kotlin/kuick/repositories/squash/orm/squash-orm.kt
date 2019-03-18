@@ -76,10 +76,10 @@ private fun <T:Any> ResultRow.readColumnValue(clazz: KClass<T>, field: Field, co
     Double::class, BigDecimal::class -> columnValue<BigDecimal>(columnName, tableName)?.toDouble()
     Email::class -> columnValue<String>(columnName, tableName)?.let { Email(it) }
     Date::class -> columnValue<Long>(columnName, tableName)?.let { Date(it) }
-    LocalDateTime::class -> columnValue<String>(columnName, tableName)?.let { LocalDateTime.parse(it, DATE_TIME_FORMATTER) }
+    LocalDateTime::class -> columnValue<String>(columnName, tableName)?.let { LocalDateTime.parse(it, DATE_TIME_FORMAT) }
     LocalDate::class -> columnValue<String>(columnName, tableName)?.takeIf { it != "0000-00-00" }?.let { dateAsStr ->
-        ignoreErrors { LocalDate.parse(dateAsStr, DATE_FORMATTER) }
-            ?: ignoreErrors { LocalDate.parse(Json.fromJson<KLocalDate>(dateAsStr).toString(), DATE_FORMATTER) }
+        ignoreErrors { LocalDate.parse(dateAsStr, DATE_FORMAT) }
+            ?: ignoreErrors { LocalDate.parse(Json.fromJson<KLocalDate>(dateAsStr).toString(), DATE_FORMAT) }
             ?: error("Unknown date format [$dateAsStr]")
     }
     else -> when {
@@ -111,8 +111,8 @@ infix fun <D:Any, T : Table> UpdateQueryStatement<T>.from(data: D) {
     }
 }
 
-private val DATE_FORMATTER = DateTimeFormatter.ISO_DATE
-private val DATE_TIME_FORMATTER = DateTimeFormatter.ISO_DATE_TIME
+private val DATE_FORMAT = DateTimeFormatter.ISO_DATE
+private val DATE_TIME_FORMAT = DateTimeFormatter.ISO_DATE_TIME
 
 private fun decodeValue(value: Any?) = when (value) {
     null -> null
@@ -120,8 +120,8 @@ private fun decodeValue(value: Any?) = when (value) {
     is Email -> value.email
     is String, is Int, is Long, is Double -> value
     is Date -> value.time
-    is LocalDate -> DATE_FORMATTER.format(value)
-    is LocalDateTime -> DATE_TIME_FORMATTER.format(value)
+    is LocalDate -> DATE_FORMAT.format(value)
+    is LocalDateTime -> DATE_TIME_FORMAT.format(value)
     value::class.java == Int::class.java -> value
     is Boolean -> value.toString().toBoolean()
     else -> Json.toJson(value)
