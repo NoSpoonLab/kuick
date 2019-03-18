@@ -79,14 +79,13 @@ private fun <T:Any> ResultRow.readColumnValue(clazz: KClass<T>, field: Field, co
         }
 
         type == String::class.java -> columnValue(String::class, columnName, tableName)
-        type == Boolean::class.java ||
-        type.name == "java.lang.Boolean" -> {
+        type == Boolean::class.javaPrimitiveType || type == Boolean::class.javaObjectType -> {
             val boolean = columnValue(Boolean::class, columnName, tableName)
             boolean
         }
         type == Int::class.java  || type == Integer::class.java -> columnValue(Int::class, columnName, tableName)
-        type == Long::class.java -> columnValue(Long::class, columnName, tableName)
-        type.name == "java.lang.Long" -> {
+        type == Long::class.javaPrimitiveType -> columnValue(Long::class, columnName, tableName)
+        type == Long::class.javaObjectType -> {
             val longValue = columnValue(Long::class, columnName, tableName)
             if (longValue == null) null else longValue
         }
@@ -94,13 +93,12 @@ private fun <T:Any> ResultRow.readColumnValue(clazz: KClass<T>, field: Field, co
             val timestamp = columnValue(Long::class, columnName, tableName) as Long?
             if (timestamp == null) null else Date(timestamp)
         }
-        type == Double::class.java -> (columnValue(BigDecimal::class, columnName, tableName) as BigDecimal)?.toDouble()
-        type.name == "java.lang.Double" ||
-        type.name == "java.math.BigDecimal" -> {
+        type == Double::class.javaPrimitiveType -> (columnValue(BigDecimal::class, columnName, tableName) as BigDecimal)?.toDouble()
+        type == Double::class.javaObjectType || type == BigDecimal::class.java -> {
             val doubleValue = columnValue(BigDecimal::class, columnName, tableName)
             if (doubleValue == null) null else (doubleValue as BigDecimal).toDouble()
         }
-        type == Float::class.java -> columnValue(Float::class, columnName, tableName)
+        type == Float::class.javaPrimitiveType -> columnValue(Float::class, columnName, tableName)
         type == LocalDate::class.java -> {
             val dateAsStr = columnValue(String::class, columnName, tableName)
             if (dateAsStr == null || dateAsStr == "0000-00-00") null else {
