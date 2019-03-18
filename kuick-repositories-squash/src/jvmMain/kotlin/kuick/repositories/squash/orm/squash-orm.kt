@@ -77,60 +77,63 @@ private fun <T:Any> ResultRow.readColumnValue(clazz: KClass<T>, field: Field, co
         Email::class.java.isAssignableFrom(type) -> {
             Email(columnValue(String::class, columnName, tableName).toString())
         }
-
-        type == String::class.java -> columnValue(String::class, columnName, tableName)
-        type == Boolean::class.javaPrimitiveType || type == Boolean::class.javaObjectType -> {
-            val boolean = columnValue(Boolean::class, columnName, tableName)
-            boolean
-        }
-        type == Int::class.java  || type == Integer::class.java -> columnValue(Int::class, columnName, tableName)
-        type == Long::class.javaPrimitiveType -> columnValue(Long::class, columnName, tableName)
-        type == Long::class.javaObjectType -> {
-            val longValue = columnValue(Long::class, columnName, tableName)
-            if (longValue == null) null else longValue
-        }
-        type== Date::class.java ->{
-            val timestamp = columnValue(Long::class, columnName, tableName) as Long?
-            if (timestamp == null) null else Date(timestamp)
-        }
-        type == Double::class.javaPrimitiveType -> (columnValue(BigDecimal::class, columnName, tableName) as BigDecimal)?.toDouble()
-        type == Double::class.javaObjectType || type == BigDecimal::class.java -> {
-            val doubleValue = columnValue(BigDecimal::class, columnName, tableName)
-            if (doubleValue == null) null else (doubleValue as BigDecimal).toDouble()
-        }
-        type == Float::class.javaPrimitiveType -> columnValue(Float::class, columnName, tableName)
-        type == LocalDate::class.java -> {
-            val dateAsStr = columnValue(String::class, columnName, tableName)
-            if (dateAsStr == null || dateAsStr == "0000-00-00") null else {
-                try {
-                    LocalDate.parse(dateAsStr.toString(), DATE_FOTMATTER)
-                } catch (dtpe: DateTimeParseException) {
-                    try {
-                        val dateAsStr = Json.fromJson<KLocalDate>(dateAsStr.toString())
-                        LocalDate.parse(dateAsStr.toString(), DATE_FOTMATTER)
-                    } catch (t: Throwable) {
-                        throw RuntimeException("Unknown date format [${dateAsStr}]", t)
+        else -> {
+            when (type) {
+                String::class.java -> columnValue(String::class, columnName, tableName)
+                Boolean::class.javaPrimitiveType, Boolean::class.javaObjectType -> {
+                    val boolean = columnValue(Boolean::class, columnName, tableName)
+                    boolean
+                }
+                Int::class.javaPrimitiveType, Int::class.javaObjectType -> columnValue(Int::class, columnName, tableName)
+                Long::class.javaPrimitiveType -> columnValue(Long::class, columnName, tableName)
+                Long::class.javaObjectType -> {
+                    val longValue = columnValue(Long::class, columnName, tableName)
+                    if (longValue == null) null else longValue
+                }
+                Date::class.java ->{
+                    val timestamp = columnValue(Long::class, columnName, tableName) as Long?
+                    if (timestamp == null) null else Date(timestamp)
+                }
+                Double::class.javaPrimitiveType -> (columnValue(BigDecimal::class, columnName, tableName) as BigDecimal)?.toDouble()
+                Double::class.javaObjectType, BigDecimal::class.java -> {
+                    val doubleValue = columnValue(BigDecimal::class, columnName, tableName)
+                    if (doubleValue == null) null else (doubleValue as BigDecimal).toDouble()
+                }
+                Float::class.javaPrimitiveType -> columnValue(Float::class, columnName, tableName)
+                LocalDate::class.java -> {
+                    val dateAsStr = columnValue(String::class, columnName, tableName)
+                    if (dateAsStr == null || dateAsStr == "0000-00-00") null else {
+                        try {
+                            LocalDate.parse(dateAsStr.toString(), DATE_FOTMATTER)
+                        } catch (dtpe: DateTimeParseException) {
+                            try {
+                                val dateAsStr = Json.fromJson<KLocalDate>(dateAsStr.toString())
+                                LocalDate.parse(dateAsStr.toString(), DATE_FOTMATTER)
+                            } catch (t: Throwable) {
+                                throw RuntimeException("Unknown date format [${dateAsStr}]", t)
+                            }
+                        }
                     }
                 }
-            }
-        }
-        type == LocalDateTime::class.java -> {
-            val dateAsStr = columnValue(String::class, columnName, tableName)
-            if (dateAsStr == null) null else LocalDateTime.parse(dateAsStr.toString(), DATE_TIME_FOTMATTER)
-        }
-
-        else -> {
-            try {
-                val json = columnValue(String::class, columnName, tableName) as String?
-                //println("COLLECTION: $json <--- $type")
-                if (json == null) null else {
-                    val extJson = """{"${field.name}":${json}}"""
-                    val obj = Json.fromJson(extJson, clazz)
-                    field.isAccessible = true
-                    field.get(obj)
+                LocalDateTime::class.java -> {
+                    val dateAsStr = columnValue(String::class, columnName, tableName)
+                    if (dateAsStr == null) null else LocalDateTime.parse(dateAsStr.toString(), DATE_TIME_FOTMATTER)
                 }
-            } catch (ise: IllegalStateException) {
-                throw ise
+
+                else -> {
+                    try {
+                        val json = columnValue(String::class, columnName, tableName) as String?
+                        //println("COLLECTION: $json <--- $type")
+                        if (json == null) null else {
+                            val extJson = """{"${field.name}":${json}}"""
+                            val obj = Json.fromJson(extJson, clazz)
+                            field.isAccessible = true
+                            field.get(obj)
+                        }
+                    } catch (ise: IllegalStateException) {
+                        throw ise
+                    }
+                }
             }
         }
     }
