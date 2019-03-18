@@ -80,18 +80,18 @@ private fun <T:Any> ResultRow.readColumnValue(clazz: KClass<T>, field: Field, co
         Email::class.java.isAssignableFrom(type) -> {
             Email(columnValue<String>(columnName, tableName).toString())
         }
-        else -> when (type) {
-            String::class.java -> columnValue<String>(columnName, tableName)
+        else -> when (type.kotlin) {
+            String::class -> columnValue<String>(columnName, tableName)
 
-            Boolean::class.javaPrimitiveType, Boolean::class.javaObjectType -> columnValue<Boolean>(columnName, tableName)
-            Int::class.javaPrimitiveType, Int::class.javaObjectType -> columnValue<Int>(columnName, tableName)
-            Long::class.javaPrimitiveType, Long::class.javaObjectType -> columnValue<Long>(columnName, tableName)
-            Float::class.javaPrimitiveType, Float::class.javaObjectType -> columnValue<Float>(columnName, tableName)
-            Double::class.javaPrimitiveType, Double::class.javaObjectType, BigDecimal::class.java -> (columnValue<BigDecimal>(columnName, tableName) as? BigDecimal?)?.toDouble()
+            Boolean::class -> columnValue<Boolean>(columnName, tableName)
+            Int::class -> columnValue<Int>(columnName, tableName)
+            Long::class -> columnValue<Long>(columnName, tableName)
+            Float::class -> columnValue<Float>(columnName, tableName)
+            Double::class, BigDecimal::class -> (columnValue<BigDecimal>(columnName, tableName) as? BigDecimal?)?.toDouble()
 
-            Date::class.java -> (columnValue<Long>(columnName, tableName) as Long?)?.let { Date(it) }
-            LocalDateTime::class.java -> columnValue<String>(columnName, tableName)?.let { LocalDateTime.parse(it.toString(), DATE_TIME_FOTMATTER) }
-            LocalDate::class.java -> {
+            Date::class -> (columnValue<Long>(columnName, tableName) as Long?)?.let { Date(it) }
+            LocalDateTime::class -> columnValue<String>(columnName, tableName)?.let { LocalDateTime.parse(it.toString(), DATE_TIME_FOTMATTER) }
+            LocalDate::class -> {
                 val dateAsStr = columnValue<String>(columnName, tableName)
                 if (dateAsStr == null || dateAsStr == "0000-00-00") null else {
                     try {
