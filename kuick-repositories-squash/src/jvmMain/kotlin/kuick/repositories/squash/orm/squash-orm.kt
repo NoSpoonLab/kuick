@@ -72,8 +72,7 @@ private inline fun <reified T> ResultRow.columnValue(columnName: String, tableNa
 
 private inline fun <T> ignoreErrors(callback: () -> T): T? = runCatching { callback() }.getOrNull()
 
-private fun <T:Any> ResultRow.readColumnValue(clazz: KClass<T>, field: Field, columnName: String, tableName: String): Any? = when (val type = field.type?.kotlin) {
-    null -> null
+private fun <T:Any> ResultRow.readColumnValue(clazz: KClass<T>, field: Field, columnName: String, tableName: String): Any? = when (val type = field.type.kotlin) {
     String::class, Boolean::class, Int::class, Long::class, Float::class -> columnValue(type, columnName, tableName)
     Double::class, BigDecimal::class -> columnValue<BigDecimal>(columnName, tableName)?.toDouble()
     Email::class -> columnValue<String>(columnName, tableName)?.let { Email(it) }
