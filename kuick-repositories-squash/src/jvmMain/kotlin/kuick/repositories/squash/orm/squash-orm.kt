@@ -79,12 +79,14 @@ private fun <T:Any> ResultRow.readColumnValue(clazz: KClass<T>, field: Field, co
         }
         else -> when (type) {
             String::class.java -> columnValue(String::class, columnName, tableName)
+
             Boolean::class.javaPrimitiveType, Boolean::class.javaObjectType -> columnValue(Boolean::class, columnName, tableName)
             Int::class.javaPrimitiveType, Int::class.javaObjectType -> columnValue(Int::class, columnName, tableName)
             Long::class.javaPrimitiveType, Long::class.javaObjectType -> columnValue(Long::class, columnName, tableName)
-            Date::class.java -> (columnValue(Long::class, columnName, tableName) as Long?)?.let { Date(it) }
-            Double::class.javaPrimitiveType, Double::class.javaObjectType, BigDecimal::class.java -> (columnValue(BigDecimal::class, columnName, tableName) as? BigDecimal?)?.toDouble()
             Float::class.javaPrimitiveType, Float::class.javaObjectType -> columnValue(Float::class, columnName, tableName)
+            Double::class.javaPrimitiveType, Double::class.javaObjectType, BigDecimal::class.java -> (columnValue(BigDecimal::class, columnName, tableName) as? BigDecimal?)?.toDouble()
+
+            Date::class.java -> (columnValue(Long::class, columnName, tableName) as Long?)?.let { Date(it) }
             LocalDateTime::class.java -> columnValue(String::class, columnName, tableName)?.let { LocalDateTime.parse(it.toString(), DATE_TIME_FOTMATTER) }
             LocalDate::class.java -> {
                 val dateAsStr = columnValue(String::class, columnName, tableName)
