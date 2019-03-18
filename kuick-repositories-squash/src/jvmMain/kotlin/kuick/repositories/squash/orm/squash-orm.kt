@@ -25,7 +25,7 @@ import java.time.format.DateTimeParseException
 import java.util.*
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
-import kotlin.reflect.full.memberProperties
+import kotlin.reflect.full.*
 
 
 const val LOCAL_DATE_LEN = 16
@@ -67,8 +67,8 @@ infix fun <T:Any> ResultRow.toDAO(ormDef: ORMTableDefinition<T>): T {
 
 private fun <T:Any> KClass<T>.toDAOFields() = java.nonStaticFields()
 
-private inline fun <reified T> ResultRow.columnValue(columnName: String, tableName: String?  = null): Any? =
-        columnValue(T::class, columnName, tableName)
+private inline fun <reified T> ResultRow.columnValue(columnName: String, tableName: String?  = null): T? =
+        columnValue(T::class, columnName, tableName) as? T?
 
 private fun <T:Any> ResultRow.readColumnValue(clazz: KClass<T>, field: Field, columnName: String, tableName: String): Any? = when (val type = field.type?.kotlin) {
     null -> null
@@ -79,29 +79,19 @@ private fun <T:Any> ResultRow.readColumnValue(clazz: KClass<T>, field: Field, co
     Int::class -> columnValue<Int>(columnName, tableName)
     Long::class -> columnValue<Long>(columnName, tableName)
     Float::class -> columnValue<Float>(columnName, tableName)
-    Double::class, BigDecimal::class -> (columnValue<BigDecimal>(columnName, tableName) as? BigDecimal?)?.toDouble()
+    Double::class, BigDecimal::class -> columnValue<BigDecimal>(columnName, tableName)?.toDouble()
 
-    Date::class -> (columnValue<Long>(columnName, tableName) as Long?)?.let { Date(it) }
-    LocalDateTime::class -> columnValue<String>(columnName, tableName)?.let { LocalDateTime.parse(it.toString(), DATE_TIME_FOTMATTER) }
-    LocalDate::class -> {
-        val dateAsStr = columnValue<String>(columnName, tableName)
-        if (dateAsStr == null || dateAsStr == "0000-00-00") null else {
-            runCatching { LocalDate.parse(dateAsStr.toString(), DATE_FOTMATTER) }.getOrNull()
-                ?: runCatching { LocalDate.parse(Json.fromJson<KLocalDate>(dateAsStr.toString()).toString(), DATE_FOTMATTER) }.getOrNull()
-                ?: error("Unknown date format [$dateAsStr]")
-        }
+    Date::class -> columnValue<Long>(columnName, tableName)?.let { Date(it) }
+    LocalDateTime::class -> columnValue<String>(columnName, tableName)?.let { LocalDateTime.parse(it, DATE_TIME_FOTMATTER) }
+    LocalDate::class -> columnValue<String>(columnName, tableName)?.takeUnless { it == "0000-00-00" }?.let { dateAsStr ->
+        runCatching { LocalDate.parse(dateAsStr, DATE_FOTMATTER) }.getOrNull()
+            ?: runCatching { LocalDate.parse(Json.fromJson<KLocalDate>(dateAsStr).toString(), DATE_FOTMATTER) }.getOrNull()
+            ?: error("Unknown date format [$dateAsStr]")
     }
     Email::class -> Email(columnValue<String>(columnName, tableName).toString())
     else -> when {
-        Id::class.java.isAssignableFrom(type?.java) ->
-            columnValue<String>(columnName, tableName)?.let { type.java?.constructors?.firstOrNull()?.newInstance(it) }
-        else -> (columnValue<String>(columnName, tableName) as String?)?.let { json ->
-            //println("COLLECTION: $json <--- $type")
-            val extJson = """{"${field.name}":${json}}"""
-            val obj = Json.fromJson(extJson, clazz)
-            field.isAccessible = true
-            field.get(obj)
-        }
+        type.isSubclassOf(Id::class) -> columnValue<String>(columnName, tableName)?.let { type.constructors.firstOrNull()?.call(it) }
+        else -> columnValue<String>(columnName, tableName)?.let { field.apply { isAccessible = true }.get(Json.fromJson("{\"${field.name}\":$it}", clazz)) }
     }
 }
 
