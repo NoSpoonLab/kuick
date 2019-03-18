@@ -70,6 +70,8 @@ private fun <T:Any> KClass<T>.toDAOFields() = java.nonStaticFields()
 private inline fun <reified T> ResultRow.columnValue(columnName: String, tableName: String?  = null): T? =
         columnValue(T::class, columnName, tableName) as? T?
 
+private inline fun <T> ignoreErrors(callback: () -> T): T? = runCatching { callback() }.getOrNull()
+
 private fun <T:Any> ResultRow.readColumnValue(clazz: KClass<T>, field: Field, columnName: String, tableName: String): Any? = when (val type = field.type?.kotlin) {
     null -> null
     String::class, Boolean::class, Int::class, Long::class, Float::class -> columnValue(type, columnName, tableName)
@@ -77,11 +79,11 @@ private fun <T:Any> ResultRow.readColumnValue(clazz: KClass<T>, field: Field, co
     Date::class -> columnValue<Long>(columnName, tableName)?.let { Date(it) }
     LocalDateTime::class -> columnValue<String>(columnName, tableName)?.let { LocalDateTime.parse(it, DATE_TIME_FOTMATTER) }
     LocalDate::class -> columnValue<String>(columnName, tableName)?.takeIf { it != "0000-00-00" }?.let { dateAsStr ->
-        runCatching { LocalDate.parse(dateAsStr, DATE_FOTMATTER) }.getOrNull()
-            ?: runCatching { LocalDate.parse(Json.fromJson<KLocalDate>(dateAsStr).toString(), DATE_FOTMATTER) }.getOrNull()
+        ignoreErrors { LocalDate.parse(dateAsStr, DATE_FOTMATTER) }
+            ?: ignoreErrors { LocalDate.parse(Json.fromJson<KLocalDate>(dateAsStr).toString(), DATE_FOTMATTER) }
             ?: error("Unknown date format [$dateAsStr]")
     }
-    Email::class -> Email(columnValue<String>(columnName, tableName).toString())
+    Email::class -> columnValue<String>(columnName, tableName)?.let { Email(it) }
     else -> when {
         type.isSubclassOf(Id::class) -> columnValue<String>(columnName, tableName)?.let { type.primaryConstructor?.call(it) }
         else -> columnValue<String>(columnName, tableName)?.let { field.apply { isAccessible = true }.get(Json.fromJson("{\"${field.name}\":$it}", clazz)) }
