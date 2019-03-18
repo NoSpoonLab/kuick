@@ -14,7 +14,7 @@ import org.jetbrains.squash.expressions.*
 import org.jetbrains.squash.query.from
 import org.jetbrains.squash.query.orderBy
 import org.jetbrains.squash.query.where
-import org.jetbrains.squash.results.ResultRow
+import org.jetbrains.squash.results.*
 import org.jetbrains.squash.statements.*
 import java.lang.reflect.Field
 import java.math.BigDecimal
@@ -67,29 +67,32 @@ infix fun <T:Any> ResultRow.toDAO(ormDef: ORMTableDefinition<T>): T {
 
 private fun <T:Any> KClass<T>.toDAOFields() = java.nonStaticFields()
 
+private inline fun <reified T> ResultRow.columnValue(columnName: String, tableName: String?  = null): Any? =
+        columnValue(T::class, columnName, tableName)
+
 private fun <T:Any> ResultRow.readColumnValue(clazz: KClass<T>, field: Field, columnName: String, tableName: String): Any? {
     val type = field.type
     val value = when {
         type is Class<*> && Id::class.java.isAssignableFrom(type) -> {
-            val id = columnValue(String::class, columnName, tableName)
+            val id = columnValue<String>(columnName, tableName)
             if (id == null) null else type.constructors.first().newInstance(id)
         }
         Email::class.java.isAssignableFrom(type) -> {
-            Email(columnValue(String::class, columnName, tableName).toString())
+            Email(columnValue<String>(columnName, tableName).toString())
         }
         else -> when (type) {
-            String::class.java -> columnValue(String::class, columnName, tableName)
+            String::class.java -> columnValue<String>(columnName, tableName)
 
-            Boolean::class.javaPrimitiveType, Boolean::class.javaObjectType -> columnValue(Boolean::class, columnName, tableName)
-            Int::class.javaPrimitiveType, Int::class.javaObjectType -> columnValue(Int::class, columnName, tableName)
-            Long::class.javaPrimitiveType, Long::class.javaObjectType -> columnValue(Long::class, columnName, tableName)
-            Float::class.javaPrimitiveType, Float::class.javaObjectType -> columnValue(Float::class, columnName, tableName)
-            Double::class.javaPrimitiveType, Double::class.javaObjectType, BigDecimal::class.java -> (columnValue(BigDecimal::class, columnName, tableName) as? BigDecimal?)?.toDouble()
+            Boolean::class.javaPrimitiveType, Boolean::class.javaObjectType -> columnValue<Boolean>(columnName, tableName)
+            Int::class.javaPrimitiveType, Int::class.javaObjectType -> columnValue<Int>(columnName, tableName)
+            Long::class.javaPrimitiveType, Long::class.javaObjectType -> columnValue<Long>(columnName, tableName)
+            Float::class.javaPrimitiveType, Float::class.javaObjectType -> columnValue<Float>(columnName, tableName)
+            Double::class.javaPrimitiveType, Double::class.javaObjectType, BigDecimal::class.java -> (columnValue<BigDecimal>(columnName, tableName) as? BigDecimal?)?.toDouble()
 
-            Date::class.java -> (columnValue(Long::class, columnName, tableName) as Long?)?.let { Date(it) }
-            LocalDateTime::class.java -> columnValue(String::class, columnName, tableName)?.let { LocalDateTime.parse(it.toString(), DATE_TIME_FOTMATTER) }
+            Date::class.java -> (columnValue<Long>(columnName, tableName) as Long?)?.let { Date(it) }
+            LocalDateTime::class.java -> columnValue<String>(columnName, tableName)?.let { LocalDateTime.parse(it.toString(), DATE_TIME_FOTMATTER) }
             LocalDate::class.java -> {
-                val dateAsStr = columnValue(String::class, columnName, tableName)
+                val dateAsStr = columnValue<String>(columnName, tableName)
                 if (dateAsStr == null || dateAsStr == "0000-00-00") null else {
                     try {
                         LocalDate.parse(dateAsStr.toString(), DATE_FOTMATTER)
@@ -105,7 +108,7 @@ private fun <T:Any> ResultRow.readColumnValue(clazz: KClass<T>, field: Field, co
             }
             else -> {
                 try {
-                    val json = columnValue(String::class, columnName, tableName) as String?
+                    val json = columnValue<String>(columnName, tableName) as String?
                     //println("COLLECTION: $json <--- $type")
                     if (json == null) null else {
                         val extJson = """{"${field.name}":${json}}"""
