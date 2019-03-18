@@ -72,15 +72,8 @@ private inline fun <reified T> ResultRow.columnValue(columnName: String, tableNa
 
 private fun <T:Any> ResultRow.readColumnValue(clazz: KClass<T>, field: Field, columnName: String, tableName: String): Any? = when (val type = field.type?.kotlin) {
     null -> null
-
-    String::class -> columnValue<String>(columnName, tableName)
-
-    Boolean::class -> columnValue<Boolean>(columnName, tableName)
-    Int::class -> columnValue<Int>(columnName, tableName)
-    Long::class -> columnValue<Long>(columnName, tableName)
-    Float::class -> columnValue<Float>(columnName, tableName)
+    String::class, Boolean::class, Int::class, Long::class, Float::class -> columnValue(type, columnName, tableName)
     Double::class, BigDecimal::class -> columnValue<BigDecimal>(columnName, tableName)?.toDouble()
-
     Date::class -> columnValue<Long>(columnName, tableName)?.let { Date(it) }
     LocalDateTime::class -> columnValue<String>(columnName, tableName)?.let { LocalDateTime.parse(it, DATE_TIME_FOTMATTER) }
     LocalDate::class -> columnValue<String>(columnName, tableName)?.takeUnless { it == "0000-00-00" }?.let { dateAsStr ->
