@@ -76,6 +76,7 @@ private fun <T:Any> ResultRow.readColumnValue(clazz: KClass<T>, field: Field, co
     null -> null
     String::class, Boolean::class, Int::class, Long::class, Float::class -> columnValue(type, columnName, tableName)
     Double::class, BigDecimal::class -> columnValue<BigDecimal>(columnName, tableName)?.toDouble()
+    Email::class -> columnValue<String>(columnName, tableName)?.let { Email(it) }
     Date::class -> columnValue<Long>(columnName, tableName)?.let { Date(it) }
     LocalDateTime::class -> columnValue<String>(columnName, tableName)?.let { LocalDateTime.parse(it, DATE_TIME_FOTMATTER) }
     LocalDate::class -> columnValue<String>(columnName, tableName)?.takeIf { it != "0000-00-00" }?.let { dateAsStr ->
@@ -83,7 +84,6 @@ private fun <T:Any> ResultRow.readColumnValue(clazz: KClass<T>, field: Field, co
             ?: ignoreErrors { LocalDate.parse(Json.fromJson<KLocalDate>(dateAsStr).toString(), DATE_FOTMATTER) }
             ?: error("Unknown date format [$dateAsStr]")
     }
-    Email::class -> columnValue<String>(columnName, tableName)?.let { Email(it) }
     else -> when {
         type.isSubclassOf(Id::class) -> columnValue<String>(columnName, tableName)?.let { type.primaryConstructor?.call(it) }
         else -> columnValue<String>(columnName, tableName)?.let { field.apply { isAccessible = true }.get(Json.fromJson("{\"${field.name}\":$it}", clazz)) }
