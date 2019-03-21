@@ -1,4 +1,6 @@
 include ':kuick-core'
 include ':kuick-logging'
+include ':kuick-http'
+include ':kuick-http-ktor'
 include ':kuick-repositories-elasticsearch'
 include ':kuick-repositories-squash'

@@ -8,6 +8,14 @@ fun Guice(callback: Binder.() -> Unit): Injector = Guice.createInjector(object :
     override fun configure(binder: Binder) = callback(binder)
 })
 
+inline fun <reified T> Binder.bindToInstance(instance: T): Binder = this.apply {
+    bind(T::class.java).toInstance(instance)
+}
+
+inline fun <reified T, reified R : T> Binder.bindToType(): Binder = this.apply {
+    bind(T::class.java).to(R::class.java)
+}
+
 class InjectorNotInContextException : RuntimeException()
 
 class InjectorContext(val injector: Injector) : AbstractCoroutineContextElement(Key) {
