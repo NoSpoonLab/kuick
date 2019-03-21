@@ -20,10 +20,7 @@ private class NullResultInTransactionException: Exception()
 @Singleton
 class DomainTransactionServiceSquash @Inject constructor(val db: DatabaseConnection): DomainTransactionService {
 
-    suspend override fun <T : Any> transaction(transactionalActions: suspend (DomainTransaction) -> T): T =
-            transactionNullable(transactionalActions)!!
-
-    suspend override fun <T : Any> transactionNullable(transactionalActions: suspend (DomainTransaction) -> T?): T? {
+    override suspend fun <T : Any> transactionNullable(transactionalActions: suspend (DomainTransaction) -> T?): T? {
 
         if (coroutineContext[DomainTransactionContext.Key] != null) {
             println("Reentrando en transaction {}")
@@ -49,8 +46,5 @@ class DomainTransactionServiceSquash @Inject constructor(val db: DatabaseConnect
         }
 
     }
-
-    override fun <T : Any> transactionSync(transactionalActions: (DomainTransaction) -> T): T =
-            db.transaction { transactionalActions(DomainTransactionSquash(this)) }
 
 }

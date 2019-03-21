@@ -19,29 +19,20 @@ data class User(val userId: UserId,
                 val married: Boolean = false
 )
 
-
-fun DatabaseConnection.runInTransaction(actions: suspend () -> Unit) = transaction {
-    val tr = DomainTransactionSquash(this)
-    runBlocking {
-        withContext(DomainTransactionContext(tr)) {
-            actions()
-        }
-    }
-}
-
-fun main(args: Array<String>) {
+fun main(args: Array<String>) = runBlocking {
 
     val db = H2Connection.createMemoryConnection()
+    val transactions = DomainTransactionServiceSquash(db)
     db.monitor.before { println(it) }
 
     val repo = ModelRepositorySquash(User::class, User::userId)
 
-    db.runInTransaction {
+    transactions {
         println("\nINIT ---------------------")
         repo.init()
     }
 
-    db.runInTransaction {
+    transactions {
         println("\n---------------------")
         repo.insert(User(UserId("1"), "Mike", "Ballesteros", 44, true))
         repo.insert(User(UserId("2"), "Cristina", "García", 41, true))
