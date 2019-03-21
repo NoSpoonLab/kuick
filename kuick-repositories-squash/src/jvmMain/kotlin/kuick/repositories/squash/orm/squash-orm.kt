@@ -14,18 +14,17 @@ import org.jetbrains.squash.expressions.*
 import org.jetbrains.squash.query.from
 import org.jetbrains.squash.query.orderBy
 import org.jetbrains.squash.query.where
-import org.jetbrains.squash.results.ResultRow
+import org.jetbrains.squash.results.*
 import org.jetbrains.squash.statements.*
 import java.lang.reflect.Field
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import java.time.format.DateTimeParseException
 import java.util.*
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
-import kotlin.reflect.full.memberProperties
+import kotlin.reflect.full.*
 
 
 const val LOCAL_DATE_LEN = 16
@@ -67,72 +66,26 @@ infix fun <T:Any> ResultRow.toDAO(ormDef: ORMTableDefinition<T>): T {
 
 private fun <T:Any> KClass<T>.toDAOFields() = java.nonStaticFields()
 
-private fun <T:Any> ResultRow.readColumnValue(clazz: KClass<T>, field: Field, columnName: String, tableName: String): Any? {
-    val type = field.type
-    val value = when {
-        type is Class<*> && Id::class.java.isAssignableFrom(type) -> {
-            val id = columnValue(String::class, columnName, tableName)
-            if (id == null) null else type.constructors.first().newInstance(id)
-        }
-        Email::class.java.isAssignableFrom(type) -> {
-            Email(columnValue(String::class, columnName, tableName).toString())
-        }
+private inline fun <reified T> ResultRow.columnValue(columnName: String, tableName: String?  = null): T? =
+        columnValue(T::class, columnName, tableName) as? T?
 
-        type == String::class.java -> columnValue(String::class, columnName, tableName)
-        type == Boolean::class.java ||
-        type.name == "java.lang.Boolean" -> {
-            val boolean = columnValue(Boolean::class, columnName, tableName)
-            boolean
-        }
-        type == Int::class.java  || type == Integer::class.java -> columnValue(Int::class, columnName, tableName)
-        type == Long::class.java -> columnValue(Long::class, columnName, tableName)
-        type== Date::class.java ->{
-            val timestamp = columnValue(Long::class, columnName, tableName) as Long?
-            if (timestamp == null) null else Date(timestamp)
-        }
-        type == Double::class.java -> (columnValue(BigDecimal::class, columnName, tableName) as BigDecimal)?.toDouble()
-        type.name == "java.lang.Double" ||
-        type.name == "java.math.BigDecimal" -> {
-            val doubleValue = columnValue(BigDecimal::class, columnName, tableName)
-            if (doubleValue == null) null else (doubleValue as BigDecimal).toDouble()
-        }
-        type == Float::class.java -> columnValue(Float::class, columnName, tableName)
-        type == LocalDate::class.java -> {
-            val dateAsStr = columnValue(String::class, columnName, tableName)
-            if (dateAsStr == null || dateAsStr == "0000-00-00") null else {
-                try {
-                    LocalDate.parse(dateAsStr.toString(), DATE_FOTMATTER)
-                } catch (dtpe: DateTimeParseException) {
-                    try {
-                        val dateAsStr = Json.fromJson<KLocalDate>(dateAsStr.toString())
-                        LocalDate.parse(dateAsStr.toString(), DATE_FOTMATTER)
-                    } catch (t: Throwable) {
-                        throw RuntimeException("Unknown date format [${dateAsStr}]", t)
-                    }
-                }
-            }
-        }
-        type == LocalDateTime::class.java -> {
-            val dateAsStr = columnValue(String::class, columnName, tableName)
-            if (dateAsStr == null) null else LocalDateTime.parse(dateAsStr.toString(), DATE_TIME_FOTMATTER)
-        }
+private inline fun <T> ignoreErrors(callback: () -> T): T? = runCatching { callback() }.getOrNull()
 
-        else -> {
-            try {
-                val json = columnValue(String::class, columnName, tableName) as String?
-                //println("COLLECTION: $json <--- $type")
-                if (json == null) null else {
-                    val extJson = """{"${field.name}":${json}}"""
-                    val obj = Json.fromJson(extJson, clazz)
-                    field.isAccessible = true
-                    field.get(obj)
-                }
-            } catch (ise: IllegalStateException) {
-                throw ise
-            }
-        }
+private fun <T:Any> ResultRow.readColumnValue(clazz: KClass<T>, field: Field, columnName: String, tableName: String): Any? = when (val type = field.type.kotlin) {
+    String::class, Boolean::class, Int::class, Long::class, Float::class -> columnValue(type, columnName, tableName)
+    Double::class, BigDecimal::class -> columnValue<BigDecimal>(columnName, tableName)?.toDouble()
+    Email::class -> columnValue<String>(columnName, tableName)?.let { Email(it) }
+    Date::class -> columnValue<Long>(columnName, tableName)?.let { Date(it) }
+    LocalDateTime::class -> columnValue<String>(columnName, tableName)?.let { LocalDateTime.parse(it, DATE_TIME_FORMAT) }
+    LocalDate::class -> columnValue<String>(columnName, tableName)?.takeIf { it != "0000-00-00" }?.let { dateAsStr ->
+        ignoreErrors { LocalDate.parse(dateAsStr, DATE_FORMAT) }
+            ?: ignoreErrors { LocalDate.parse(Json.fromJson<KLocalDate>(dateAsStr).toString(), DATE_FORMAT) }
+            ?: error("Unknown date format [$dateAsStr]")
     }
-    return value
+    else -> when {
+        type.isSubclassOf(Id::class) -> columnValue<String>(columnName, tableName)?.let { type.primaryConstructor?.call(it) }
+        else -> columnValue<String>(columnName, tableName)?.let { field.apply { isAccessible = true }.get(Json.fromJson("{\"${field.name}\":$it}", clazz)) }
+    }
 }
 
 
@@ -158,8 +111,8 @@ infix fun <D:Any, T : Table> UpdateQueryStatement<T>.from(data: D) {
     }
 }
 
-private val DATE_FOTMATTER = DateTimeFormatter.ISO_DATE
-private val DATE_TIME_FOTMATTER = DateTimeFormatter.ISO_DATE_TIME
+private val DATE_FORMAT = DateTimeFormatter.ISO_DATE
+private val DATE_TIME_FORMAT = DateTimeFormatter.ISO_DATE_TIME
 
 private fun decodeValue(value: Any?) = when (value) {
     null -> null
@@ -167,8 +120,8 @@ private fun decodeValue(value: Any?) = when (value) {
     is Email -> value.email
     is String, is Int, is Long, is Double -> value
     is Date -> value.time
-    is LocalDate -> DATE_FOTMATTER.format(value)
-    is LocalDateTime -> DATE_TIME_FOTMATTER.format(value)
+    is LocalDate -> DATE_FORMAT.format(value)
+    is LocalDateTime -> DATE_TIME_FORMAT.format(value)
     value::class.java == Int::class.java -> value
     is Boolean -> value.toString().toBoolean()
     else -> Json.toJson(value)
