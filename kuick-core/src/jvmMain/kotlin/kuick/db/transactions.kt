@@ -1,6 +1,7 @@
 package kuick.db
 
 import kotlinx.coroutines.*
+import kuick.di.*
 import kotlin.coroutines.AbstractCoroutineContextElement
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.coroutineContext
@@ -42,4 +43,18 @@ class DomainTransactionContext(val tr: DomainTransaction) : AbstractCoroutineCon
 
 class NotInTransactionException: RuntimeException()
 
-suspend fun domainTransaction(): DomainTransaction = coroutineContext[DomainTransactionContext]?.tr ?: throw NotInTransactionException()
+suspend fun domainTransactionOrNull(): DomainTransaction? = coroutineContext[DomainTransactionContext]?.tr
+suspend fun domainTransaction(): DomainTransaction = domainTransactionOrNull() ?: throw NotInTransactionException()
+
+suspend fun <T> domainTransaction(block: suspend (DomainTransaction) -> T): T {
+    val transaction = domainTransactionOrNull()
+    return when {
+        transaction != null -> {
+            block(transaction)
+        }
+        else -> {
+            val service = injector().get<DomainTransactionService>()
+            service { block(it) }
+        }
+    }
+}
