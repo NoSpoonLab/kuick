@@ -3,20 +3,33 @@ package kuick.di
 import com.google.inject.*
 import kotlinx.coroutines.*
 import kuick.core.*
+import kuick.utils.*
 import kotlin.coroutines.*
 
 fun Guice(callback: Binder.() -> Unit): Injector = Guice.createInjector(object : Module {
     override fun configure(binder: Binder) = callback(binder)
 })
 
-abstract class GuiceModule : Module {
+val Binder.registeredModules by WeakProperty { LinkedHashSet<Module>() }
+
+abstract class GuiceModule(vararg val dependencies: Module) : Module {
     abstract fun Binder.registerBindings()
-    final override fun configure(binder: Binder) = binder.registerBindings()
+    final override fun configure(binder: Binder) {
+        // Only register this module if not registered previously
+        if (!binder.registeredModules.contains(this)) {
+            binder.registeredModules += this
+            // Register dependencies
+            for (dependency in dependencies) dependency.configure(binder)
+            binder.registerBindings()
+        }
+    }
 }
 
-fun GuiceModule(callback: Binder.() -> Unit) = object : GuiceModule() {
+fun GuiceModule(vararg dependencies: Module, callback: Binder.() -> Unit) = object : GuiceModule(*dependencies) {
     override fun Binder.registerBindings() = callback()
 }
+
+inline fun Binder.bind(module: Module): Binder = this.apply { module.configure(this) }
 
 inline fun <reified T> Binder.bind(instance: T): Binder = this.apply {
     bind(T::class.java).toInstance(instance)
