@@ -1,32 +1,17 @@
 package kuick.repositories.elasticsearch
 
-import com.google.inject.*
 import kuick.db.*
 import kuick.di.*
 import kuick.repositories.elasticsearch.orm.*
-import kuick.repositories.squash.*
 import org.apache.http.*
 import org.arquillian.cube.containerobject.*
 import org.arquillian.cube.docker.impl.client.containerobject.dsl.*
 import org.elasticsearch.action.admin.indices.delete.*
 import org.elasticsearch.client.*
 import org.jboss.arquillian.junit.*
-import org.jetbrains.squash.connection.*
 import org.jetbrains.squash.dialects.h2.*
 import org.junit.*
 import org.junit.runner.*
-
-class InfrastructureGuiceModule(
-        val indexClient: RestHighLevelClient
-) : AbstractModule() {
-    override fun configure() {
-        val db: DatabaseConnection = H2Connection.createMemoryConnection()
-        bind(DatabaseConnection::class.java).toInstance(db)
-        bind(RestHighLevelClient::class.java).toInstance(indexClient)
-        bind(DomainTransactionService::class.java).to(DomainTransactionServiceSquash::class.java)
-        bind(ElasticSearchConfig::class.java).toInstance(ElasticSearchConfig(waitRefresh = true))
-    }
-}
 
 @RunWith(Arquillian::class)
 abstract class AbstractITTestWithElasticSearch {
@@ -41,9 +26,11 @@ abstract class AbstractITTestWithElasticSearch {
 
 
     val injector by lazy {
-        Guice.createInjector(listOf(
-                InfrastructureGuiceModule(RestHighLevelClient(RestClient.builder(HttpHost(container.ipAddress, container.getBindPort(9200)))))
-        ))
+        Guice {
+            bind(RestHighLevelClient(RestClient.builder(HttpHost(container.ipAddress, container.getBindPort(9200)))))
+            bindDatabaseSquash(H2Connection.createMemoryConnection())
+            bind(ElasticSearchConfig(waitRefresh = true))
+        }
     }
 
     data class TestModel(
