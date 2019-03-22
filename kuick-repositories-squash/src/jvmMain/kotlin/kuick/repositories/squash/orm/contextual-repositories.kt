@@ -32,13 +32,13 @@ open class SquashContextualRepository<I: Id, T: Any>(
         tr.squashTr().databaseSchema().create(schema)
     }
 
-    override suspend fun insert(t: T): T = schema.insert(domainTransaction(), t)
+    override suspend fun insert(t: T): T = domainTransaction { tr -> schema.insert(tr, t) }
 
-    override suspend fun update(t: T): T = schema.update(domainTransaction(), t) { whereById(getId(t)) }
+    override suspend fun update(t: T): T = domainTransaction { tr -> schema.update(tr, t) { whereById(getId(t)) } }
 
-    override suspend fun detete(i: I) = schema.delete(domainTransaction()) { whereById(i) }
+    override suspend fun detete(i: I) = domainTransaction { tr -> schema.delete(tr) { whereById(i) } }
 
-    override suspend fun getById(i: I): T? = schema.selectOne(domainTransaction()) { whereById(i) }
+    override suspend fun getById(i: I): T? = domainTransaction { tr -> schema.selectOne(tr) { whereById(i) } }
 
     override suspend fun upsert(t: T): T {
         val entity = getById(getId(t))

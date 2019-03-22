@@ -71,7 +71,7 @@ open class BaseSquashTwoKeysRepository<I1: Id, I2: Any, T: Any>(
         val getId: (T) -> Pair<I1, I2>,
         val whereById: (I1, I2) -> Expression<Boolean>):
         EntityTwoKeysRepository<I1, I2, T>,
-    RequiresSchema {
+        RequiresSchema {
 
     override fun createSchema(tr: DomainTransaction) {
         tr.squashTr().databaseSchema().create(schema)

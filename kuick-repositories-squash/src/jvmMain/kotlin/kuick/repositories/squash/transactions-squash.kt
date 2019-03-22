@@ -14,20 +14,15 @@ import javax.inject.Singleton
 import kotlin.coroutines.coroutineContext
 
 
-
-private class NullResultInTransactionException: Exception()
-
 @Singleton
 class DomainTransactionServiceSquash @Inject constructor(val db: DatabaseConnection): DomainTransactionService {
 
-    suspend override fun <T : Any> transaction(transactionalActions: suspend (DomainTransaction) -> T): T =
-            transactionNullable(transactionalActions)!!
-
-    suspend override fun <T : Any> transactionNullable(transactionalActions: suspend (DomainTransaction) -> T?): T? {
+    @Suppress("OverridingDeprecatedMember")
+    override suspend fun <T : Any> transactionNullable(transactionalActions: suspend (DomainTransaction) -> T?): T? {
 
         if (coroutineContext[DomainTransactionContext.Key] != null) {
             println("Reentrando en transaction {}")
-            return transactionalActions(domainTransaction())
+            return domainTransaction { tr -> transactionalActions(tr) }
         } else {
             val preTrCtx = coroutineContext
             return db.transaction {
@@ -49,8 +44,5 @@ class DomainTransactionServiceSquash @Inject constructor(val db: DatabaseConnect
         }
 
     }
-
-    override fun <T : Any> transactionSync(transactionalActions: (DomainTransaction) -> T): T =
-            db.transaction { transactionalActions(DomainTransactionSquash(this)) }
 
 }

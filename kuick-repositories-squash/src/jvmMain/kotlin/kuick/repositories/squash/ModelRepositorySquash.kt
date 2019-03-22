@@ -55,37 +55,45 @@ open class ModelRepositorySquash<I : Any, T : Any>(
     }
 
     override suspend fun init() {
-        domainTransaction().squashTr().databaseSchema().create(table)
+        domainTransaction { tr ->
+            tr.squashTr().databaseSchema().create(table)
+        }
     }
 
-    override suspend fun insert(t: T): T = table.insert(domainTransaction(), t)
+    override suspend fun insert(t: T): T = domainTransaction { tr -> table.insert(tr, t) }
 
-    override suspend fun update(t: T): T = table.update(domainTransaction(), t) {
-        (idField eq (idField.get(t))).toSquash()
+    override suspend fun update(t: T): T = domainTransaction { tr ->
+        table.update(tr, t) {
+            (idField eq (idField.get(t))).toSquash()
+        }
     }
 
     override suspend fun updateBy(t: T, q: ModelQuery<T>): T {
-        table.update(domainTransaction(), t) { q.toSquash() }
+        domainTransaction { tr -> table.update(tr, t) { q.toSquash() } }
         return t
     }
 
-    override suspend fun delete(i: I) = table.delete(domainTransaction()) {
-        (idField eq i).toSquash()
+    override suspend fun delete(i: I) = domainTransaction { tr ->
+        table.delete(tr) {
+            (idField eq i).toSquash()
+        }
     }
 
-    override suspend fun deleteBy(q: ModelQuery<T>) = table.delete(domainTransaction()) {
-        q.toSquash()
+    override suspend fun deleteBy(q: ModelQuery<T>) = domainTransaction { tr ->
+        table.delete(tr) {
+            q.toSquash()
+        }
     }
 
     override suspend fun findById(i: I): T? = findOneBy(idField eq i)
 
     override suspend fun findOneBy(q: ModelQuery<T>): T? =
-            table.selectOne(domainTransaction()) { q.toSquash() }
+            domainTransaction { tr -> table.selectOne(tr) { q.toSquash() } }
 
     override suspend fun findBy(q: ModelQuery<T>): List<T> =
-            table.select(domainTransaction()) { q.toSquash() }
+            domainTransaction { tr -> table.select(tr) { q.toSquash() } }
 
-    override suspend fun getAll(): List<T> = table.selectAll(domainTransaction())
+    override suspend fun getAll(): List<T> = domainTransaction { tr -> table.selectAll(tr) }
 
     private fun ModelQuery<T>.toSquash(): Expression<Boolean> = when (this) {
         is FieldEqs<T, *> -> when (value) {

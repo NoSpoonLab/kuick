@@ -7,7 +7,6 @@ import kuick.db.domainTransaction
 import kuick.repositories.annotations.MaxLength
 import org.h2.jdbc.JdbcSQLException
 import org.junit.Test
-import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
