@@ -18,8 +18,7 @@ class SquashRepoTest {
         val db = H2Connection.createMemoryConnection()
         val repo = ModelRepositorySquash(User::class, User::a)
         val injector = Guice {
-            bindToInstance(db)
-            bindToType<DomainTransactionService, DomainTransactionServiceSquash>()
+            bindDatabaseSquash(db)
         }
         withInjectorContext(injector) {
             repo.init()

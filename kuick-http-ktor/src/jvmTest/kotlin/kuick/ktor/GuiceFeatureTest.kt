@@ -50,8 +50,7 @@ class GuiceFeatureTest {
 
             val guice = application.install(GuiceFeature) {
                 injector {
-                    bindToInstance(db)
-                    bindToType<DomainTransactionService, DomainTransactionServiceSquash>()
+                    bindDatabaseSquash(db)
                 }
             }
 
