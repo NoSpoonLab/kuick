@@ -2,9 +2,9 @@ package kuick.repositories.elasticsearch
 
 import com.google.inject.*
 import kuick.db.*
+import kuick.di.*
 import kuick.repositories.elasticsearch.orm.*
 import kuick.repositories.squash.*
-import kuick.utils.*
 import org.apache.http.*
 import org.arquillian.cube.containerobject.*
 import org.arquillian.cube.docker.impl.client.containerobject.dsl.*
