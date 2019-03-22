@@ -42,11 +42,18 @@ class DomainTransactionContext(val tr: DomainTransaction) : AbstractCoroutineCon
 
 class NotInTransactionException: RuntimeException()
 
+@KuickInternalWarning
+@Deprecated("Do not use domainTransactionOrNull")
 suspend fun domainTransactionOrNull(): DomainTransaction? = coroutineContext[DomainTransactionContext]?.tr
+
+@KuickInternalWarning
+@Deprecated("Do not use domainTransaction")
 suspend fun domainTransaction(): DomainTransaction = domainTransactionOrNull()
         ?: throw NotInTransactionException()
 
+@KuickInternalWarning
 @UseExperimental(KuickInternal::class)
+@Suppress("DEPRECATION")
 suspend fun <T> domainTransaction(block: suspend (DomainTransaction) -> T): T {
     val transaction = domainTransactionOrNull()
     return when {
