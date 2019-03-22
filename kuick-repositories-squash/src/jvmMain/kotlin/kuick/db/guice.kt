@@ -5,8 +5,8 @@ import kuick.di.*
 import kuick.repositories.squash.*
 import org.jetbrains.squash.connection.*
 
+@Suppress("DEPRECATION")
 fun Binder.bindDatabaseSquash(db: DatabaseConnection) {
-    bindToInstance(db)
-    @Suppress("DEPRECATION")
-    bindToType<DomainTransactionService, DomainTransactionServiceSquash>()
+    bind(db)
+    bind<DomainTransactionService, DomainTransactionServiceSquash>()
 }

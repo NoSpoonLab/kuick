@@ -30,7 +30,7 @@ class GuiceFeatureTest {
         withTestApplication {
             application.install(GuiceFeature) {
                 injector {
-                    bindToInstance(Hello("world"))
+                    bind(Hello("world"))
                 }
             }
             application.routing {
