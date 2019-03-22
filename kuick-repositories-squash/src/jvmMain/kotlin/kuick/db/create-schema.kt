@@ -1,7 +1,6 @@
 package kuick.db
 
-import kuick.db.DomainTransaction
-
+@Deprecated("")
 interface RequiresSchema {
 
     fun createSchema(tr: DomainTransaction)

@@ -43,7 +43,8 @@ class DomainTransactionContext(val tr: DomainTransaction) : AbstractCoroutineCon
 class NotInTransactionException: RuntimeException()
 
 suspend fun domainTransactionOrNull(): DomainTransaction? = coroutineContext[DomainTransactionContext]?.tr
-suspend fun domainTransaction(): DomainTransaction = domainTransactionOrNull() ?: throw NotInTransactionException()
+suspend fun domainTransaction(): DomainTransaction = domainTransactionOrNull()
+        ?: throw NotInTransactionException()
 
 @UseExperimental(KuickInternal::class)
 suspend fun <T> domainTransaction(block: suspend (DomainTransaction) -> T): T {

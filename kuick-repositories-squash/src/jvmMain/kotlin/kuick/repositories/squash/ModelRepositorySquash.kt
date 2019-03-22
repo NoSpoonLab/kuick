@@ -62,22 +62,28 @@ open class ModelRepositorySquash<I : Any, T : Any>(
 
     override suspend fun insert(t: T): T = domainTransaction { tr -> table.insert(tr, t) }
 
-    override suspend fun update(t: T): T = domainTransaction { tr -> table.update(tr , t) {
-        (idField eq (idField.get(t))).toSquash()
-    } }
+    override suspend fun update(t: T): T = domainTransaction { tr ->
+        table.update(tr, t) {
+            (idField eq (idField.get(t))).toSquash()
+        }
+    }
 
     override suspend fun updateBy(t: T, q: ModelQuery<T>): T {
         domainTransaction { tr -> table.update(tr, t) { q.toSquash() } }
         return t
     }
 
-    override suspend fun delete(i: I) = domainTransaction { tr -> table.delete(tr) {
-        (idField eq i).toSquash()
-    } }
+    override suspend fun delete(i: I) = domainTransaction { tr ->
+        table.delete(tr) {
+            (idField eq i).toSquash()
+        }
+    }
 
-    override suspend fun deleteBy(q: ModelQuery<T>) = domainTransaction { tr -> table.delete(tr) {
-        q.toSquash()
-    } }
+    override suspend fun deleteBy(q: ModelQuery<T>) = domainTransaction { tr ->
+        table.delete(tr) {
+            q.toSquash()
+        }
+    }
 
     override suspend fun findById(i: I): T? = findOneBy(idField eq i)
 

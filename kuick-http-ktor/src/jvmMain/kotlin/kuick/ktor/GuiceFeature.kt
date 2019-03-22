@@ -10,10 +10,7 @@ class GuiceFeature(val injector: Injector) {
     class Configuration {
         internal lateinit var injector: Injector
 
-        fun injector(injector: Injector) {
-            this.injector = injector
-        }
-
+        fun injector(injector: Injector) = run { this.injector = injector }
         fun injector(block: Binder.() -> Unit) = injector(Guice(block))
     }
 

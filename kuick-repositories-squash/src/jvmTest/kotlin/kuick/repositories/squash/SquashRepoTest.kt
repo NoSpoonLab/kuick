@@ -6,7 +6,6 @@ import kuick.db.*
 import kuick.di.*
 import kuick.repositories.annotations.*
 import org.h2.jdbc.*
-import org.jetbrains.squash.connection.*
 import org.jetbrains.squash.dialects.h2.*
 import org.junit.Test
 import kotlin.test.*

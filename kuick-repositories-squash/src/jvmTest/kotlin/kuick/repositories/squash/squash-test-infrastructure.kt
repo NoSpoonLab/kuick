@@ -7,11 +7,8 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kuick.db.DomainTransactionContext
 import kuick.db.DomainTransactionService
-import kuick.repositories.squash.orm.DomainTransactionSquash
 import org.jetbrains.squash.connection.DatabaseConnection
-import org.jetbrains.squash.connection.transaction
 import org.jetbrains.squash.dialects.h2.H2Connection
-import org.junit.After
 import kotlin.reflect.KClass
 
 class InfrastructureGuiceModule() : AbstractModule() {
