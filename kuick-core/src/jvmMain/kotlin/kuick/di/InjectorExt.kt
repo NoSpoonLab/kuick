@@ -2,6 +2,7 @@ package kuick.di
 
 import com.google.inject.*
 import kotlinx.coroutines.*
+import kuick.core.*
 import kotlin.coroutines.*
 
 fun Guice(callback: Binder.() -> Unit): Injector = Guice.createInjector(object : Module {
@@ -22,6 +23,7 @@ class InjectorContext(val injector: Injector) : AbstractCoroutineContextElement(
     companion object Key : CoroutineContext.Key<InjectorContext>
 }
 
+@KuickInternal
 suspend fun injector(): Injector = coroutineContext[InjectorContext]?.injector ?: throw InjectorNotInContextException()
 
 inline fun <reified T : Any> Injector.get(callback: T.() -> Unit = {}) = this.getInstance(T::class.java).apply(callback)

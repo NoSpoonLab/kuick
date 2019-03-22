@@ -6,6 +6,7 @@ import io.ktor.response.*
 import io.ktor.routing.*
 import io.ktor.server.testing.*
 import kotlinx.coroutines.*
+import kuick.core.*
 import kuick.db.*
 import kuick.di.*
 import kuick.repositories.squash.*
@@ -24,6 +25,7 @@ class GuiceFeatureTest {
     }
 
     @Test
+    @UseExperimental(KuickInternal::class)
     fun test() = runBlocking {
         withTestApplication {
             application.install(GuiceFeature) {

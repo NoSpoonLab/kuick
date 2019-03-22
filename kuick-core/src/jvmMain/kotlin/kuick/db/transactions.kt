@@ -1,16 +1,15 @@
 package kuick.db
 
 import kotlinx.coroutines.*
+import kuick.core.*
 import kuick.di.*
-import kotlin.coroutines.AbstractCoroutineContextElement
-import kotlin.coroutines.CoroutineContext
-import kotlin.coroutines.coroutineContext
+import kotlin.coroutines.*
 
 
-
+@Deprecated("")
 interface DomainTransaction
 
-
+@Deprecated("")
 interface DomainTransactionService {
 
     suspend operator fun <T> invoke(transactionalActions: suspend (DomainTransaction) -> T): T {
@@ -46,6 +45,7 @@ class NotInTransactionException: RuntimeException()
 suspend fun domainTransactionOrNull(): DomainTransaction? = coroutineContext[DomainTransactionContext]?.tr
 suspend fun domainTransaction(): DomainTransaction = domainTransactionOrNull() ?: throw NotInTransactionException()
 
+@UseExperimental(KuickInternal::class)
 suspend fun <T> domainTransaction(block: suspend (DomainTransaction) -> T): T {
     val transaction = domainTransactionOrNull()
     return when {
