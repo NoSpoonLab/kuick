@@ -1,26 +1,23 @@
 package kuick.repositories.elasticsearch
 
-import com.google.inject.AbstractModule
-import com.google.inject.Guice
-import com.google.inject.Module
-import kuick.db.DomainTransactionService
-import kuick.repositories.squash.DomainTransactionServiceSquash
+import com.google.inject.*
+import kuick.db.*
+import kuick.repositories.elasticsearch.orm.*
+import kuick.repositories.squash.*
 import kuick.utils.*
-import org.apache.http.HttpHost
+import org.apache.http.*
+import org.arquillian.cube.containerobject.*
 import org.arquillian.cube.docker.impl.client.containerobject.dsl.*
-import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest
-import org.elasticsearch.client.RequestOptions
-import org.elasticsearch.client.RestClient
-import org.elasticsearch.client.RestHighLevelClient
+import org.elasticsearch.action.admin.indices.delete.*
+import org.elasticsearch.client.*
 import org.jboss.arquillian.junit.*
-import org.jetbrains.squash.connection.DatabaseConnection
-import org.jetbrains.squash.dialects.h2.H2Connection
-import org.junit.After
+import org.jetbrains.squash.connection.*
+import org.jetbrains.squash.dialects.h2.*
+import org.junit.*
 import org.junit.runner.*
-import kotlin.reflect.KClass
 
 class InfrastructureGuiceModule(
-    val indexClient: RestHighLevelClient
+        val indexClient: RestHighLevelClient
 ) : AbstractModule() {
     override fun configure() {
         val db: DatabaseConnection = H2Connection.createMemoryConnection()
@@ -38,6 +35,8 @@ abstract class AbstractITTestWithElasticSearch {
             .fromImage("docker.elastic.co/elasticsearch/elasticsearch:6.6.0")
             .withPortBinding(9200)
             .withEnvironment("discovery.type", "single-node")
+            .withConnectionMode(ConnectionMode.START_AND_STOP_AROUND_CLASS)
+            .withAwaitStrategy(AwaitBuilder.logAwait("started"))
             .build()
 
 
