@@ -1,9 +1,8 @@
 package kuick.repositories.elasticsearch.orm
 
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kuick.repositories.*
-import kuick.repositories.elasticsearch.AbstractITTestWithES
+import kuick.repositories.elasticsearch.AbstractITTestWithElasticSearch
 import kuick.repositories.elasticsearch.IndexClient
 import kuick.repositories.elasticsearch.ModelRepositoryElasticSearch
 import kuick.repositories.elasticsearch.orm.ElasticSearchFieldType.TEXT
@@ -11,25 +10,9 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
 
 
-class QueryExecutionTest : AbstractITTestWithES() {
-
-    data class TestModel(
-        val id: String,
-        val val1: String,
-        val val2: Int?,
-        val val3: Boolean
-    )
+class QueryExecutionTest : AbstractITTestWithElasticSearch() {
 
     class TestModelIndexCreationEvent
-
-    private val modelRepositoryElasticSearch = ModelRepositoryElasticSearch(
-        TestModel::class,
-        TestModel::id,
-        injector.getInstance(IndexClient::class.java),
-        {
-            TestModel::val1 to field(TestModel::val1.name, TEXT)
-        }
-    )
 
     private fun testQuery(
         given: Collection<TestModel>,

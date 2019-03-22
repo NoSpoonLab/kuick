@@ -1,36 +1,21 @@
 package kuick.repositories.elasticsearch
 
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kuick.repositories.elasticsearch.orm.ElasticSearchFieldType.TEXT
 import kuick.repositories.elasticsearch.orm.field
 import kuick.repositories.eq
 import kuick.repositories.like
 import org.assertj.core.api.Assertions.assertThat
+import org.jboss.arquillian.junit.*
 import org.junit.Ignore
 import org.junit.Test
+import org.junit.runner.*
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
-internal class ModelRepositoryElasticSearchTest : AbstractITTestWithES() {
 
-    data class TestModel(
-        val id: String,
-        val val1: String,
-        val val2: Int,
-        val val3: Boolean
-    )
-
-    private val modelRepositoryElasticSearch = ModelRepositoryElasticSearch(
-        TestModel::class,
-        TestModel::id,
-        injector.getInstance(IndexClient::class.java),
-        {
-            TestModel::val1 to field(TestModel::val1.name, TEXT)
-        }
-    )
-
+internal class ModelRepositoryElasticSearchTest : AbstractITTestWithElasticSearch() {
     @Test
     internal fun `should init properly`() = runBlocking {
         assertFalse(modelRepositoryElasticSearch.indexExists())

@@ -1,22 +1,23 @@
 package kuick.repositories.elasticsearch
 
-import com.google.inject.AbstractModule
-import com.google.inject.Guice
-import com.google.inject.Module
-import kuick.db.DomainTransactionService
-import kuick.repositories.squash.DomainTransactionServiceSquash
-import org.apache.http.HttpHost
-import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest
-import org.elasticsearch.client.RequestOptions
-import org.elasticsearch.client.RestClient
-import org.elasticsearch.client.RestHighLevelClient
-import org.jetbrains.squash.connection.DatabaseConnection
-import org.jetbrains.squash.dialects.h2.H2Connection
-import org.junit.After
-import kotlin.reflect.KClass
+import com.google.inject.*
+import kuick.db.*
+import kuick.repositories.elasticsearch.orm.*
+import kuick.repositories.squash.*
+import kuick.utils.*
+import org.apache.http.*
+import org.arquillian.cube.containerobject.*
+import org.arquillian.cube.docker.impl.client.containerobject.dsl.*
+import org.elasticsearch.action.admin.indices.delete.*
+import org.elasticsearch.client.*
+import org.jboss.arquillian.junit.*
+import org.jetbrains.squash.connection.*
+import org.jetbrains.squash.dialects.h2.*
+import org.junit.*
+import org.junit.runner.*
 
 class InfrastructureGuiceModule(
-    val indexClient: RestHighLevelClient
+        val indexClient: RestHighLevelClient
 ) : AbstractModule() {
     override fun configure() {
         val db: DatabaseConnection = H2Connection.createMemoryConnection()
@@ -26,31 +27,50 @@ class InfrastructureGuiceModule(
         bind(ElasticSearchConfig::class.java).toInstance(ElasticSearchConfig(waitRefresh = true))
     }
 }
-abstract class AbstractITTest(modules: List<Module>) {
 
-    constructor(vararg modules: AbstractModule) : this(modules.toList())
+@RunWith(Arquillian::class)
+abstract class AbstractITTestWithElasticSearch {
+    @DockerContainer
+    var container = Container.withContainerName("kuick-elasticsearch-test")
+            .fromImage("docker.elastic.co/elasticsearch/elasticsearch:6.6.0")
+            .withPortBinding(9200)
+            .withEnvironment("discovery.type", "single-node")
+            .withConnectionMode(ConnectionMode.START_AND_STOP_AROUND_CLASS)
+            .withAwaitStrategy(AwaitBuilder.logAwait("started"))
+            .build()
 
 
-    val injector = Guice.createInjector(modules)
-    val trService = injector.getInstance(DomainTransactionService::class.java)
-    fun <T : Any> instance(kClass: KClass<T>): T = injector.getInstance(kClass.java)
-}
+    val injector by lazy {
+        Guice.createInjector(listOf(
+                InfrastructureGuiceModule(RestHighLevelClient(RestClient.builder(HttpHost(container.ipAddress, container.getBindPort(9200)))))
+        ))
+    }
+
+    data class TestModel(
+            val id: String,
+            val val1: String,
+            val val2: Int?,
+            val val3: Boolean
+    )
+
+    protected val modelRepositoryElasticSearch by lazy {
+        ModelRepositoryElasticSearch(
+                TestModel::class,
+                TestModel::id,
+                injector.getInstance(IndexClient::class.java),
+                {
+                    TestModel::val1 to field(TestModel::val1.name, ElasticSearchFieldType.TEXT)
+                }
+        )
+    }
 
 
-abstract class AbstractITTestWithES : AbstractITTest(
-        listOf(
-            InfrastructureGuiceModule(RestHighLevelClient(RestClient.builder(HttpHost("127.0.0.1", 9200)))))
-) {
+    //val trService = injector.getInstance(DomainTransactionService::class.java)
+    //fun <T : Any> instance(kClass: KClass<T>): T = injector.getInstance(kClass.java)
 
     @After
     fun tearDown() {
-        val client: RestHighLevelClient = injector.getInstance(RestHighLevelClient::class.java)
-        client.indices()
-            .delete(
-                DeleteIndexRequest()
-                    .indices("_all"),
-                RequestOptions.DEFAULT
-            )
+        injector.get<RestHighLevelClient>().indices().delete(DeleteIndexRequest().indices("_all"), RequestOptions.DEFAULT)
     }
 
 }
