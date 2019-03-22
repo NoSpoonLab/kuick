@@ -46,6 +46,25 @@ abstract class AbstractITTestWithElasticSearch {
         ))
     }
 
+    data class TestModel(
+            val id: String,
+            val val1: String,
+            val val2: Int?,
+            val val3: Boolean
+    )
+
+    protected val modelRepositoryElasticSearch by lazy {
+        ModelRepositoryElasticSearch(
+                TestModel::class,
+                TestModel::id,
+                injector.getInstance(IndexClient::class.java),
+                {
+                    TestModel::val1 to field(TestModel::val1.name, ElasticSearchFieldType.TEXT)
+                }
+        )
+    }
+
+
     //val trService = injector.getInstance(DomainTransactionService::class.java)
     //fun <T : Any> instance(kClass: KClass<T>): T = injector.getInstance(kClass.java)
 

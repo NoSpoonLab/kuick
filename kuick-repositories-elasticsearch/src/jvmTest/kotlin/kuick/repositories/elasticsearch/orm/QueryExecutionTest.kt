@@ -12,25 +12,7 @@ import org.junit.Test
 
 class QueryExecutionTest : AbstractITTestWithElasticSearch() {
 
-    data class TestModel(
-        val id: String,
-        val val1: String,
-        val val2: Int?,
-        val val3: Boolean
-    )
-
     class TestModelIndexCreationEvent
-
-    private val modelRepositoryElasticSearch by lazy {
-        ModelRepositoryElasticSearch(
-                TestModel::class,
-                TestModel::id,
-                injector.getInstance(IndexClient::class.java),
-                {
-                    TestModel::val1 to field(TestModel::val1.name, TEXT)
-                }
-        )
-    }
 
     private fun testQuery(
         given: Collection<TestModel>,
