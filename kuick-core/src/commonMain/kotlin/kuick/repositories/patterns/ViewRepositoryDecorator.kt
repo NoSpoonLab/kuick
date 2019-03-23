@@ -26,11 +26,11 @@ open class ViewRepositoryDecorator<I: Any, T: Any>(
                 // No affected rows... building
                 if (affectedViews.isEmpty()) {
                     val newView = fkl.listener(null, foreignModel)
-                    repo.insert(newView)
+                    newView?.let { repo.insert(newView) }
                 } else {
                     affectedViews.forEach { affectedView ->
                         val updatedViews = fkl.listener(affectedView, foreignModel)
-                        repo.update(updatedViews)
+                        updatedViews?.let { repo.update(updatedViews) }
                     }
                 }
             }
@@ -51,7 +51,7 @@ data class ViewListeners<T:Any>(
     fun <V: Any> updatesOn(
             foreignModel: KClass<V>,
             selector: (V) -> ModelQuery<T>,
-            listener: suspend (T?, V) -> T) =
+            listener: suspend (T?, V) -> T?) =
             copy(updaters = updaters + (Updater(foreignModel, selector, listener) as Updater<T, Any>))
 
 }
@@ -63,5 +63,5 @@ data class Builder<T: Any, V: Any>(
 data class Updater<T: Any, V: Any>(
         val foreignModel: KClass<V>,
         val selector: (V) -> ModelQuery<T>,
-        val listener: suspend (T?, V) -> T
+        val listener: suspend (T?, V) -> T?
 )
