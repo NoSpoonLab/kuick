@@ -4,10 +4,13 @@ import kuick.models.Id
 import kuick.repositories.eq
 import kuick.repositories.gt
 import kuick.repositories.gte
+import kuick.repositories.within
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-
+// TODO This should be a conformance test: should be a generic test that takes
+//  a repository implementation and perform every testable operation, so it can
+//  be used to test not only this squash implementation but every implementation
 class BasicOpsSquashRepoTest: AbstractITTest() {
 
     data class UserId(override val id: String): Id
@@ -45,6 +48,22 @@ class BasicOpsSquashRepoTest: AbstractITTest() {
         assertEquals(2, repo.findBy(User::ageOfUser gt 12).size)
         assertEquals(3, repo.findBy(User::ageOfUser gte 12).size)
         assertEquals(2, repo.findBy(User::married eq true).size)
+
+        assertEquals(4,
+                repo.findBy(User::lastName within setOf("Ballesteros")).size,
+                "Within should work on simple fields")
+
+        assertEquals(2,
+                repo.findBy(User::ageOfUser within setOf(0, 3, 8)).size,
+                "Within should work OK with missing values (0 in this case)")
+
+        assertEquals(2, repo.findBy(User::userId within
+                setOf(UserId("1"), UserId("2"))).size,
+                "Within should work with ID fields")
+
+        assertEquals(0,
+                repo.findBy(User::ageOfUser within setOf()).size,
+                "Within should work OK empty sets")
 
     }
 
