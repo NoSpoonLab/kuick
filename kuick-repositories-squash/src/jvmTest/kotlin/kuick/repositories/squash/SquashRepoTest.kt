@@ -24,14 +24,15 @@ class SquashRepoTest {
             repo.init()
             repo.insert(User("1234", "12"))
             val context = coroutineContext
-            assertEquals(
-                    "Value too long for column \"A VARCHAR(4) NOT NULL\": \"'12345' (5)\"; SQL statement:\n" +
-                            "INSERT INTO \"User\" (a, b) VALUES (?, ?) [22001-197]",
+            assertTrue(
                     assertFailsWith<JdbcSQLException> {
                         runBlocking(context) {
                             repo.insert(User("12345", "123"))
                         }
-                    }.message
+                    }.message!!.contains(
+                            "\"A VARCHAR(4) NOT NULL\": \"'12345' (5)\"; SQL statement:\n" +
+                                    "INSERT INTO \"User\" (a, b) VALUES (?, ?) [22001-197]"
+                    )
             )
         }
     }
