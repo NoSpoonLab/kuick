@@ -105,7 +105,13 @@ open class ModelRepositorySquash<I : Any, T : Any>(
         is FieldLt<T, *> -> table[field] lt value
         is FieldLte<T, *> -> table[field] lteq value
         is FieldWithin<T, *> -> table[field] within (value ?: emptySet())
-        is FieldWithinComplex<T, *> -> table[field] within (value?.map { Json.toJson(it) } ?: emptySet())
+        is FieldWithinComplex<T, *> -> {
+            val _value = value ?: emptySet()
+            when {
+                _value.isNotEmpty() && _value.first() is Id -> table[field] within (_value.map { (it as Id).id })
+                else -> table[field] within _value.map { Json.toJson(it) }
+            }
+        }
         is FilterExpAnd<T> -> left.toSquash() and right.toSquash()
         is FilterExpOr<T> -> left.toSquash() or right.toSquash()
         is FilterExpNot<T> -> not(exp.toSquash())
