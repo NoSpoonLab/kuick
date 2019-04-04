@@ -81,10 +81,9 @@ private fun <T:Any> ResultRow.readColumnValue(clazz: KClass<T>, field: Field, co
     String::class, Boolean::class, Int::class, Long::class, Float::class -> columnValue(type, columnName, tableName)
     Double::class, BigDecimal::class -> columnValue<BigDecimal>(columnName, tableName)?.toDouble()
     Email::class -> columnValue<String>(columnName, tableName)?.let { Email(it) }
-    Date::class -> columnValue<String>(columnName, tableName)?.let {
-        val localDateTime = LocalDateTime.parse(it, DATE_TIME_FORMAT)
-        val zoneOffset = ZoneOffset.UTC.normalized().rules.getOffset(localDateTime)
-        Date.from(localDateTime.toInstant(zoneOffset))
+    Date::class -> columnValue<LocalDateTime>(columnName, tableName)?.let {
+        val zoneOffset = ZoneOffset.UTC.normalized().rules.getOffset(it)
+        Date.from(it.toInstant(zoneOffset))
         }
 
     LocalDateTime::class -> columnValue<String>(columnName, tableName)?.let { LocalDateTime.parse(it, DATE_TIME_FORMAT) }
@@ -130,7 +129,7 @@ private fun decodeValue(value: Any?) = when (value) {
     is Id -> value.id
     is Email -> value.email
     is String, is Int, is Long, is Double -> value
-    is Date ->   DATE_TIME_FORMAT.format(LocalDateTime.ofInstant(value.toInstant(),ZoneOffset.UTC.normalized()))
+    is Date ->  LocalDateTime.ofInstant(value.toInstant(),ZoneOffset.UTC.normalized())
     is LocalDate -> DATE_FORMAT.format(value)
     is LocalDateTime -> DATE_TIME_FORMAT.format(value)
     value::class.java == Int::class.java -> value
