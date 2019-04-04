@@ -5,6 +5,7 @@ import kuick.repositories.eq
 import kuick.repositories.gt
 import kuick.repositories.gte
 import kuick.repositories.within
+import java.util.*
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -20,8 +21,8 @@ class BasicOpsSquashRepoTest: AbstractITTest() {
                     val lastName: String,
                     val ageOfUser: Int,
                     val married: Boolean,
-                    val createdAt: Long,
-                    val updatedAt: Long? = null
+                    val createdAt: Date,
+                    val updatedAt: Date? = null
     )
 
 
@@ -77,7 +78,7 @@ class BasicOpsSquashRepoTest: AbstractITTest() {
         repo.insert(mike)
         assertEquals(mike, repo.findById(mike.userId))
 
-        val mike2 = mike.copy(updatedAt = System.currentTimeMillis())
+        val mike2 = mike.copy(updatedAt = Date())
         repo.update(mike2)
         assertEquals(mike2, repo.findById(mike.userId))
     }
@@ -90,6 +91,6 @@ class BasicOpsSquashRepoTest: AbstractITTest() {
                     fullName.substringAfter(' '),
                     age,
                     married,
-                    System.currentTimeMillis(),
+                    Date(),
                     updatedAt = null)
 }

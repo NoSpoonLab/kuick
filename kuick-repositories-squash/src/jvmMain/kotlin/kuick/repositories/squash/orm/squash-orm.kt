@@ -27,6 +27,7 @@ import java.util.concurrent.atomic.*
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
 import kotlin.reflect.full.*
+import java.time.ZoneOffset
 
 
 const val LOCAL_DATE_LEN = 16
@@ -37,18 +38,6 @@ const val LONG_TEXT_LEN = 4000
 const val VERY_LONG_TEXT_LEN = 25000
 
 
-/*
-infix fun <T:Any> ResultRow.toDAO(clazz: KClass<T>): T {
-    val fields = clazz.toDAOFields().withIndex().map { (i, f) ->
-        try {
-            readColumnValue(clazz, f, i)
-        } catch (t: Throwable) {
-            throw IllegalStateException("Had a problem reading field ${f}", t)
-        }
-    }
-    return clazz.constructors.first().call(*fields.toTypedArray())
-}
-*/
 
 typealias LazyDomainTransactionSquash = DomainTransactionSquash
 
@@ -92,7 +81,12 @@ private fun <T:Any> ResultRow.readColumnValue(clazz: KClass<T>, field: Field, co
     String::class, Boolean::class, Int::class, Long::class, Float::class -> columnValue(type, columnName, tableName)
     Double::class, BigDecimal::class -> columnValue<BigDecimal>(columnName, tableName)?.toDouble()
     Email::class -> columnValue<String>(columnName, tableName)?.let { Email(it) }
-    Date::class -> columnValue<Long>(columnName, tableName)?.let { Date(it) }
+    Date::class -> columnValue<String>(columnName, tableName)?.let {
+        val localDateTime = LocalDateTime.parse(it, DATE_TIME_FORMAT)
+        val zoneOffset = ZoneOffset.UTC.normalized().rules.getOffset(localDateTime)
+        Date.from(localDateTime.toInstant(zoneOffset))
+        }
+
     LocalDateTime::class -> columnValue<String>(columnName, tableName)?.let { LocalDateTime.parse(it, DATE_TIME_FORMAT) }
     LocalDate::class -> columnValue<String>(columnName, tableName)?.takeIf { it != "0000-00-00" }?.let { dateAsStr ->
         ignoreErrors { LocalDate.parse(dateAsStr, DATE_FORMAT) }
@@ -136,7 +130,7 @@ private fun decodeValue(value: Any?) = when (value) {
     is Id -> value.id
     is Email -> value.email
     is String, is Int, is Long, is Double -> value
-    is Date -> value.time
+    is Date ->   DATE_TIME_FORMAT.format(LocalDateTime.ofInstant(value.toInstant(),ZoneOffset.UTC.normalized()))
     is LocalDate -> DATE_FORMAT.format(value)
     is LocalDateTime -> DATE_TIME_FORMAT.format(value)
     value::class.java == Int::class.java -> value

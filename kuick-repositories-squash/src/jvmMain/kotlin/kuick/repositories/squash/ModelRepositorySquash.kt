@@ -43,7 +43,7 @@ open class ModelRepositorySquash<I : Any, T : Any>(
                     returnType == Long::class.starProjectedType -> long(columnName)
                     returnType == Double::class.starProjectedType -> decimal(columnName, 5, 4)
                     returnType == Boolean::class.starProjectedType -> bool(columnName)
-                    returnType == Date::class.starProjectedType -> long(columnName)
+                    returnType == Date::class.starProjectedType -> varchar(columnName, LOCAL_DATE_TIME_LEN)
                     returnType == LocalDate::class.starProjectedType -> varchar(columnName, LOCAL_DATE_TIME_LEN)
                     returnType.isSubtypeOf(Id::class.starProjectedType) -> (varchar(columnName, ID_LEN))
                     else -> varchar(columnName, defaultMaxLength)
