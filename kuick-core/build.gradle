@@ -2,4 +2,6 @@ dependencies {
     jvmApi 'com.google.code.gson:gson:2.2.4'
     jvmApi 'com.google.inject:guice:4.2.0'
     jvmApi "org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinx_coroutines_version"
+    jsApi "org.jetbrains.kotlinx:kotlinx-coroutines-core-js:$kotlinx_coroutines_version"
+    commonMainApi "org.jetbrains.kotlinx:kotlinx-coroutines-core-common:$kotlinx_coroutines_version"
 }

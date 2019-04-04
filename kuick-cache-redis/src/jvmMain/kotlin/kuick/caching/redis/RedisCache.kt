@@ -1,6 +1,7 @@
 package kuick.caching.redis
 
 import io.lettuce.core.*
+import kuick.caching.*
 import kuick.client.redis.*
 import kuick.json.*
 import kotlin.reflect.*
@@ -24,9 +25,4 @@ class RedisCache<V : Any> @PublishedApi internal constructor(
     override suspend fun invalidate(key: String) {
         redis.hdel(cacheName, key)
     }
-}
-
-interface Cache<K : Any, T : Any> {
-    suspend fun get(key: K, builder: suspend () -> T): T
-    suspend fun invalidate(key: K)
 }

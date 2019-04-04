@@ -4,15 +4,60 @@ import io.lettuce.core.*
 import io.lettuce.core.api.*
 import io.lettuce.core.api.async.*
 import io.lettuce.core.codec.*
+import io.lettuce.core.pubsub.*
+import io.lettuce.core.pubsub.api.async.*
 import java.util.concurrent.*
 import kotlin.coroutines.*
 
-suspend fun RedisClient.connectSuspend(uri: RedisURI) = this.connectAsync(StringCodec(), uri).await()
+suspend fun <K, V> RedisClient.connectSuspend(uri: RedisURI, codec: RedisCodec<K, V>) = this.connectAsync(codec, uri).await()
+suspend fun <K, V> RedisClient.connectPubSubSuspend(uri: RedisURI, codec: RedisCodec<K, V>) = this.connectPubSubAsync(codec, uri).await()
 
+suspend fun RedisClient.connectSuspend(uri: RedisURI) = connectSuspend(uri, StringCodec())
+suspend fun RedisClient.connectPubSubSuspend(uri: RedisURI): StatefulRedisPubSubConnection<String, String> = connectPubSubSuspend(uri, StringCodec())
+
+suspend fun <K, V> StatefulConnection<K, V>.closeSuspend() = closeAsync().await()
+
+fun <K, V> StatefulRedisPubSubConnection<K, V>.suspending() = RedisPubSubSuspendCommands(async())
 fun <K, V> StatefulRedisConnection<K, V>.suspending(): RedisSuspendCommands<K, V> = RedisSuspendCommands(this.async())
 
+@Suppress("RedundantSuspendModifier", "unused")
+class RedisPubSubSuspendCommands<K, V>(val asyncPubsub: RedisPubSubAsyncCommands<K, V>) : RedisSuspendCommands<K, V>(asyncPubsub) {
+
+    /**
+     * Listen for messages published to channels matching the given patterns.
+     *
+     * @param patterns the patterns
+     * @return RedisFuture&lt;Void&gt; Future to synchronize {@code psubscribe} completion
+     */
+    suspend fun psubscribe(vararg patterns: K) = asyncPubsub.psubscribe(*patterns).await(0L, TimeUnit.SECONDS)
+
+    /**
+     * Stop listening for messages posted to channels matching the given patterns.
+     *
+     * @param patterns the patterns
+     * @return RedisFuture&lt;Void&gt; Future to synchronize {@code punsubscribe} completion
+     */
+    suspend fun punsubscribe(vararg patterns: K) = asyncPubsub.punsubscribe(*patterns).await()
+
+    /**
+     * Listen for messages published to the given channels.
+     *
+     * @param channels the channels
+     * @return RedisFuture&lt;Void&gt; Future to synchronize {@code subscribe} completion
+     */
+    suspend fun subscribe(vararg channels: K) = asyncPubsub.subscribe(*channels).await()
+
+    /**
+     * Stop listening for messages posted to the given channels.
+     *
+     * @param channels the channels
+     * @return RedisFuture&lt;Void&gt; Future to synchronize {@code unsubscribe} completion.
+     */
+    suspend fun unsubscribe(vararg channels: K) = asyncPubsub.unsubscribe(*channels).await()
+}
+
 @Suppress("unused", "HasPlatformType", "HasPlatformType", "SpellCheckingInspection", "DEPRECATION", "RedundantSuspendModifier")
-inline class RedisSuspendCommands<K, V>(val async: RedisAsyncCommands<K, V>) {
+open class RedisSuspendCommands<K, V>(val async: RedisAsyncCommands<K, V>) {
     /*
     suspend fun set(key: K, value: V) = async.set(key, value).await()
     suspend fun get(key: K) = async.get(key).await()

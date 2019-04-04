@@ -2,6 +2,7 @@ package kuick.caching.redis
 
 import io.lettuce.core.*
 import kotlinx.coroutines.*
+import kuick.caching.*
 import org.arquillian.cube.containerobject.*
 import org.arquillian.cube.docker.impl.client.containerobject.dsl.*
 import org.jboss.arquillian.junit.*
@@ -31,5 +32,21 @@ class RedisCacheTest {
         assertEquals(10, result2.v)
         assertSame(result1, instance, "First call should return the same object")
         assertNotSame(result1, result2, "If deserialized, should be a different instance")
+    }
+
+    @Test
+    fun testWithRedisInvalidation() = runBlocking {
+        CacheRedisClient().use { cacheClient ->
+            //InmemoryCache<String, Int>().let { cache ->
+            InmemoryCache<String, Int>().withRedisInvalidation("mycache2", cacheClient).use { cache ->
+                val log = arrayListOf<Int>()
+                log += cache.get("test") { 10 }
+                log += cache.get("test") { 20 }
+                cache.invalidate("test")
+                delay(1000L)
+                log += cache.get("test") { 30 }
+                assertEquals("10:10:30", log.joinToString(":"))
+            }
+        }
     }
 }
