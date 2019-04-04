@@ -1,0 +1,6 @@
+dependencies {
+    commonMainApi project(":kuick-core")
+    commonMainApi project(":kuick-redis")
+    jvmTestImplementation 'org.arquillian.cube:arquillian-cube-docker:1.18.2'
+    jvmTestImplementation 'org.jboss.arquillian.junit:arquillian-junit-standalone:1.4.1.Final'
+}
