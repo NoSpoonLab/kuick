@@ -9,6 +9,10 @@ import io.lettuce.core.pubsub.api.async.*
 import java.util.concurrent.*
 import kotlin.coroutines.*
 
+// Try redis locally:
+// - docker run redis
+// - docker exec -it `docker ps -l --format "{{.ID}}"` redis-cli
+
 suspend fun <K, V> RedisClient.connectSuspend(uri: RedisURI, codec: RedisCodec<K, V>) = this.connectAsync(codec, uri).await()
 suspend fun <K, V> RedisClient.connectPubSubSuspend(uri: RedisURI, codec: RedisCodec<K, V>) = this.connectPubSubAsync(codec, uri).await()
 
