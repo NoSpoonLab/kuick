@@ -8,7 +8,7 @@ import kuick.client.redis.*
 import java.io.*
 import kotlin.coroutines.*
 
-class CacheRedisClient internal constructor(
+class InvalidationRedisClient internal constructor(
         private val coroutineContext: CoroutineContext,
         private val redisSub: StatefulRedisPubSubConnection<String, String>,
         private val redisPub: StatefulRedisConnection<String, String>
@@ -39,14 +39,14 @@ class CacheRedisClient internal constructor(
     companion object {
         private fun getChannelForKey(name: String) = "cache-invalidate-$name"
 
-        suspend operator fun invoke(uri: String = "redis://localhost"): CacheRedisClient {
+        suspend operator fun invoke(uri: String = "redis://localhost"): InvalidationRedisClient {
             val clientSub = RedisClient.create()
             val clientPub = RedisClient.create()
             val redisUri = RedisURI.create(uri)
             val redisSub = clientSub.connectPubSubSuspend(redisUri)
             val redisPub = clientPub.connectSuspend(redisUri)
             val context = coroutineContext
-            val cacheClient = CacheRedisClient(coroutineContext, redisSub, redisPub)
+            val cacheClient = InvalidationRedisClient(coroutineContext, redisSub, redisPub)
             redisSub.suspending().psubscribe(getChannelForKey("*"))
             redisSub.addListener(object : RedisPubSubAdapter<String, String>() {
                 override fun message(pattern: String, channel: String, message: String) {

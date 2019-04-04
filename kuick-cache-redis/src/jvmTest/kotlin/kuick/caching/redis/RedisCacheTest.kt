@@ -36,7 +36,7 @@ class RedisCacheTest {
 
     @Test
     fun testWithRedisInvalidation() = runBlocking {
-        CacheRedisClient().use { cacheClient ->
+        InvalidationRedisClient().use { cacheClient ->
             //InmemoryCache<String, Int>().let { cache ->
             InmemoryCache<String, Int>().withRedisInvalidation("mycache2", cacheClient).use { cache ->
                 val log = arrayListOf<Int>()

@@ -1,20 +1,14 @@
 package kuick.caching.redis
 
-import io.lettuce.core.*
-import io.lettuce.core.api.*
-import io.lettuce.core.pubsub.*
-import kotlinx.coroutines.*
 import kuick.caching.*
-import kuick.client.redis.*
 import java.io.*
-import kotlin.coroutines.*
 
 class CacheWithRedisInvalidation<V : Any> @PublishedApi internal constructor(
         val parentCache: Cache<String, V>,
         val cacheName: String,
-        val cacheRedisClient: CacheRedisClient
+        val invalidationRedisClient: InvalidationRedisClient
 ) : Cache<String, V>, Closeable {
-    private val register = cacheRedisClient.register(cacheName) {
+    private val register = invalidationRedisClient.register(cacheName) {
         parentCache.invalidate(it)
     }
 
@@ -23,7 +17,7 @@ class CacheWithRedisInvalidation<V : Any> @PublishedApi internal constructor(
     }
 
     override suspend fun invalidate(key: String) {
-        cacheRedisClient.invalidate(cacheName, key)
+        invalidationRedisClient.invalidate(cacheName, key)
     }
 
     override fun close() {
@@ -31,5 +25,5 @@ class CacheWithRedisInvalidation<V : Any> @PublishedApi internal constructor(
     }
 }
 
-fun <V : Any> Cache<String, V>.withRedisInvalidation(cacheName: String, cacheRedisClient: CacheRedisClient) =
-        CacheWithRedisInvalidation(this, cacheName, cacheRedisClient)
+fun <V : Any> Cache<String, V>.withRedisInvalidation(cacheName: String, invalidationRedisClient: InvalidationRedisClient) =
+        CacheWithRedisInvalidation(this, cacheName, invalidationRedisClient)
