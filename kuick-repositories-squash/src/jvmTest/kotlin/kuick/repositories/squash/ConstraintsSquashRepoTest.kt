@@ -2,7 +2,7 @@ package kuick.repositories.squash
 
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
-import kuick.db.DomainTransactionContext
+import kuick.db.BaseDomainTransactionContext
 import kuick.db.domainTransaction
 import kuick.repositories.annotations.MaxLength
 import org.h2.jdbc.JdbcSQLException
@@ -23,7 +23,7 @@ class ConstraintsSquashRepoTest: AbstractITTest() {
         assertTrue(
             assertFailsWith<JdbcSQLException> {
                 runBlocking {
-                    withContext(DomainTransactionContext(tr)) {
+                    withContext(BaseDomainTransactionContext(tr)) {
                         repo.insert(User("12345", "123"))
                     }
                 }

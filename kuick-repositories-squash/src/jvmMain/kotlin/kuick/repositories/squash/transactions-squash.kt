@@ -23,13 +23,13 @@ class DomainTransactionServiceSquash @Inject constructor(val db: DatabaseConnect
     override suspend fun <T : Any> transactionNullable(transactionalActions: suspend (DomainTransaction) -> T?): T? {
 
         //println("LazyDomainTransactionSquash($db)")
-        val ctx = coroutineContext[DomainTransactionContext.Key]
+        val ctx = coroutineContext[BaseDomainTransactionContext.Key]
         return if (ctx != null && ctx != DiscardDomainTransactionContext) {
             //println("Reentrando en transaction {}")
             domainTransaction { tr -> transactionalActions(tr) }
         } else {
             LazyDomainTransactionSquash(db).use { domainTransaction ->
-                withContext(NormalDomainTransactionContext(domainTransaction)) {
+                withContext(DomainTransactionContext(domainTransaction)) {
                     transactionalActions(domainTransaction)
                 }
             }

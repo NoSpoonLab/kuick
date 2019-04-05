@@ -129,17 +129,12 @@ class GuiceFeatureTest {
             val perCoroutineJob = injector.get<PerCoroutineJob>()
             val domainTransactionService = injector.get<DomainTransactionService>()
             perCoroutineJob.register { callback ->
-                withInjectorContext(injector) {
-                    callback()
-                }
-            }
-            perCoroutineJob.register { callback ->
-                domainTransactionService.createNewConnection {
-                    callback()
-                }
+                withInjectorContext(injector) { callback() }
             }
 
+            // Per coroutineJob
             application.install(PerCoroutineJobFeature(perCoroutineJob))
+            injector.registerSquashPerCoroutineJob()
 
             perCoroutineJob.runBlocking {
                 repo.init()

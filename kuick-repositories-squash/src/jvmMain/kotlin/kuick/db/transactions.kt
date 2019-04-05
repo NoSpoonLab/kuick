@@ -38,15 +38,15 @@ suspend operator fun <T> DomainTransactionService.invoke(transactionalActions: s
 
 
 // coroutine context element that keeps a (mutable) integer counter
-abstract class DomainTransactionContext() : AbstractCoroutineContextElement(Key) {
+abstract class BaseDomainTransactionContext() : AbstractCoroutineContextElement(Key) {
     abstract val tr: DomainTransaction
-    companion object Key : CoroutineContext.Key<DomainTransactionContext>
+    companion object Key : CoroutineContext.Key<BaseDomainTransactionContext>
 }
 
-class NormalDomainTransactionContext(override val tr: DomainTransaction) : DomainTransactionContext() {
+class DomainTransactionContext(override val tr: DomainTransaction) : BaseDomainTransactionContext() {
 }
 
-object DiscardDomainTransactionContext : DomainTransactionContext() {
+object DiscardDomainTransactionContext : BaseDomainTransactionContext() {
     override val tr: DomainTransaction get() = TODO()
 }
 
@@ -54,7 +54,7 @@ class NotInTransactionException: RuntimeException()
 
 @KuickInternalWarning
 @Deprecated("Do not use domainTransactionOrNull")
-suspend fun domainTransactionOrNull(): DomainTransaction? = coroutineContext[DomainTransactionContext]?.takeUnless { it is DiscardDomainTransactionContext }?.tr
+suspend fun domainTransactionOrNull(): DomainTransaction? = coroutineContext[BaseDomainTransactionContext]?.takeUnless { it is DiscardDomainTransactionContext }?.tr
 
 @KuickInternalWarning
 @Deprecated("Do not use domainTransaction")

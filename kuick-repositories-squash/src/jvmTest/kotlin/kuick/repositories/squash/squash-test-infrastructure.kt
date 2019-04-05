@@ -1,15 +1,11 @@
 package kuick.repositories.squash
 
-import com.google.inject.AbstractModule
-import com.google.inject.Guice
-import com.google.inject.Module
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withContext
-import kuick.db.DomainTransactionContext
-import kuick.db.DomainTransactionService
-import org.jetbrains.squash.connection.DatabaseConnection
-import org.jetbrains.squash.dialects.h2.H2Connection
-import kotlin.reflect.KClass
+import com.google.inject.*
+import kotlinx.coroutines.*
+import kuick.db.*
+import org.jetbrains.squash.connection.*
+import org.jetbrains.squash.dialects.h2.*
+import kotlin.reflect.*
 
 class InfrastructureGuiceModule() : AbstractModule() {
     override fun configure() {
@@ -18,6 +14,7 @@ class InfrastructureGuiceModule() : AbstractModule() {
         bind(DomainTransactionService::class.java).to(DomainTransactionServiceSquash::class.java)
     }
 }
+
 abstract class AbstractITTest(modules: List<Module> = listOf(InfrastructureGuiceModule())) {
 
     constructor(vararg modules: AbstractModule) : this(modules.toList())
