@@ -129,7 +129,7 @@ class GuiceFeatureTest {
             val perCoroutineJob = injector.get<PerCoroutineJob>()
             val domainTransactionService = injector.get<DomainTransactionService>()
             perCoroutineJob.register { callback ->
-                withInjectorContext(injector) { callback() }
+                withInjectorContextNoIntercepted(injector) { callback() }
             }
 
             // Per coroutineJob

@@ -61,4 +61,7 @@ inline fun <reified T : Any> Injector.getOrNull() = try {
 }
 suspend fun <T> withInjectorContextNoIntercepted(injector: Injector, callback: suspend CoroutineScope.() -> T): T =
         withContext(InjectorContext(injector)) { callback() }
-suspend fun <T> withInjectorContext(injector: Injector, callback: suspend CoroutineScope.() -> T) = injector.runWithInjector { callback(CoroutineScope(coroutineContext)) }
+suspend fun <T> withInjectorContextIntercepted(injector: Injector, callback: suspend CoroutineScope.() -> T) = injector.runWithInjector { callback(CoroutineScope(coroutineContext)) }
+
+@Deprecated("", ReplaceWith("withInjectorContextIntercepted(injector, callback)"))
+suspend fun <T> withInjectorContext(injector: Injector, callback: suspend CoroutineScope.() -> T) = withInjectorContextIntercepted(injector, callback)

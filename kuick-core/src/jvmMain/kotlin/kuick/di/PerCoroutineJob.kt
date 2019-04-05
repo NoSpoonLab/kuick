@@ -5,6 +5,7 @@ import kotlinx.coroutines.*
 import kuick.concurrent.atomic.*
 import kuick.utils.*
 import java.util.concurrent.atomic.*
+import kotlin.concurrent.*
 
 @Singleton
 class PerCoroutineJob @Inject constructor(val injector: Injector) {
@@ -47,3 +48,21 @@ suspend fun <T> Injector.runWithInjector(callback: suspend () -> T): T {
 }
 
 fun <T> Injector.runBlockingWithInjector(callback: suspend () -> T): T = runBlocking { runWithInjector(callback) }
+
+fun Injector.runInExecutorThread(callback: suspend () -> Unit) {
+    val injector = this
+    // @TODO: Use a ThreadPool
+    thread {
+        runBlocking {
+            withInjectorContextIntercepted(injector) {
+                try {
+                    callback()
+                } catch (e: Throwable) {
+                    e.printStackTrace()
+                    throw e
+                }
+            }
+        }
+    }
+
+}
