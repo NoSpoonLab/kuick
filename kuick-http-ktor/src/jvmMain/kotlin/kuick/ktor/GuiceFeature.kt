@@ -22,14 +22,14 @@ class GuiceFeature(baseInjector: Injector, val perRequestInjectorDecorator: (Inj
         }
     }
 
-    suspend fun withRootInjector(callback: suspend () -> Unit) = withInjectorContext(injector) { callback() }
-    suspend fun withPreRequestInjector(callback: suspend () -> Unit) = withInjectorContext(createRequestInjector()) { callback() }
+    suspend fun withRootInjector(callback: suspend (injector: Injector) -> Unit) = withInjectorContext(injector) { callback(injector) }
+    suspend fun withPreRequestInjector(callback: suspend (injector: Injector) -> Unit) = createRequestInjector().let { injector -> withInjectorContext(injector) { callback(injector) } }
 
-    fun runBlockingWithRootInjector(callback: suspend () -> Unit) = runBlocking { withRootInjector(callback) }
-    fun runBlockingWithPreRequestInjector(callback: suspend () -> Unit) = runBlocking { withPreRequestInjector(callback) }
+    fun runBlockingWithRootInjector(callback: suspend (injector: Injector) -> Unit) = runBlocking { withRootInjector(callback) }
+    fun runBlockingWithPreRequestInjector(callback: suspend (injector: Injector) -> Unit) = runBlocking { withPreRequestInjector(callback) }
 
     @Deprecated("", ReplaceWith("runBlockingWithPreRequestInjector(callback)"))
-    fun withInjector(callback: suspend () -> Unit) = runBlockingWithPreRequestInjector(callback)
+    fun withInjector(callback: suspend (injector: Injector) -> Unit) = runBlockingWithPreRequestInjector(callback)
 
     companion object Feature : ApplicationFeature<ApplicationCallPipeline, Configuration, GuiceFeature> {
         override val key = AttributeKey<GuiceFeature>("Guice")
