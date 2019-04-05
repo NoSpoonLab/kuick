@@ -114,4 +114,54 @@ class GuiceFeatureTest {
             assertNotSame(transactionServices[0], transactionServices[1])
         }
     }
+
+    @Test
+    fun testPerRequestDecorator2() = runBlocking {
+        withTestApplication {
+            val db = H2Connection.createMemoryConnection()
+            val repo = ModelRepositorySquash(User::class, User::userId)
+
+            val injector = Guice {
+                bindDatabaseSquash(db)
+            }
+
+
+            val perCoroutineJob = injector.get<PerCoroutineJob>()
+            val domainTransactionService = injector.get<DomainTransactionService>()
+            perCoroutineJob.register { callback ->
+                withInjectorContext(injector) {
+                    callback()
+                }
+            }
+            perCoroutineJob.register { callback ->
+                domainTransactionService.createNewConnection {
+                    callback()
+                }
+            }
+
+            application.install(PerCoroutineJobFeature(perCoroutineJob))
+
+            perCoroutineJob.runBlocking {
+                repo.init()
+                repo.insert(User(User.Id("hello"), "world"))
+            }
+
+            val transactions = arrayListOf<DomainTransaction>()
+
+            application.routing {
+                get("/hello") {
+                    domainTransactionService.transaction {
+                        transactions += it
+                    }
+                    val user = repo.findById(User.Id("hello"))
+                    call.respondText("${user?.firstName}")
+                }
+            }
+            assertEquals("world", handleRequest(HttpMethod.Get, "/hello").response.content)
+            assertEquals("world", handleRequest(HttpMethod.Get, "/hello").response.content)
+
+            assertEquals(2, transactions.size)
+            assertNotSame(transactions[0], transactions[1])
+        }
+    }
 }

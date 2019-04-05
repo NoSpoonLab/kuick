@@ -5,21 +5,21 @@ import kuick.core.*
 import kotlin.test.*
 
 @UseExperimental(KuickInternal::class)
-class PerCoroutineJobServiceTest {
+class PerCoroutineJobTest {
     @Test
     fun test() {
         runBlocking {
-            val injector = Guice { bindPerCoroutineJobService() }
+            val injector = Guice { bindPerCoroutineJob() }
             var executed = 0
-            injector.get<PerCoroutineJobService>().execute {
+            injector.get<PerCoroutineJob>().runSuspending {
                 executed++
             }
-            injector.get<PerCoroutineJobService>().register { callback ->
+            injector.get<PerCoroutineJob>().register { callback ->
                 withInjectorContext(injector) {
                     callback()
                 }
             }
-            injector.get<PerCoroutineJobService>().execute {
+            injector.get<PerCoroutineJob>().runSuspending {
                 assertNotNull(injector())
                 executed++
             }
