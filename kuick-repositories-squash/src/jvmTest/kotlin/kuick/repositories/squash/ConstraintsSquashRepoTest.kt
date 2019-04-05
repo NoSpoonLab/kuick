@@ -2,8 +2,7 @@ package kuick.repositories.squash
 
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
-import kuick.db.BaseDomainTransactionContext
-import kuick.db.domainTransaction
+import kuick.db.*
 import kuick.repositories.annotations.MaxLength
 import org.h2.jdbc.JdbcSQLException
 import org.junit.Test
@@ -19,18 +18,19 @@ class ConstraintsSquashRepoTest: AbstractITTest() {
         repo.init()
         repo.insert(User("1234", "12"))
 
-        val tr = domainTransaction()
-        assertTrue(
-            assertFailsWith<JdbcSQLException> {
-                runBlocking {
-                    withContext(BaseDomainTransactionContext(tr)) {
-                        repo.insert(User("12345", "123"))
-                    }
-                }
-            }.message!!.contains(
-                    "\"A VARCHAR(4) NOT NULL\": \"'12345' (5)\"; SQL statement:\n" +
-                            "INSERT INTO \"User\" (a, b) VALUES (?, ?) [22001-197]"
+        domainTransaction { tr ->
+            assertTrue(
+                    assertFailsWith<JdbcSQLException> {
+                        runBlocking {
+                            withContext(DomainTransactionContext(tr)) {
+                                repo.insert(User("12345", "123"))
+                            }
+                        }
+                    }.message!!.contains(
+                            "\"A VARCHAR(4) NOT NULL\": \"'12345' (5)\"; SQL statement:\n" +
+                                    "INSERT INTO \"User\" (a, b) VALUES (?, ?) [22001-197]"
+                    )
             )
-        )
+        }
     }
 }
