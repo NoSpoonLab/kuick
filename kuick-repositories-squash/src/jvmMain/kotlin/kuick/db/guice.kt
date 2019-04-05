@@ -18,13 +18,3 @@ fun Binder.bindDatabaseSquashNoDomainTransaction(db: DatabaseConnection) {
 fun Binder.bindDomainTransactionSquash(db: DatabaseConnection) {
     bind<DomainTransactionService>(DomainTransactionServiceSquash(db))
 }
-
-fun Injector.registerSquashPerCoroutineJob() {
-    val perCoroutineJob = get<PerCoroutineJob>()
-    val domainTransactionService = get<DomainTransactionService>()
-    perCoroutineJob.register { callback ->
-        domainTransactionService.createNewConnection {
-            callback()
-        }
-    }
-}

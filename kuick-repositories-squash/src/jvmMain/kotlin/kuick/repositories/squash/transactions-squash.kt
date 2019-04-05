@@ -1,17 +1,25 @@
 package kuick.repositories.squash
 
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.*
 import kuick.core.*
 import kuick.db.*
+import kuick.di.*
 import kuick.repositories.squash.orm.*
-import org.jetbrains.squash.connection.DatabaseConnection
-import javax.inject.Inject
-import javax.inject.Singleton
-import kotlin.coroutines.coroutineContext
+import org.jetbrains.squash.connection.*
+import javax.inject.*
+import kotlin.coroutines.*
 
 
 @Singleton
-class DomainTransactionServiceSquash @Inject constructor(val db: DatabaseConnection): DomainTransactionService {
+class DomainTransactionServiceSquash @Inject constructor(val db: DatabaseConnection, val perCoroutineJob: PerCoroutineJob) : DomainTransactionService {
+    init {
+        perCoroutineJob.register { callback ->
+            this@DomainTransactionServiceSquash.createNewConnection {
+                callback()
+            }
+        }
+    }
+
     override suspend fun createNewConnection(callback: suspend () -> Unit) {
         withContext(DiscardDomainTransactionContext) {
             callback()
