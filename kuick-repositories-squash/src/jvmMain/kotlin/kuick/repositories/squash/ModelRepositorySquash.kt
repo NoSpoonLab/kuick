@@ -21,12 +21,14 @@ import kotlin.reflect.jvm.*
 open class ModelRepositorySquash<I : Any, T : Any>(
         val modelClass: KClass<T>,
         val idField: KProperty1<T, I>,
-        val defaultMaxLength: Int = LONG_TEXT_LEN
+        val defaultMaxLength: Int = LONG_TEXT_LEN,
+        dateSerialization : DateSerializationStrategy = dateSerializationAsLong
 ) : ModelRepository<I, T> {
 
-    val table = ORMTableDefinition(modelClass)
+    val table = ORMTableDefinition(modelClass, dateSerialization)
 
     init {
+
         modelClass.java.nonStaticFields().forEach { field ->
             val prop = modelClass.declaredMemberProperties.firstOrNull { it.name == field.name }
             if (prop == null) throw IllegalStateException("Property not found for field: ${field.name}")
@@ -36,6 +38,7 @@ open class ModelRepositorySquash<I : Any, T : Any>(
             val returnType = prop.returnType.classifier!!.starProjectedType
             val columnName = prop.name.toSnakeCase()
             //println("Registering field ${prop} with return type: ${prop.returnType}")
+
             with(table) {
                 var columnDefinition: ColumnDefinition<Any?> = when {
                     returnType == String::class.starProjectedType -> varchar(columnName, maxLength ?: defaultMaxLength)
@@ -43,7 +46,7 @@ open class ModelRepositorySquash<I : Any, T : Any>(
                     returnType == Long::class.starProjectedType -> long(columnName)
                     returnType == Double::class.starProjectedType -> decimal(columnName, 5, 4)
                     returnType == Boolean::class.starProjectedType -> bool(columnName)
-                    returnType == Date::class.starProjectedType -> datetime(columnName)
+                    returnType == Date::class.starProjectedType -> dateSerialization.getColumnDefinition(this,columnName)
                     returnType == LocalDate::class.starProjectedType -> varchar(columnName, LOCAL_DATE_TIME_LEN)
                     returnType.isSubtypeOf(Id::class.starProjectedType) -> (varchar(columnName, ID_LEN))
                     else -> varchar(columnName, defaultMaxLength)
