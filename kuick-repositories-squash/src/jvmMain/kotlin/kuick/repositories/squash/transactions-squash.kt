@@ -7,7 +7,7 @@ import kuick.db.DomainTransaction
 import kuick.db.DomainTransactionContext
 import kuick.db.DomainTransactionService
 import kuick.db.domainTransaction
-import kuick.repositories.squash.orm.DomainTransactionSquash
+import kuick.repositories.squash.orm.*
 import org.jetbrains.squash.connection.DatabaseConnection
 import org.jetbrains.squash.connection.transaction
 import javax.inject.Inject
@@ -26,8 +26,7 @@ class DomainTransactionServiceSquash @Inject constructor(val db: DatabaseConnect
             println("Reentrando en transaction {}")
             domainTransaction { tr -> transactionalActions(tr) }
         } else {
-            db.createTransaction().use { transaction ->
-                val domainTransaction = DomainTransactionSquash(transaction)
+            LazyDomainTransactionSquash(db).use { domainTransaction ->
                 withContext(DomainTransactionContext(domainTransaction)) {
                     transactionalActions(domainTransaction)
                 }
