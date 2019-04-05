@@ -6,7 +6,7 @@ import kuick.models.Email
 import kuick.models.Id
 import kuick.models.KLocalDate
 import kuick.utils.nonStaticFields
-import org.jetbrains.squash.connection.Transaction
+import org.jetbrains.squash.connection.*
 import org.jetbrains.squash.definition.ColumnDefinition
 import org.jetbrains.squash.definition.Table
 import org.jetbrains.squash.definition.TableDefinition
@@ -16,12 +16,14 @@ import org.jetbrains.squash.query.orderBy
 import org.jetbrains.squash.query.where
 import org.jetbrains.squash.results.*
 import org.jetbrains.squash.statements.*
+import java.io.*
 import java.lang.reflect.Field
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.*
+import java.util.concurrent.atomic.*
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
 import kotlin.reflect.full.*
@@ -48,7 +50,22 @@ infix fun <T:Any> ResultRow.toDAO(clazz: KClass<T>): T {
 }
 */
 
-class DomainTransactionSquash(val tr: Transaction): DomainTransaction
+typealias LazyDomainTransactionSquash = DomainTransactionSquash
+
+class DomainTransactionSquash(val db: DatabaseConnection): DomainTransaction, Closeable {
+    private var _tr = AtomicReference<Transaction?>(null)
+    val tr: Transaction get() {
+        if (_tr.get() == null) {
+            val tr = db.createTransaction()
+            _tr.set(tr)
+        }
+        return _tr.get()!!
+    }
+
+    override fun close() {
+        _tr.get()?.close()
+    }
+}
 
 infix fun <T:Any> ResultRow.toDAO(ormDef: ORMTableDefinition<T>): T {
     val fields = ormDef.clazz.toDAOFields()
@@ -241,7 +258,7 @@ open class ORMTableDefinition<T : Any> (val clazz: KClass<T>, val tableName: Str
 
 }
 
-fun DomainTransaction.squashTr() = (this as DomainTransactionSquash).tr
+fun DomainTransaction.squashTr() = (this as LazyDomainTransactionSquash).tr
 
 
 infix fun <V: Any> ColumnDefinition<V>.eqEnum(literal: V?): Expression<Boolean> {
