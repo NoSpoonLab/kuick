@@ -75,6 +75,7 @@ class GuiceFeatureTest {
         }
     }
 
+    /*
     @Test
     fun testPerRequestDecorator() = runBlocking {
         withTestApplication {
@@ -87,7 +88,7 @@ class GuiceFeatureTest {
                 }
                 perRequestInjectorDecorator { injector ->
                     injector.createChildInjector(GuiceModule {
-                        bindDomainTransactionSquash(injector.get())
+                        bindDomainTransactionSquash()
                     })
                 }
             }
@@ -114,6 +115,7 @@ class GuiceFeatureTest {
             assertNotSame(transactionServices[0], transactionServices[1])
         }
     }
+     */
 
     @Test
     fun testPerRequestDecorator2() = runBlocking {
@@ -134,7 +136,6 @@ class GuiceFeatureTest {
 
             // Per coroutineJob
             application.install(PerCoroutineJobFeature(perCoroutineJob))
-            injector.registerSquashPerCoroutineJob()
 
             perCoroutineJob.runBlocking {
                 repo.init()
