@@ -8,8 +8,9 @@ import java.util.concurrent.atomic.*
 class PerCoroutineJob {
     var handlers by AtomicReference(listOf<PerCoroutineJobHandler>())
 
-    fun register(handler: PerCoroutineJobHandler) {
+    fun register(handler: PerCoroutineJobHandler): PerCoroutineJob {
         handlers = handlers + handler
+        return this
     }
 
     fun runBlocking(callback: suspend () -> Unit) = kotlinx.coroutines.runBlocking { runSuspending(callback) }
