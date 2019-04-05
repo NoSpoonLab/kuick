@@ -15,7 +15,7 @@ class PerCoroutineJobTest {
                 executed++
             }
             injector.get<PerCoroutineJob>().register { callback ->
-                withInjectorContext(injector) {
+                withInjectorContextNoIntercepted(injector) {
                     callback()
                 }
             }

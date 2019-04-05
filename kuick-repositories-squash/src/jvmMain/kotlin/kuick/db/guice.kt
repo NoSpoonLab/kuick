@@ -22,7 +22,7 @@ fun Binder.bindDomainTransactionSquash(db: DatabaseConnection) {
 fun Injector.registerSquashPerCoroutineJob() {
     val perCoroutineJob = get<PerCoroutineJob>()
     val domainTransactionService = get<DomainTransactionService>()
-    get<PerCoroutineJob>().register { callback ->
+    perCoroutineJob.register { callback ->
         domainTransactionService.createNewConnection {
             callback()
         }

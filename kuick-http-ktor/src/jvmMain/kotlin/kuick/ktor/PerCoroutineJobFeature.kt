@@ -13,7 +13,7 @@ class PerCoroutineJobFeature(val perCoroutineJob: PerCoroutineJob) : Application
 
     override fun install(pipeline: ApplicationCallPipeline, configure: PerCoroutineJobFeature.() -> Unit): PerCoroutineJobFeature {
         pipeline.intercept(ApplicationCallPipeline.Call) {
-            perCoroutineJob.runSuspending {
+            perCoroutineJob.injector.runWithInjector {
                 this@intercept.proceed()
             }
         }
