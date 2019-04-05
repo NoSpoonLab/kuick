@@ -7,7 +7,7 @@ import kuick.utils.*
 import java.util.concurrent.atomic.*
 
 @Singleton
-class PerCoroutineJob {
+class PerCoroutineJob @Inject constructor(val injector: Injector) {
     var handlers by AtomicReference(listOf<PerCoroutineJobHandler>())
 
     fun register(handler: PerCoroutineJobHandler): PerCoroutineJob {
