@@ -2,6 +2,7 @@ package kuick.repositories.squash
 
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
+import kuick.core.*
 import kuick.db.DomainTransaction
 import kuick.db.DomainTransactionContext
 import kuick.db.DomainTransactionService
@@ -18,31 +19,20 @@ import kotlin.coroutines.coroutineContext
 class DomainTransactionServiceSquash @Inject constructor(val db: DatabaseConnection): DomainTransactionService {
 
     @Suppress("OverridingDeprecatedMember")
+    @UseExperimental(KuickInternalWarning::class)
     override suspend fun <T : Any> transactionNullable(transactionalActions: suspend (DomainTransaction) -> T?): T? {
 
-        if (coroutineContext[DomainTransactionContext.Key] != null) {
+        return if (coroutineContext[DomainTransactionContext.Key] != null) {
             println("Reentrando en transaction {}")
-            return domainTransaction { tr -> transactionalActions(tr) }
+            domainTransaction { tr -> transactionalActions(tr) }
         } else {
-            val preTrCtx = coroutineContext
-            return db.transaction {
-                val domainTransaction = DomainTransactionSquash(this)
-                try {
-                    val result = runBlocking(preTrCtx) {
-                        withContext(DomainTransactionContext(domainTransaction)) {
-                            transactionalActions(domainTransaction)
-                        }
-                    }
-                    // TODO Pendiente resolver autoCommit=false
-                    //this.commit()
-                    result
-                } catch (t: Throwable) {
-                    //this.rollback()
-                    throw t
+            db.createTransaction().use { transaction ->
+                val domainTransaction = DomainTransactionSquash(transaction)
+                withContext(DomainTransactionContext(domainTransaction)) {
+                    transactionalActions(domainTransaction)
                 }
             }
         }
-
     }
 
 }
