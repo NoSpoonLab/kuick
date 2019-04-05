@@ -22,8 +22,9 @@ class DomainTransactionServiceSquash @Inject constructor(val db: DatabaseConnect
     @UseExperimental(KuickInternalWarning::class)
     override suspend fun <T : Any> transactionNullable(transactionalActions: suspend (DomainTransaction) -> T?): T? {
 
+        //println("LazyDomainTransactionSquash($db)")
         return if (coroutineContext[DomainTransactionContext.Key] != null) {
-            println("Reentrando en transaction {}")
+            //println("Reentrando en transaction {}")
             domainTransaction { tr -> transactionalActions(tr) }
         } else {
             LazyDomainTransactionSquash(db).use { domainTransaction ->

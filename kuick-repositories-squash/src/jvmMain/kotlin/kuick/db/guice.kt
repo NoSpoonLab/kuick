@@ -7,6 +7,14 @@ import org.jetbrains.squash.connection.*
 
 @Suppress("DEPRECATION")
 fun Binder.bindDatabaseSquash(db: DatabaseConnection) {
+    bindDatabaseSquashNoDomainTransaction(db)
+    bindDomainTransactionSquash(db)
+}
+
+fun Binder.bindDatabaseSquashNoDomainTransaction(db: DatabaseConnection) {
     bind(db)
-    bind<DomainTransactionService, DomainTransactionServiceSquash>()
+}
+
+fun Binder.bindDomainTransactionSquash(db: DatabaseConnection) {
+    bind<DomainTransactionService>(DomainTransactionServiceSquash(db))
 }
