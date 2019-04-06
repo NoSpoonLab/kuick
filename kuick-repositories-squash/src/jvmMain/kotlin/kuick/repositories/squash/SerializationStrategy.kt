@@ -117,22 +117,21 @@ class ComposableStrategies(val strategies: List<SerializationStrategy>) : Serial
     }
 }
 
-// Tries to reuse a TypedSerializationStrategies, in the order of the strategies would be preserved
-// (either this is a TypedSerializationStrategies or the last element of a ComposableStrategies one is)
-// If not, it would use a ComposableStrategies
 fun SerializationStrategy.with(next: SerializationStrategy): SerializationStrategy {
     if (next is TypedSerializationStrategy<*>) {
-        when {
-            this is TypedSerializationStrategies -> {
-                return TypedSerializationStrategies(strategies + mapOf(next.type to next))
-            }
-            this is ComposableStrategies && this.strategies.lastOrNull() is TypedSerializationStrategies -> {
-                return ComposableStrategies(this.strategies.dropLast(1) + ((this.strategies.last() as TypedSerializationStrategies).with(next)))
+        when (this) {
+            is TypedSerializationStrategy<*> -> return TypedSerializationStrategies().with(this).with(next)
+            is TypedSerializationStrategies -> return TypedSerializationStrategies(strategies + mapOf(next.type to next))
+            is ComposableStrategies -> {
+                val last = strategies.lastOrNull()
+                if (last is TypedSerializationStrategies || last is TypedSerializationStrategy<*>) {
+                    return ComposableStrategies(this.strategies.dropLast(1) + last.with(next))
+                }
             }
         }
     }
 
-    return if (this is ComposableStrategies) ComposableStrategies(this.strategies + next) else ComposableStrategies(this, next)
+    return if (this is ComposableStrategies) ComposableStrategies(strategies + next) else ComposableStrategies(this, next)
 }
 
 @Deprecated("", ReplaceWith("with(clazz, serialization)"))
