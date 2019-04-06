@@ -2,6 +2,7 @@ package kuick.repositories.squash
 
 import kuick.json.*
 import kuick.models.*
+import kuick.repositories.annotations.*
 import kuick.repositories.squash.orm.*
 import org.jetbrains.squash.definition.*
 import org.jetbrains.squash.results.*
@@ -10,7 +11,22 @@ import java.time.*
 import java.util.*
 import kotlin.reflect.*
 import kotlin.reflect.full.*
+import kotlin.reflect.jvm.*
 
+class PropertyInfo<T>(val prop: KProperty<T>) {
+    val maxLength = prop.javaField?.getAnnotation(MaxLength::class.java)?.maxLength
+    val nullableProp = prop.returnType.isMarkedNullable
+    val returnType = prop.returnType.classifier!!.starProjectedType
+    val columnName = prop.name.toSnakeCase()
+
+    private fun String.toSnakeCase(): String = flatMap {
+        if (it.isUpperCase()) listOf('_', it.toLowerCase()) else listOf(it)
+    }.joinToString("")
+}
+
+interface BaseSerializationStrategy {
+    fun tryGetColumnDefinition(table: TableDefinition, prop: PropertyInfo<*>): ColumnDefinition<*>?
+}
 
 open class SerializationStrategy<T : Any>(
         val getColumnDefinition: (table: TableDefinition, columnName: String) -> ColumnDefinition<Any?>,
@@ -107,14 +123,28 @@ val emailSerialization = VarCharSerializationStrategy(
         { value -> (value as Email).email }
 )
 
-class SerializationStrategies(val strategies: Map<KType, SerializationStrategy<out Any>> = mapOf()) {
-    fun <T : Any> withSerialization(clazz: KClass<T>, serialization: SerializationStrategy<T>) =
-            SerializationStrategies(strategies + mapOf(clazz.starProjectedType to serialization))
-
-    inline fun <reified T : Any> withSerialization(serialization: SerializationStrategy<T>) =
-            withSerialization(T::class, serialization)
-
+class SerializationStrategies(val strategies: Map<KType, SerializationStrategy<out Any>> = mapOf()) : BaseSerializationStrategy {
+    override fun tryGetColumnDefinition(table: TableDefinition, prop: PropertyInfo<*>): ColumnDefinition<*>? {
+        return strategies[prop.returnType]?.getColumnDefinition?.invoke(table, prop.columnName)
+    }
 }
+
+class ComposableStrategies(val first: BaseSerializationStrategy, val second: BaseSerializationStrategy) : BaseSerializationStrategy {
+    override fun tryGetColumnDefinition(table: TableDefinition, prop: PropertyInfo<*>): ColumnDefinition<*>? {
+        return first.tryGetColumnDefinition(table, prop) ?: second.tryGetColumnDefinition(table, prop)
+    }
+}
+
+fun <T : Any> BaseSerializationStrategy.withSerialization(clazz: KClass<T>, serialization: SerializationStrategy<T>) =
+        if (this is SerializationStrategies) {
+            SerializationStrategies(strategies + mapOf(clazz.starProjectedType to serialization))
+        } else {
+            ComposableStrategies(this, SerializationStrategies(mapOf(clazz.starProjectedType to serialization)))
+        }
+
+inline fun <reified T : Any> BaseSerializationStrategy.withSerialization(serialization: SerializationStrategy<T>) =
+        withSerialization(T::class, serialization)
+
 
 inline fun <reified T> type(): KType = T::class.starProjectedType
 

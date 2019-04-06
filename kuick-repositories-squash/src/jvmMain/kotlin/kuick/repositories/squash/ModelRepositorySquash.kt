@@ -27,28 +27,24 @@ open class ModelRepositorySquash<I : Any, T : Any>(
     val table = ORMTableDefinition(serializationStrategies, modelClass)
 
     init {
-
-        modelClass.java.nonStaticFields().forEach { field ->
+        for (field in modelClass.java.nonStaticFields()) {
             val prop = modelClass.declaredMemberProperties.firstOrNull { it.name == field.name }
-            if (prop == null) throw IllegalStateException("Property not found for field: ${field.name}")
+                    ?: throw IllegalStateException("Property not found for field: ${field.name}")
 
-            val maxLength = prop.javaField?.getAnnotation(MaxLength::class.java)?.maxLength
-            val nullableProp = prop.returnType.isMarkedNullable
-            val returnType = prop.returnType.classifier!!.starProjectedType
-            val columnName = prop.name.toSnakeCase()
+            val info = PropertyInfo(prop)
             //println("Registering field ${prop} with return type: ${prop.returnType}")
 
             with(table) {
                 var columnDefinition: ColumnDefinition<Any?> = when {
-                    serializationStrategies.containsKey(returnType) -> {
-                        var strategy = serializationStrategies[returnType]!!
-                        if (strategy is VarCharSerializationStrategy && maxLength!=null) strategy= strategy.withLength(maxLength)
-                        strategy.getColumnDefinition.invoke(table,columnName)
+                    serializationStrategies.containsKey(info.returnType) -> {
+                        var strategy = serializationStrategies[info.returnType]!!
+                        if (strategy is VarCharSerializationStrategy && info.maxLength!=null) strategy= strategy.withLength(info.maxLength)
+                        strategy.getColumnDefinition.invoke(table,info.columnName)
                     }
-                    returnType.isSubtypeOf(type<Id>()) -> serializationStrategies[type<Id>()]!!.getColumnDefinition.invoke(table,columnName)
-                    else -> varchar(columnName, maxLength?:defaultMaxLength)
+                    info.returnType.isSubtypeOf(type<Id>()) -> serializationStrategies[type<Id>()]!!.getColumnDefinition.invoke(table,info.columnName)
+                    else -> varchar(info.columnName, info.maxLength?:defaultMaxLength)
                 }
-                if (nullableProp) columnDefinition = columnDefinition.nullable()
+                if (info.nullableProp) columnDefinition = columnDefinition.nullable()
                 prop to columnDefinition
             }
         }
@@ -129,6 +125,3 @@ open class ModelRepositorySquash<I : Any, T : Any>(
 //        .contains(this)
 }
 
-private fun String.toSnakeCase(): String = flatMap {
-    if (it.isUpperCase()) listOf('_', it.toLowerCase()) else listOf(it)
-}.joinToString("")

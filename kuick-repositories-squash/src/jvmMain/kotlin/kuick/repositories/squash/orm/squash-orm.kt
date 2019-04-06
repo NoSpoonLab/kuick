@@ -57,7 +57,11 @@ class DomainTransactionSquash(val db: DatabaseConnection): DomainTransaction, Cl
     }
 }
 
-open class ORMTableDefinition<T : Any> (val serializationStrategies : Map<KType, SerializationStrategy<*>>, val clazz: KClass<T>, val tableName: String = clazz.simpleName!!): TableDefinition(tableName) {
+open class ORMTableDefinition<T : Any> (
+        val serializationStrategies : Map<KType, SerializationStrategy<*>>,
+        val clazz: KClass<T>,
+        val tableName: String = clazz.simpleName!!
+): TableDefinition(tableName) {
     private val _map: MutableMap<KProperty1<T, *>, ColumnDefinition<*>> = mutableMapOf()
 
     infix fun <R: Any?> KProperty1<T, R>.to(cd: ColumnDefinition<R>) {
