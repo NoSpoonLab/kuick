@@ -32,21 +32,15 @@ open class ModelRepositorySquash<I : Any, T : Any>(
     ) : this(modelClass, idField, TypedSerializationStrategies(serializationStrategies), fallbackStrategy)
 
     val serializationStrategies = baseSerializationStrategies + fallbackStrategy
-    val table = ORMTableDefinition(serializationStrategies, modelClass)
-
-    init {
+    val table = ORMTableDefinition(serializationStrategies, modelClass).also { table ->
         for (field in modelClass.java.nonStaticFields()) {
             val prop = modelClass.declaredMemberProperties.firstOrNull { it.name == field.name }
                     ?: throw IllegalStateException("Property not found for field: ${field.name}")
-
-            val info = PropertyInfo(prop)
             //println("Registering field ${prop} with return type: ${prop.returnType}")
-
-            with(table) {
-                var columnDefinition = serializationStrategies.tryGetColumnDefinition(table, info) ?: error("Can't find columnDefinition")
-                if (info.nullableProp) columnDefinition = columnDefinition.nullable()
-                prop to columnDefinition
-            }
+            val info = PropertyInfo(prop)
+            val columnDefinition = serializationStrategies.tryGetColumnDefinition(table, info) ?: error("Can't find columnDefinition")
+            val columnDefinitionWithNulability = if (info.nullableProp) columnDefinition.nullable() else columnDefinition
+            table.apply { prop to columnDefinitionWithNulability }
         }
     }
 
