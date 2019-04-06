@@ -10,22 +10,24 @@ class SerializationStrategiesTest {
 
     val dateProp = Date()
     val otherIdProp = OtherId("test")
-    val table = TableDefinition("test")
+
+    fun table() = TableDefinition("test")
 
     @Test
     fun test() {
-        val strategies = SerializationStrategies()
-                .with(dateSerializationAsLong)
-
-        strategies.tryGetColumnDefinition(table, PropertyInfo(this::dateProp)).also { def ->
+        dateSerializationAsLong.tryGetColumnDefinition(table(), PropertyInfo(this::dateProp)).also { def ->
             assertNotNull(def)
             assertEquals(LongColumnType, def.type)
+        }
+        dateSerializationAsDateTime.tryGetColumnDefinition(table(), PropertyInfo(this::dateProp)).also { def ->
+            assertNotNull(def)
+            assertEquals(DateTimeColumnType, def.type)
         }
     }
 
     @Test
     fun testId() {
-        defaultSerializationStrategies.tryGetColumnDefinition(table, PropertyInfo(this::otherIdProp)).also { def ->
+        defaultSerializationStrategies.tryGetColumnDefinition(table(), PropertyInfo(this::otherIdProp)).also { def ->
             assertNotNull(def)
             assertTrue(def.type is StringColumnType)
         }
