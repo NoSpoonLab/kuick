@@ -62,8 +62,11 @@ open class ORMTableDefinition<T : Any> (
 ): TableDefinition(tableName) {
     private val _map: MutableMap<KProperty1<T, *>, ColumnDefinition<*>> = mutableMapOf()
 
-    infix fun <R: Any?> KProperty1<T, R>.to(cd: ColumnDefinition<R>) {
-        _map.put(this, cd)
+    @Deprecated("Do not use this, since this can be confused with Kotlin's to that generate pairs", ReplaceWith("put(this, cd)"))
+    infix fun <R: Any?> KProperty1<T, R>.to(cd: ColumnDefinition<R>) = put(this, cd)
+
+    fun <R: Any?> put(prop: KProperty1<T, R>, cd: ColumnDefinition<R>) {
+        _map[prop] = cd
     }
 
     operator fun <R: Any?> get(p: KProperty1<T, R>): ColumnDefinition<R> {

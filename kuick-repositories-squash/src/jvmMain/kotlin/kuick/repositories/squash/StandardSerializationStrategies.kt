@@ -46,7 +46,6 @@ val dateSerializationAsLong = SerializationStrategy(
         { value -> (value as Date).time }
 )
 
-
 val stringSerialization = VarCharSerializationStrategy(
         String::class,
         LONG_TEXT_LEN,
@@ -89,7 +88,6 @@ val localDateSerialization = VarCharSerializationStrategy(
         },
         { value -> DATE_FORMAT.format((value as LocalDate)) }
 )
-
 
 val localDateTimeSerialization = VarCharSerializationStrategy(
         LocalDateTime::class,

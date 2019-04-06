@@ -40,7 +40,7 @@ open class ModelRepositorySquash<I : Any, T : Any>(
             val info = PropertyInfo(prop)
             val columnDefinition = serializationStrategies.tryGetColumnDefinition(table, info) ?: error("Can't find columnDefinition")
             val columnDefinitionWithNulability = if (info.nullableProp) columnDefinition.nullable() else columnDefinition
-            table.apply { prop to columnDefinitionWithNulability }
+            table.put(prop, columnDefinitionWithNulability)
         }
     }
 
