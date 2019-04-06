@@ -189,7 +189,9 @@ class SerializationStrategies(val strategies: Map<KType, TypedSerializationStrat
 
 class ComposableStrategies(val first: SerializationStrategy, val second: SerializationStrategy) : SerializationStrategy {
     override fun tryGetColumnDefinition(table: TableDefinition, info: PropertyInfo<*>): ColumnDefinition<*>? {
-        return first.tryGetColumnDefinition(table, info) ?: second.tryGetColumnDefinition(table, info)
+        val result = first.tryGetColumnDefinition(table, info)
+        if (result != SerializationStrategy.UnhandledColumnDefinition) return result
+        return second.tryGetColumnDefinition(table, info)
     }
 
     override fun tryReadColumnValue(field: Field, resultRow: ResultRow, columnName: String, tableName: String): Any? {
