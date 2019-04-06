@@ -180,18 +180,14 @@ open class ORMTableDefinition<T : Any> (
         val fieldValues = fields.map { f ->
             try {
                 val property = ormDef.clazz.memberProperties.first { it.name == f.name }
-                val columnDef = ormDef.get(property)
-                readColumnValue(ormDef.clazz, f, columnDef.name.id, ormDef.compoundName.id)
+                val columnDef = ormDef[property]
+                serializationStrategies.tryReadColumnValue(f, this, columnDef.name.id, ormDef.compoundName.id, ormDef.clazz)
             } catch (t: Throwable) {
                 throw IllegalStateException("Had a problem reading field ${f}", t)
             }
         }
         return ormDef.clazz.constructors.first().call(*fieldValues.toTypedArray())
     }
-
-    private fun <T:Any> ResultRow.readColumnValue(clazz: KClass<T>, field: Field, columnName: String, tableName: String): Any? =
-        serializationStrategies.tryReadColumnValue(field, this, columnName, tableName, clazz)
-
 
     infix fun <D:Any, T : Table> InsertValuesStatement<T, Unit>.from(data: D) {
         val clazz = data::class.java
