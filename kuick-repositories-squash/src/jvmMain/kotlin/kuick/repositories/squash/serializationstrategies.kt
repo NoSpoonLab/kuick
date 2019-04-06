@@ -36,13 +36,14 @@ interface SerializationStrategy {
     fun tryDecodeValue(value: Any): Any?
 }
 
-open class TypedSerializationStrategy<T : Any>(
-        val clazz: KClass<T>,
-        val getColumnDefinition: (table: TableDefinition, info: PropertyInfo<*>) -> ColumnDefinition<Any?>,
-        val readColumnValue: (field: Field, resultRow: ResultRow, columnName: String, tableName: String) -> T?,
-        val decodeValue: (value: Any) -> Any?
+abstract class TypedSerializationStrategy<T : Any>(
+        val clazz: KClass<T>
 ) : SerializationStrategy {
     val type = clazz.starProjectedType
+
+    abstract fun getColumnDefinition(table: TableDefinition, info: PropertyInfo<*>): ColumnDefinition<Any?>
+    abstract fun readColumnValue(field: Field, resultRow: ResultRow, columnName: String, tableName: String): T?
+    abstract fun decodeValue(value: Any): Any?
 
     final override fun tryGetColumnDefinition(table: TableDefinition, info: PropertyInfo<*>): ColumnDefinition<*>? {
         if (info.returnType == type) return getColumnDefinition(table, info)
@@ -60,17 +61,38 @@ open class TypedSerializationStrategy<T : Any>(
     }
 }
 
+inline fun <reified T : Any> SerializationStrategy(
+    noinline getColumnDefinition: (table: TableDefinition, info: PropertyInfo<*>) -> ColumnDefinition<Any?>,
+    noinline readColumnValue: (field: Field, resultRow: ResultRow, columnName: String, tableName: String) -> T?,
+    noinline decodeValue: (value: Any) -> Any?
+) = object : TypedSerializationStrategy<T>(T::class) {
+    override fun getColumnDefinition(table: TableDefinition, info: PropertyInfo<*>): ColumnDefinition<Any?> =
+            getColumnDefinition(table, info)
+    override fun readColumnValue(field: Field, resultRow: ResultRow, columnName: String, tableName: String): T? =
+            readColumnValue(field, resultRow, columnName, tableName)
+    override fun decodeValue(value: Any): Any? = decodeValue(value)
+
+}
+
 class VarCharSerializationStrategy<T : Any>(
         clazz: KClass<T>,
-        varcharLength: Int,
-        readColumnValue: (Field, ResultRow, String, String) -> T?,
-        decodeValue: (Any) -> Any?
-) : TypedSerializationStrategy<T>(clazz, { table, info -> table.varchar(info.columnName, info.maxLength ?: varcharLength) }, readColumnValue, decodeValue) {
+        val varcharLength: Int,
+        private val readColumnValue: (Field, ResultRow, String, String) -> T?,
+        private val decodeValue: (Any) -> Any?
+) : TypedSerializationStrategy<T>(clazz) {
+
+    override fun getColumnDefinition(table: TableDefinition, info: PropertyInfo<*>): ColumnDefinition<Any?> =
+            table.varchar(info.columnName, info.maxLength ?: varcharLength)
+
+    override fun readColumnValue(field: Field, resultRow: ResultRow, columnName: String, tableName: String): T? =
+            readColumnValue.invoke(field, resultRow, columnName, tableName)
+
+    override fun decodeValue(value: Any): Any? = decodeValue.invoke(value)
+
     fun withLength(length: Int) = VarCharSerializationStrategy(clazz, length, readColumnValue, decodeValue)
 }
 
-val dateSerializationAsDateTime = TypedSerializationStrategy<Date>(
-        Date::class,
+val dateSerializationAsDateTime = SerializationStrategy(
         { table, info -> table.datetime(info.columnName) },
         { type, result, columnName, tableName ->
             result.columnValue<LocalDateTime>(columnName, tableName)?.let {
@@ -81,8 +103,7 @@ val dateSerializationAsDateTime = TypedSerializationStrategy<Date>(
         { value -> LocalDateTime.ofInstant((value as Date).toInstant(), ZoneOffset.UTC.normalized()) }
 )
 
-val dateSerializationAsLong = TypedSerializationStrategy<Date>(
-        Date::class,
+val dateSerializationAsLong = SerializationStrategy(
         { table, info -> table.long(info.columnName) },
         { field, result, columnName, tableName -> result.columnValue<Long>(columnName, tableName)?.let { Date(it) } },
         { value -> (value as Date).time }
@@ -95,29 +116,25 @@ val stringSerialization = VarCharSerializationStrategy(
         { field, result, columnName, tableName -> result.columnValue<String>(columnName, tableName) },
         { value -> value })
 
-val intSerialization = TypedSerializationStrategy(
-        Int::class,
+val intSerialization = SerializationStrategy(
         { table, info -> table.integer(info.columnName) },
         { field, result, columnName, tableName -> result.columnValue<Int>(columnName, tableName) },
         { value -> value }
 )
 
-val longSerialization = TypedSerializationStrategy(
-        Long::class,
+val longSerialization = SerializationStrategy(
         { table, info -> table.long(info.columnName) },
         { type, result, columnName, tableName -> result.columnValue<Long>(columnName, tableName) },
         { value -> value }
 )
 
-val doubleSerialization = TypedSerializationStrategy(
-        Double::class,
+val doubleSerialization = SerializationStrategy(
         { table, info -> table.decimal(info.columnName, 5, 4) },
         { field, result, columnName, tableName -> result.columnValue<Double>(columnName, tableName) },
         { value -> value }
 )
 
-val booleanSerialization = TypedSerializationStrategy(
-        Boolean::class,
+val booleanSerialization = SerializationStrategy(
         { table, info -> table.bool(info.columnName) },
         { field, result, columnName, tableName -> result.columnValue<Boolean>(columnName, tableName) },
         { value -> value }
@@ -156,7 +173,7 @@ val emailSerialization = VarCharSerializationStrategy(
 class SerializationStrategies(val strategies: Map<KType, TypedSerializationStrategy<out Any>> = mapOf()) : SerializationStrategy {
     override fun tryGetColumnDefinition(table: TableDefinition, info: PropertyInfo<*>): ColumnDefinition<*>? {
         val strategy = strategies[info.returnType] ?: return SerializationStrategy.UnhandledColumnDefinition
-        return strategy.getColumnDefinition.invoke(table, info)
+        return strategy.getColumnDefinition(table, info)
     }
 
     override fun tryReadColumnValue(field: Field, resultRow: ResultRow, columnName: String, tableName: String): Any? {
@@ -217,12 +234,12 @@ object IdSerializationStrategy : SerializationStrategy {
     }
 
     override fun tryReadColumnValue(field: Field, resultRow: ResultRow, columnName: String, tableName: String): Any? = when {
-        field.type.kotlin.isSubclassOf(Id::class) -> idSerialization.readColumnValue.invoke(field, resultRow, columnName, tableName)
+        field.type.kotlin.isSubclassOf(Id::class) -> idSerialization.readColumnValue(field, resultRow, columnName, tableName)
         else -> SerializationStrategy.Unhandled
     }
 
     override fun tryDecodeValue(value: Any): Any? = when (value) {
-        is Id -> idSerialization.decodeValue.invoke(value)
+        is Id -> idSerialization.decodeValue(value)
         else -> SerializationStrategy.Unhandled
     }
 }
