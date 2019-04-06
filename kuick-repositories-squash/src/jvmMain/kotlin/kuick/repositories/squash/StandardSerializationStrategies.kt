@@ -131,15 +131,20 @@ object IdSerializationStrategy : SerializationStrategy {
     }
 }
 
-val defaultSerializationStrategies: SerializationStrategy = TypedSerializationStrategies()
-        .with(intSerialization)
-        .with(longSerialization)
-        .with(stringSerialization)
-        .with(dateSerializationAsLong)
-        .with(doubleSerialization)
-        .with(booleanSerialization)
-        .with(localDateSerialization)
-        .with(localDateTimeSerialization)
-        .with(emailSerialization)
-        .with(IdSerializationStrategy)
+fun serializationStrategies(vararg serializations: SerializationStrategy): SerializationStrategy {
+    if (serializations.isEmpty()) return SerializationStrategies()
+    return serializations.drop(1).fold(serializations.first()) { l, r -> l + r }
+}
 
+val defaultSerializationStrategies: SerializationStrategy = serializationStrategies(
+    intSerialization,
+    longSerialization,
+    stringSerialization,
+    dateSerializationAsLong,
+    doubleSerialization,
+    booleanSerialization,
+    localDateSerialization,
+    localDateTimeSerialization,
+    emailSerialization,
+    IdSerializationStrategy
+)
