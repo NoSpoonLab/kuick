@@ -134,5 +134,7 @@ fun SerializationStrategy.with(next: SerializationStrategy): SerializationStrate
     return if (this is ComposableStrategies) ComposableStrategies(strategies + next) else ComposableStrategies(this, next)
 }
 
+operator fun SerializationStrategy.plus(next: SerializationStrategy): SerializationStrategy = with(next)
+
 @Deprecated("", ReplaceWith("with(clazz, serialization)"))
 fun <T : Any> SerializationStrategy.withSerialization(clazz: KClass<T>, serialization: TypedSerializationStrategy<T>): SerializationStrategy = with(serialization)

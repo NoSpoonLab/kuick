@@ -38,4 +38,18 @@ class SerializationStrategiesTest {
         assertEquals(SerializationStrategy.Unhandled, longSerialization.tryDecodeValue(10))
         assertEquals(10L, longSerialization.tryDecodeValue(10L))
     }
+
+    @Test
+    fun testWithCombine() {
+        assertTrue((longSerialization + dateSerializationAsLong) is TypedSerializationStrategies)
+        assertTrue((longSerialization + dateSerializationAsLong + stringSerialization) is TypedSerializationStrategies)
+        assertTrue((longSerialization + IdSerializationStrategy) is ComposableStrategies)
+        (longSerialization + IdSerializationStrategy + dateSerializationAsLong + stringSerialization).also { strats ->
+            assertTrue(strats is ComposableStrategies)
+            assertEquals(3, strats.strategies.size)
+            assertTrue(strats.strategies[0] is TypedSerializationStrategy<*>)
+            assertTrue(strats.strategies[1] is IdSerializationStrategy)
+            assertTrue(strats.strategies[2] is TypedSerializationStrategies)
+        }
+    }
 }
