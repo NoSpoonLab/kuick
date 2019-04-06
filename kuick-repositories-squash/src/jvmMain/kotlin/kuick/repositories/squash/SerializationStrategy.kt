@@ -1,6 +1,7 @@
 package kuick.repositories.squash
 
 import kuick.repositories.annotations.*
+import kuick.util.*
 import org.jetbrains.squash.definition.*
 import org.jetbrains.squash.results.*
 import java.lang.reflect.*
@@ -88,37 +89,51 @@ class TypedSerializationStrategies(val strategies: Map<KType, TypedSerialization
     }
 }
 
-class ComposableStrategies(val first: SerializationStrategy, val second: SerializationStrategy) : SerializationStrategy {
+class ComposableStrategies(val strategies: List<SerializationStrategy>) : SerializationStrategy {
+    constructor(vararg strategies: SerializationStrategy) : this(strategies.toList())
+
     override fun tryGetColumnDefinition(table: TableDefinition, info: PropertyInfo<*>): ColumnDefinition<*>? {
-        val result = first.tryGetColumnDefinition(table, info)
-        if (result != SerializationStrategy.UnhandledColumnDefinition) return result
-        return second.tryGetColumnDefinition(table, info)
+        strategies.fastForEach { strategy ->
+            val result = strategy.tryGetColumnDefinition(table, info)
+            if (result != SerializationStrategy.UnhandledColumnDefinition) return result
+        }
+        return SerializationStrategy.UnhandledColumnDefinition
     }
 
     override fun tryReadColumnValue(field: Field, resultRow: ResultRow, columnName: String, tableName: String): Any? {
-        val result = first.tryReadColumnValue(field, resultRow, columnName, tableName)
-        if (result != SerializationStrategy.Unhandled) return result
-        return second.tryReadColumnValue(field, resultRow, columnName, tableName)
+        strategies.fastForEach { strategy ->
+            val result = strategy.tryReadColumnValue(field, resultRow, columnName, tableName)
+            if (result != SerializationStrategy.Unhandled) return result
+        }
+        return SerializationStrategy.Unhandled
     }
 
     override fun tryDecodeValue(value: Any): Any? {
-        val result = first.tryDecodeValue(value)
-        if (result != SerializationStrategy.Unhandled) return result
-        return second.tryDecodeValue(value)
+        strategies.fastForEach { strategy ->
+            val result = strategy.tryDecodeValue(value)
+            if (result != SerializationStrategy.Unhandled) return result
+        }
+        return SerializationStrategy.Unhandled
     }
 }
 
 // Tries to reuse a TypedSerializationStrategies, in the order of the strategies would be preserved
 // (either this is a TypedSerializationStrategies or the last element of a ComposableStrategies one is)
 // If not, it would use a ComposableStrategies
-fun <T : Any> SerializationStrategy.with(serialization: TypedSerializationStrategy<T>): SerializationStrategy =
+fun SerializationStrategy.with(next: SerializationStrategy): SerializationStrategy {
+    if (next is TypedSerializationStrategy<*>) {
         when {
-            this is TypedSerializationStrategies -> TypedSerializationStrategies(strategies + mapOf(serialization.clazz.starProjectedType to serialization))
-            this is ComposableStrategies && this.second is TypedSerializationStrategies -> ComposableStrategies(this.first, this.second.with(serialization))
-            else -> ComposableStrategies(this, TypedSerializationStrategies(mapOf(serialization.clazz.starProjectedType to serialization)))
+            this is TypedSerializationStrategies -> {
+                return TypedSerializationStrategies(strategies + mapOf(next.type to next))
+            }
+            this is ComposableStrategies && this.strategies.lastOrNull() is TypedSerializationStrategies -> {
+                return ComposableStrategies(this.strategies.dropLast(1) + ((this.strategies.last() as TypedSerializationStrategies).with(next)))
+            }
         }
+    }
 
-fun SerializationStrategy.with(next: SerializationStrategy) = ComposableStrategies(this, next)
+    return if (this is ComposableStrategies) ComposableStrategies(this.strategies + next) else ComposableStrategies(this, next)
+}
 
 @Deprecated("", ReplaceWith("with(clazz, serialization)"))
 fun <T : Any> SerializationStrategy.withSerialization(clazz: KClass<T>, serialization: TypedSerializationStrategy<T>): SerializationStrategy = with(serialization)
