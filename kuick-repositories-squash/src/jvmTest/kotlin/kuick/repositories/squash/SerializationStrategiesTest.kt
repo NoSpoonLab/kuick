@@ -14,7 +14,7 @@ class SerializationStrategiesTest {
     fun table() = TableDefinition("test")
 
     @Test
-    fun test() {
+    fun testDate() {
         dateSerializationAsLong.tryGetColumnDefinition(table(), PropertyInfo(this::dateProp)).also { def ->
             assertNotNull(def)
             assertEquals(LongColumnType, def.type)
