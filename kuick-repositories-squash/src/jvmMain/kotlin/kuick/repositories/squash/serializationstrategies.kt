@@ -104,13 +104,10 @@ val emailSerialization = VarCharSerializationStrategy(
         { field, result, columnName, tableName -> result.columnValue<String>(columnName, tableName)?.let { Email(it) }},
         { value -> (value as Email).email })
 
-
 class SerializationStrategies(val strategies: Map<KType, SerializationStrategy<out Any>> ){
 
     fun withSerialization(clazz: KClass<*>,serialization: SerializationStrategy<out Any>) : SerializationStrategies{
-        val newMap = strategies.toMutableMap()
-        newMap[clazz.starProjectedType] = serialization
-        return SerializationStrategies(newMap)
+        return SerializationStrategies(strategies + mapOf(clazz.starProjectedType to serialization))
     }
 }
 
