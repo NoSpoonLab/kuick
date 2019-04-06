@@ -68,8 +68,8 @@ abstract class TypedSerializationStrategy<T : Any>(
 }
 
 inline fun <reified T : Any> SerializationStrategy(
-        noinline getColumnDefinition: (table: TableDefinition, info: PropertyInfo<*>) -> ColumnDefinition<Any?>,
-        noinline readColumnValue: (targetType: KType, getValue: GetTypedValueFunc) -> T?,
+        noinline getColumnDefinition: TableDefinition.(info: PropertyInfo<*>) -> ColumnDefinition<Any?>,
+        noinline readColumnValue: KType.(getValue: GetTypedValueFunc) -> T?,
         noinline decodeValue: (value: Any) -> Any?
 ) = object : TypedSerializationStrategy<T>(T::class) {
     override fun getColumnDefinition(table: TableDefinition, info: PropertyInfo<*>): ColumnDefinition<Any?> =
