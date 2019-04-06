@@ -2,7 +2,9 @@ package kuick.repositories.squash
 
 import kuick.models.*
 import org.jetbrains.squash.definition.*
+import org.jetbrains.squash.results.*
 import java.util.*
+import kotlin.reflect.*
 import kotlin.test.*
 
 class SerializationStrategiesTest {
@@ -12,6 +14,11 @@ class SerializationStrategiesTest {
     val otherIdProp = OtherId("test")
 
     fun table() = TableDefinition("test")
+
+    data class MyDataClass(val a: Int, val b: String)
+
+    @JvmField
+    var myDataProp = MyDataClass(10, "hello")
 
     @Test
     fun testDate() {
@@ -74,5 +81,16 @@ class SerializationStrategiesTest {
             assertNotNull(def)
             assertTrue(def.type is StringColumnType)
         }
+
+        // @TODO: This whole test shows that this interface is shitty as hell
+
+        assertEquals("""{"a":10,"b":"hello"}""", JsonSerializationStrategy.tryDecodeValue(MyDataClass(10, "hello")))
+
+        val resultRow = object : ResultRow {
+            override fun columnValue(type: KClass<*>, index: Int): Any? = """{"a":10,"b":"hello"}"""
+            override fun columnValue(type: KClass<*>, columnName: String, tableName: String?): Any? = """{"a":10,"b":"hello"}"""
+        }
+
+        //JsonSerializationStrategy.tryReadColumnValue(SerializationStrategiesTest::class.java.getField(::myDataProp.name), resultRow, "demo", "test", MyDataClass::class)
     }
 }
