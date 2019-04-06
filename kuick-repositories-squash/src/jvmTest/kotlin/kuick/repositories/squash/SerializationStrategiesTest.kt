@@ -15,7 +15,7 @@ class SerializationStrategiesTest {
     @Test
     fun test() {
         val strategies = SerializationStrategies()
-                .withSerialization(dateSerializationAsLong)
+                .with(dateSerializationAsLong)
 
         strategies.tryGetColumnDefinition(table, PropertyInfo(this::dateProp)).also { def ->
             assertNotNull(def)
@@ -29,5 +29,11 @@ class SerializationStrategiesTest {
             assertNotNull(def)
             assertTrue(def.type is StringColumnType)
         }
+    }
+
+    @Test
+    fun testTypedSerializationStrategy() {
+        assertEquals(BaseSerializationStrategy.Unhandled, longSerialization.tryDecodeValue(10))
+        assertEquals(10L, longSerialization.tryDecodeValue(10L))
     }
 }

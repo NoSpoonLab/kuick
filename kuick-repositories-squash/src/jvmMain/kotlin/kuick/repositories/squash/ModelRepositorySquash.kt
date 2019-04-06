@@ -4,7 +4,6 @@ import kuick.db.domainTransaction
 import kuick.json.Json
 import kuick.models.Id
 import kuick.repositories.*
-import kuick.repositories.annotations.*
 import kuick.repositories.squash.orm.*
 import kuick.utils.nonStaticFields
 import org.jetbrains.squash.definition.*
@@ -14,7 +13,6 @@ import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
 import kotlin.reflect.KType
 import kotlin.reflect.full.*
-import kotlin.reflect.jvm.*
 
 
 open class ModelRepositorySquash<I : Any, T : Any>(
