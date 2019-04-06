@@ -56,7 +56,7 @@ class DomainTransactionSquash(val db: DatabaseConnection): DomainTransaction, Cl
 }
 
 open class ORMTableDefinition<T : Any> (
-        val serializationStrategies : BaseSerializationStrategy,
+        val serializationStrategies : SerializationStrategy,
         val clazz: KClass<T>,
         val tableName: String = clazz.simpleName!!
 ): TableDefinition(tableName) {
@@ -188,7 +188,7 @@ open class ORMTableDefinition<T : Any> (
 
     private fun <T:Any> ResultRow.readColumnValue(clazz: KClass<T>, field: Field, columnName: String, tableName: String): Any? = run {
         val result = serializationStrategies.tryReadColumnValue(field, this, columnName, tableName)
-        if (result == BaseSerializationStrategy.Unhandled) {
+        if (result == SerializationStrategy.Unhandled) {
             columnValue<String>(columnName, tableName)?.let { field.apply { isAccessible = true }.get(Json.fromJson("{\"${field.name}\":$it}", clazz)) }
         } else {
             result
@@ -222,7 +222,7 @@ open class ORMTableDefinition<T : Any> (
         null -> null
         else -> {
             val result = serializationStrategies.tryDecodeValue(value)
-            if (result == BaseSerializationStrategy.Unhandled) Json.toJson(value) else result
+            if (result == SerializationStrategy.Unhandled) Json.toJson(value) else result
         }
     }
 

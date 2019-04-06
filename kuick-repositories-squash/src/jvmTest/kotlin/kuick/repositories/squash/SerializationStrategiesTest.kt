@@ -33,7 +33,7 @@ class SerializationStrategiesTest {
 
     @Test
     fun testTypedSerializationStrategy() {
-        assertEquals(BaseSerializationStrategy.Unhandled, longSerialization.tryDecodeValue(10))
+        assertEquals(SerializationStrategy.Unhandled, longSerialization.tryDecodeValue(10))
         assertEquals(10L, longSerialization.tryDecodeValue(10L))
     }
 }

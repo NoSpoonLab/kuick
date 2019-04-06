@@ -19,7 +19,7 @@ open class ModelRepositorySquash<I : Any, T : Any>(
         val modelClass: KClass<T>,
         val idField: KProperty1<T, I>,
         val defaultMaxLength: Int = LONG_TEXT_LEN,
-        serializationStrategies : BaseSerializationStrategy = defaultSerializationStrategies
+        serializationStrategies : SerializationStrategy = defaultSerializationStrategies
 ) : ModelRepository<I, T> {
 
     @Deprecated("Use the main constructor instead")
@@ -27,7 +27,7 @@ open class ModelRepositorySquash<I : Any, T : Any>(
             modelClass: KClass<T>,
             idField: KProperty1<T, I>,
             defaultMaxLength: Int = LONG_TEXT_LEN,
-            serializationStrategies : Map<KType,SerializationStrategy<out Any>>
+            serializationStrategies : Map<KType,TypedSerializationStrategy<out Any>>
     ) : this(modelClass, idField, defaultMaxLength, SerializationStrategies(serializationStrategies))
 
     val table = ORMTableDefinition(serializationStrategies, modelClass)
