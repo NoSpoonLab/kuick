@@ -123,7 +123,7 @@ object IdSerializationStrategy : SerializationStrategy {
         else -> SerializationStrategy.Unhandled
     }
 
-    override fun tryDecodeValue(value: Any): Any? = when (value) {
+    override fun tryEncodeValue(value: Any): Any? = when (value) {
         is Id -> idSerialization.decodeValue(value)
         else -> SerializationStrategy.Unhandled
     }
@@ -139,7 +139,7 @@ object JsonSerializationStrategy : SerializationStrategy {
                 ?.let { field.apply { isAccessible = true }.get(Json.fromJson("{\"${field.name}\":$it}", clazz)) }
     }
 
-    override fun tryDecodeValue(value: Any): Any? {
+    override fun tryEncodeValue(value: Any): Any? {
         return Json.toJson(value)
     }
 

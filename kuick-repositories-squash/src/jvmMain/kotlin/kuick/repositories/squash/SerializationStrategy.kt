@@ -29,7 +29,9 @@ interface SerializationStrategy {
 
     fun tryGetColumnDefinition(table: TableDefinition, info: PropertyInfo<*>): ColumnDefinition<*>?
     fun tryReadColumnValue(field: Field, resultRow: ResultRow, columnName: String, tableName: String, clazz: KClass<*>): Any?
-    fun tryDecodeValue(value: Any): Any?
+
+    /** Encodes a typed value in a way that can be stored in the database */
+    fun tryEncodeValue(value: Any): Any?
 }
 
 abstract class TypedSerializationStrategy<T : Any>(
@@ -51,7 +53,7 @@ abstract class TypedSerializationStrategy<T : Any>(
         return SerializationStrategy.Unhandled
     }
 
-    final override fun tryDecodeValue(value: Any): Any? {
+    final override fun tryEncodeValue(value: Any): Any? {
         if (value::class.starProjectedType == type) return decodeValue(value)
         return SerializationStrategy.Unhandled
     }
@@ -83,7 +85,7 @@ class TypedSerializationStrategies(val strategies: Map<KType, TypedSerialization
         return strategy.readColumnValue(field, resultRow, columnName, tableName, clazz)
     }
 
-    override fun tryDecodeValue(value: Any): Any? {
+    override fun tryEncodeValue(value: Any): Any? {
         val strategy = strategies[value::class.starProjectedType] ?: return SerializationStrategy.Unhandled
         return strategy.decodeValue(value)
     }
@@ -108,9 +110,9 @@ class SerializationStrategies(val strategies: List<SerializationStrategy>) : Ser
         return SerializationStrategy.Unhandled
     }
 
-    override fun tryDecodeValue(value: Any): Any? {
+    override fun tryEncodeValue(value: Any): Any? {
         strategies.fastForEach { strategy ->
-            val result = strategy.tryDecodeValue(value)
+            val result = strategy.tryEncodeValue(value)
             if (result != SerializationStrategy.Unhandled) return result
         }
         return SerializationStrategy.Unhandled

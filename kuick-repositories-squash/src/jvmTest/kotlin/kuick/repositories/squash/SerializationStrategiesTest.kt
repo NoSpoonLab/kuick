@@ -42,8 +42,8 @@ class SerializationStrategiesTest {
 
     @Test
     fun testTypedSerializationStrategy() {
-        assertEquals(SerializationStrategy.Unhandled, longSerialization.tryDecodeValue(10))
-        assertEquals(10L, longSerialization.tryDecodeValue(10L))
+        assertEquals(SerializationStrategy.Unhandled, longSerialization.tryEncodeValue(10))
+        assertEquals(10L, longSerialization.tryEncodeValue(10L))
     }
 
     @Test
@@ -84,7 +84,7 @@ class SerializationStrategiesTest {
 
         // @TODO: This whole test shows that this interface is shitty as hell
 
-        assertEquals("""{"a":10,"b":"hello"}""", JsonSerializationStrategy.tryDecodeValue(MyDataClass(10, "hello")))
+        assertEquals("""{"a":10,"b":"hello"}""", JsonSerializationStrategy.tryEncodeValue(MyDataClass(10, "hello")))
 
         val resultRow = object : ResultRow {
             override fun columnValue(type: KClass<*>, index: Int): Any? = """{"a":10,"b":"hello"}"""

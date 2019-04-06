@@ -215,7 +215,7 @@ open class ORMTableDefinition<T : Any> (
         }
     }
 
-    private fun decodeValue(value: Any?): Any? = value?.let { serializationStrategies.tryDecodeValue(value) }
+    private fun decodeValue(value: Any?): Any? = value?.let { serializationStrategies.tryEncodeValue(value) }
 
     //=================================
 
