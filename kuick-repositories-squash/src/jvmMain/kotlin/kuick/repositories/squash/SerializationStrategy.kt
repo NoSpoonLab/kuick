@@ -117,6 +117,7 @@ class SerializationStrategies(val strategies: List<SerializationStrategy>) : Ser
     }
 }
 
+// Generates a new SerializationStrategy, trying to optimize the generated SerializationStrategy graph.
 fun SerializationStrategy.with(next: SerializationStrategy): SerializationStrategy {
     if (next is TypedSerializationStrategy<*>) {
         when (this) {

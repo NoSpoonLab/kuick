@@ -40,7 +40,7 @@ class SerializationStrategiesTest {
     }
 
     @Test
-    fun testWithCombine() {
+    fun testWithGraph() {
         assertTrue((longSerialization + dateSerializationAsLong) is TypedSerializationStrategies)
         assertTrue((longSerialization + dateSerializationAsLong + stringSerialization) is TypedSerializationStrategies)
         assertTrue((longSerialization + IdSerializationStrategy) is SerializationStrategies)
