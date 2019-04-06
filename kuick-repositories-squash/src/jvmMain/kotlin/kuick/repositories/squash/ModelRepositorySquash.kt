@@ -18,8 +18,8 @@ import kotlin.reflect.full.*
 open class ModelRepositorySquash<I : Any, T : Any>(
         val modelClass: KClass<T>,
         val idField: KProperty1<T, I>,
-        val defaultMaxLength: Int = LONG_TEXT_LEN,
-        serializationStrategies : SerializationStrategy = defaultSerializationStrategies
+        baseSerializationStrategies: SerializationStrategy = defaultSerializationStrategies,
+        fallbackStrategy: SerializationStrategy = JsonSerializationStrategy
 ) : ModelRepository<I, T> {
 
     @Deprecated("Use the main constructor instead")
@@ -27,9 +27,11 @@ open class ModelRepositorySquash<I : Any, T : Any>(
             modelClass: KClass<T>,
             idField: KProperty1<T, I>,
             defaultMaxLength: Int = LONG_TEXT_LEN,
-            serializationStrategies : Map<KType,TypedSerializationStrategy<out Any>>
-    ) : this(modelClass, idField, defaultMaxLength, TypedSerializationStrategies(serializationStrategies))
+            serializationStrategies : Map<KType,TypedSerializationStrategy<out Any>>,
+            fallbackStrategy: SerializationStrategy = JsonSerializationStrategy
+    ) : this(modelClass, idField, TypedSerializationStrategies(serializationStrategies), fallbackStrategy)
 
+    val serializationStrategies = baseSerializationStrategies + fallbackStrategy
     val table = ORMTableDefinition(serializationStrategies, modelClass)
 
     init {
@@ -41,9 +43,7 @@ open class ModelRepositorySquash<I : Any, T : Any>(
             //println("Registering field ${prop} with return type: ${prop.returnType}")
 
             with(table) {
-                var columnDefinition: ColumnDefinition<Any?> =
-                        serializationStrategies.tryGetColumnDefinition(table, info)
-                                ?: varchar(info.columnName, info.maxLength ?: defaultMaxLength)
+                var columnDefinition = serializationStrategies.tryGetColumnDefinition(table, info) ?: error("Can't find columnDefinition")
                 if (info.nullableProp) columnDefinition = columnDefinition.nullable()
                 prop to columnDefinition
             }

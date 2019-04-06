@@ -21,7 +21,7 @@ class VarCharSerializationStrategy<T : Any>(
     override fun getColumnDefinition(table: TableDefinition, info: PropertyInfo<*>): ColumnDefinition<Any?> =
             table.varchar(info.columnName, info.maxLength ?: varcharLength)
 
-    override fun readColumnValue(field: Field, resultRow: ResultRow, columnName: String, tableName: String): T? =
+    override fun readColumnValue(field: Field, resultRow: ResultRow, columnName: String, tableName: String, clazz: KClass<*>): T? =
             readColumnValue.invoke(field, resultRow, columnName, tableName)
 
     override fun decodeValue(value: Any): Any? = decodeValue.invoke(value)
@@ -120,8 +120,8 @@ object IdSerializationStrategy : SerializationStrategy {
         else -> null
     }
 
-    override fun tryReadColumnValue(field: Field, resultRow: ResultRow, columnName: String, tableName: String): Any? = when {
-        field.type.kotlin.isSubclassOf(Id::class) -> idSerialization.readColumnValue(field, resultRow, columnName, tableName)
+    override fun tryReadColumnValue(field: Field, resultRow: ResultRow, columnName: String, tableName: String, clazz: KClass<*>): Any? = when {
+        field.type.kotlin.isSubclassOf(Id::class) -> idSerialization.readColumnValue(field, resultRow, columnName, tableName, clazz)
         else -> SerializationStrategy.Unhandled
     }
 
@@ -129,6 +129,22 @@ object IdSerializationStrategy : SerializationStrategy {
         is Id -> idSerialization.decodeValue(value)
         else -> SerializationStrategy.Unhandled
     }
+}
+
+object JsonSerializationStrategy : SerializationStrategy {
+    override fun tryGetColumnDefinition(table: TableDefinition, info: PropertyInfo<*>): ColumnDefinition<*>? {
+        return table.varchar(info.columnName, info.maxLength ?: LONG_TEXT_LEN)
+    }
+
+    override fun tryReadColumnValue(field: Field, resultRow: ResultRow, columnName: String, tableName: String, clazz: KClass<*>): Any? {
+        return resultRow.columnValue<String>(columnName, tableName)
+                ?.let { field.apply { isAccessible = true }.get(Json.fromJson("{\"${field.name}\":$it}", clazz)) }
+    }
+
+    override fun tryDecodeValue(value: Any): Any? {
+        return Json.toJson(value)
+    }
+
 }
 
 fun serializationStrategies(vararg serializations: SerializationStrategy): SerializationStrategy {

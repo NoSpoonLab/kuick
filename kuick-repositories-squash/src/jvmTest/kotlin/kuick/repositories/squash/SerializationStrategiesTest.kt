@@ -68,4 +68,11 @@ class SerializationStrategiesTest {
         }
     }
 
+    @Test
+    fun testJsonSerialization() {
+        JsonSerializationStrategy.tryGetColumnDefinition(table(), PropertyInfo(this::dateProp)).also { def ->
+            assertNotNull(def)
+            assertTrue(def.type is StringColumnType)
+        }
+    }
 }

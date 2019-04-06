@@ -186,14 +186,8 @@ open class ORMTableDefinition<T : Any> (
         return ormDef.clazz.constructors.first().call(*fieldValues.toTypedArray())
     }
 
-    private fun <T:Any> ResultRow.readColumnValue(clazz: KClass<T>, field: Field, columnName: String, tableName: String): Any? = run {
-        val result = serializationStrategies.tryReadColumnValue(field, this, columnName, tableName)
-        if (result == SerializationStrategy.Unhandled) {
-            columnValue<String>(columnName, tableName)?.let { field.apply { isAccessible = true }.get(Json.fromJson("{\"${field.name}\":$it}", clazz)) }
-        } else {
-            result
-        }
-    }
+    private fun <T:Any> ResultRow.readColumnValue(clazz: KClass<T>, field: Field, columnName: String, tableName: String): Any? =
+        serializationStrategies.tryReadColumnValue(field, this, columnName, tableName, clazz)
 
 
     infix fun <D:Any, T : Table> InsertValuesStatement<T, Unit>.from(data: D) {
@@ -218,13 +212,7 @@ open class ORMTableDefinition<T : Any> (
         }
     }
 
-    private fun decodeValue(value: Any?): Any? = when (value) {
-        null -> null
-        else -> {
-            val result = serializationStrategies.tryDecodeValue(value)
-            if (result == SerializationStrategy.Unhandled) Json.toJson(value) else result
-        }
-    }
+    private fun decodeValue(value: Any?): Any? = value?.let { serializationStrategies.tryDecodeValue(value) }
 
     //=================================
 
