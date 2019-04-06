@@ -52,4 +52,20 @@ class SerializationStrategiesTest {
             assertTrue(strats.strategies[2] is TypedSerializationStrategies)
         }
     }
+
+    @Test
+    fun testPrioritySerialization() {
+        val defaultSet = defaultSerializationStrategies
+        val myDefaultSet = dateSerializationAsDateTime + defaultSerializationStrategies
+
+        defaultSet.tryGetColumnDefinition(table(), PropertyInfo(this::dateProp)).also { def ->
+            assertNotNull(def)
+            assertEquals(LongColumnType, def.type)
+        }
+        myDefaultSet.tryGetColumnDefinition(table(), PropertyInfo(this::dateProp)).also { def ->
+            assertNotNull(def)
+            assertEquals(DateTimeColumnType, def.type)
+        }
+    }
+
 }
