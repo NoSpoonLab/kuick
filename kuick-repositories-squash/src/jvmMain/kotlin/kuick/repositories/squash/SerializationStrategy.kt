@@ -108,6 +108,9 @@ class ComposableStrategies(val first: SerializationStrategy, val second: Seriali
     }
 }
 
+// Tries to reuse a TypedSerializationStrategies, in the order of the strategies would be preserved
+// (either this is a TypedSerializationStrategies or the last element of a ComposableStrategies one is)
+// If not, it would use a ComposableStrategies
 fun <T : Any> SerializationStrategy.with(serialization: TypedSerializationStrategy<T>): SerializationStrategy =
         when {
             this is TypedSerializationStrategies -> TypedSerializationStrategies(strategies + mapOf(serialization.clazz.starProjectedType to serialization))
@@ -115,8 +118,7 @@ fun <T : Any> SerializationStrategy.with(serialization: TypedSerializationStrate
             else -> ComposableStrategies(this, TypedSerializationStrategies(mapOf(serialization.clazz.starProjectedType to serialization)))
         }
 
-fun SerializationStrategy.with(next: SerializationStrategy) =
-        ComposableStrategies(this, next)
+fun SerializationStrategy.with(next: SerializationStrategy) = ComposableStrategies(this, next)
 
 @Deprecated("", ReplaceWith("with(clazz, serialization)"))
 fun <T : Any> SerializationStrategy.withSerialization(clazz: KClass<T>, serialization: TypedSerializationStrategy<T>): SerializationStrategy = with(serialization)
