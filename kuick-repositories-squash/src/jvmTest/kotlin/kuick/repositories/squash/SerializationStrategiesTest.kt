@@ -3,8 +3,11 @@ package kuick.repositories.squash
 import kuick.models.*
 import org.jetbrains.squash.definition.*
 import org.jetbrains.squash.results.*
+import java.lang.reflect.*
 import java.util.*
 import kotlin.reflect.*
+import kotlin.reflect.full.*
+import kotlin.reflect.jvm.*
 import kotlin.test.*
 
 class SerializationStrategiesTest {
@@ -83,6 +86,15 @@ class SerializationStrategiesTest {
         }
 
         assertEquals("""{"a":10,"b":"hello"}""", JsonSerializationStrategy.tryEncodeValue(MyDataClass(10, "hello")))
-        assertEquals(MyDataClass(10, "hello"), JsonSerializationStrategy.tryDecodeValueLazy(MyDataClass::class) { """{"a":10,"b":"hello"}""" })
+        //assertEquals(MyDataClass(10, "hello"), JsonSerializationStrategy.tryDecodeValueLazy(MyDataClass::class.starProjectedType) { """{"a":10,"b":"hello"}""" })
+        assertEquals(MyDataClass(10, "hello"), JsonSerializationStrategy.tryDecodeValueLazy(::myDataProp.returnType) { """{"a":10,"b":"hello"}""" })
+    }
+
+    val testFieldList = listOf(MyDataClass(1, "one"), MyDataClass(2, "two"))
+
+    @Test
+    fun testJsonSerializationList() {
+        assertEquals("""[{"a":1,"b":"one"},{"a":2,"b":"two"}]""", JsonSerializationStrategy.tryEncodeValue(testFieldList))
+        assertEquals(listOf(MyDataClass(1, "one"), MyDataClass(2, "two")), JsonSerializationStrategy.tryDecodeValueLazy(::testFieldList.returnType) { """[{"a":1,"b":"one"},{"a":2,"b":"two"}]""" })
     }
 }

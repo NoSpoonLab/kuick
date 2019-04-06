@@ -7,7 +7,8 @@ import java.text.SimpleDateFormat
 import java.time.*
 import java.time.format.DateTimeFormatter
 import java.util.*
-import kotlin.reflect.KClass
+import kotlin.reflect.*
+import kotlin.reflect.jvm.*
 
 
 class DateAdapter : JsonDeserializer<Date>, JsonSerializer<Date> {
@@ -111,6 +112,15 @@ object Json {
             return gson.fromJson(json, clazz.java)
         } catch (t: Throwable) {
             println("ERROR parsing JSON: $clazz <-- $json")
+            throw t
+        }
+    }
+
+    fun <T : Any> fromJson(json: String, type: KType): T {
+        try {
+            return gson.fromJson(json, type.javaType)
+        } catch (t: Throwable) {
+            println("ERROR parsing JSON: $type <-- $json")
             throw t
         }
     }

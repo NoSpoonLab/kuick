@@ -27,9 +27,9 @@ open class ModelRepositorySquash<I : Any, T : Any>(
             modelClass: KClass<T>,
             idField: KProperty1<T, I>,
             defaultMaxLength: Int = LONG_TEXT_LEN,
-            serializationStrategies : Map<KType,TypedSerializationStrategy<out Any>>,
+            serializationStrategies : Map<KType, TypedSerializationStrategy<out Any>>,
             fallbackStrategy: SerializationStrategy = JsonSerializationStrategy
-    ) : this(modelClass, idField, TypedSerializationStrategies(serializationStrategies), fallbackStrategy)
+    ) : this(modelClass, idField, TypedSerializationStrategies(serializationStrategies.map { it.key.clazz!! to it.value }.toMap()), fallbackStrategy)
 
     val serializationStrategies = baseSerializationStrategies + fallbackStrategy
     val table = ORMTableDefinition(serializationStrategies, modelClass).also { table ->

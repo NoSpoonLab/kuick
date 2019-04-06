@@ -11,6 +11,7 @@ class PropertyInfo<T>(val prop: KProperty<T>) {
     val maxLength = prop.javaField?.getAnnotation(MaxLength::class.java)?.maxLength
     val nullableProp = prop.returnType.isMarkedNullable
     val returnType = prop.returnType.classifier!!.starProjectedType
+    val returnTypeClass = returnType.classifier as KClass<*>
     val columnName = prop.name.toSnakeCase()
 
     private fun String.toSnakeCase(): String = flatMap {
@@ -18,8 +19,12 @@ class PropertyInfo<T>(val prop: KProperty<T>) {
     }.joinToString("")
 }
 
+//typealias GetTypedValueFunc = (KType) -> Any?
+//inline operator fun <reified T> GetTypedValueFunc.invoke(): T? = this(T::class.starProjectedType) as T?
+
 typealias GetTypedValueFunc = (KClass<*>) -> Any?
 inline operator fun <reified T> GetTypedValueFunc.invoke(): T? = this(T::class) as T?
+val KType.clazz get() = classifier as? KClass<*>?
 
 interface SerializationStrategy {
     object Unhandled
@@ -31,7 +36,7 @@ interface SerializationStrategy {
     fun tryGetColumnDefinition(table: TableDefinition, info: PropertyInfo<*>): ColumnDefinition<*>?
 
     /** Decodes a value obtained lazily from [getValue] that is called with a requested type to the [targetType] */
-    fun tryDecodeValueLazy(targetType: KClass<*>, getValue: GetTypedValueFunc): Any?
+    fun tryDecodeValueLazy(targetType: KType, getValue: GetTypedValueFunc): Any?
 
     /** Encodes a typed value in a way that can be stored in the database */
     fun tryEncodeValue(value: Any): Any?
@@ -43,7 +48,7 @@ abstract class TypedSerializationStrategy<T : Any>(
     val type = clazz.starProjectedType
 
     abstract fun getColumnDefinition(table: TableDefinition, info: PropertyInfo<*>): ColumnDefinition<Any?>
-    abstract fun decodeValue(targetType: KClass<T>, getValue: GetTypedValueFunc): T?
+    abstract fun decodeValue(targetType: KType, getValue: GetTypedValueFunc): T?
     abstract fun encodeValue(value: Any): Any?
 
     final override fun tryGetColumnDefinition(table: TableDefinition, info: PropertyInfo<*>): ColumnDefinition<*>? {
@@ -51,8 +56,8 @@ abstract class TypedSerializationStrategy<T : Any>(
         return SerializationStrategy.UnhandledColumnDefinition
     }
 
-    final override fun tryDecodeValueLazy(targetType: KClass<*>, getValue: GetTypedValueFunc): Any? {
-        if (targetType == type) return decodeValue(targetType as KClass<T>, getValue)
+    final override fun tryDecodeValueLazy(targetType: KType, getValue: GetTypedValueFunc): Any? {
+        if (targetType == type) return decodeValue(targetType, getValue)
         return SerializationStrategy.Unhandled
     }
 
@@ -64,32 +69,32 @@ abstract class TypedSerializationStrategy<T : Any>(
 
 inline fun <reified T : Any> SerializationStrategy(
         noinline getColumnDefinition: (table: TableDefinition, info: PropertyInfo<*>) -> ColumnDefinition<Any?>,
-        noinline readColumnValue: (targetType: KClass<*>, getValue: GetTypedValueFunc) -> T?,
+        noinline readColumnValue: (targetType: KType, getValue: GetTypedValueFunc) -> T?,
         noinline decodeValue: (value: Any) -> Any?
 ) = object : TypedSerializationStrategy<T>(T::class) {
     override fun getColumnDefinition(table: TableDefinition, info: PropertyInfo<*>): ColumnDefinition<Any?> =
             getColumnDefinition(table, info)
 
-    override fun decodeValue(targetType: KClass<T>, getValue: GetTypedValueFunc): T? =
+    override fun decodeValue(targetType: KType, getValue: GetTypedValueFunc): T? =
             readColumnValue(targetType, getValue)
 
     override fun encodeValue(value: Any): Any? = decodeValue(value)
 
 }
 
-class TypedSerializationStrategies(val strategies: Map<KType, TypedSerializationStrategy<out Any>> = mapOf()) : SerializationStrategy {
+class TypedSerializationStrategies(val strategies: Map<KClass<*>, TypedSerializationStrategy<out Any>> = mapOf()) : SerializationStrategy {
     override fun tryGetColumnDefinition(table: TableDefinition, info: PropertyInfo<*>): ColumnDefinition<*>? {
-        val strategy = strategies[info.returnType] ?: return SerializationStrategy.UnhandledColumnDefinition
+        val strategy = strategies[info.returnTypeClass] ?: return SerializationStrategy.UnhandledColumnDefinition
         return strategy.getColumnDefinition(table, info)
     }
 
-    override fun tryDecodeValueLazy(targetType: KClass<*>, getValue: GetTypedValueFunc): Any? {
-        val strategy = (strategies[targetType.starProjectedType] as? TypedSerializationStrategy<Any>) ?: return SerializationStrategy.Unhandled
-        return strategy.decodeValue(targetType as KClass<Any>, getValue)
+    override fun tryDecodeValueLazy(targetType: KType, getValue: GetTypedValueFunc): Any? {
+        val strategy = strategies[targetType.clazz] ?: return SerializationStrategy.Unhandled
+        return strategy.decodeValue(targetType, getValue)
     }
 
     override fun tryEncodeValue(value: Any): Any? {
-        val strategy = strategies[value::class.starProjectedType] ?: return SerializationStrategy.Unhandled
+        val strategy = strategies[value::class] ?: return SerializationStrategy.Unhandled
         return strategy.encodeValue(value)
     }
 }
@@ -105,7 +110,7 @@ class SerializationStrategies(val strategies: List<SerializationStrategy>) : Ser
         return SerializationStrategy.UnhandledColumnDefinition
     }
 
-    override fun tryDecodeValueLazy(targetType: KClass<*>, getValue: (KClass<*>) -> Any?): Any? {
+    override fun tryDecodeValueLazy(targetType: KType, getValue: GetTypedValueFunc): Any? {
         strategies.fastForEach { strategy ->
             val result = strategy.tryDecodeValueLazy(targetType, getValue)
             if (result != SerializationStrategy.Unhandled) return result
@@ -127,7 +132,7 @@ fun SerializationStrategy.with(next: SerializationStrategy): SerializationStrate
     if (next is TypedSerializationStrategy<*>) {
         when (this) {
             is TypedSerializationStrategy<*> -> return TypedSerializationStrategies().with(this).with(next)
-            is TypedSerializationStrategies -> return TypedSerializationStrategies(strategies + mapOf(next.type to next))
+            is TypedSerializationStrategies -> return TypedSerializationStrategies(strategies + mapOf(next.type.clazz!! to next))
             is SerializationStrategies -> {
                 val last = strategies.lastOrNull()
                 if (last is TypedSerializationStrategies || last is TypedSerializationStrategy<*>) {

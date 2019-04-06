@@ -23,6 +23,7 @@ import java.util.concurrent.atomic.*
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
 import kotlin.reflect.full.*
+import kotlin.reflect.jvm.*
 
 
 const val LOCAL_DATE_LEN = 16
@@ -182,7 +183,7 @@ open class ORMTableDefinition<T : Any> (
                 val columnDef = ormDef[property]
                 val columnName = columnDef.name.id
                 val tableName = ormDef.compoundName.id
-                serializationStrategies.tryDecodeValueLazy(f.type.kotlin) { clazz -> columnValue(clazz, columnName, tableName) }
+                serializationStrategies.tryDecodeValueLazy(f.kotlinProperty!!.returnType) { clazz -> columnValue(clazz, columnName, tableName) }
             } catch (t: Throwable) {
                 throw IllegalStateException("Had a problem reading field $f", t)
             }

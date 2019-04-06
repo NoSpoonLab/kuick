@@ -14,12 +14,12 @@ import kotlin.reflect.full.*
 class VarCharSerializationStrategy<T : Any>(
         clazz: KClass<T>,
         val varcharLength: Int,
-        private val decodeValue: (targetType: KClass<T>, getValue: GetTypedValueFunc) -> T?,
+        private val decodeValue: (targetType: KType, getValue: GetTypedValueFunc) -> T?,
         private val encodeValue: (value: Any) -> Any?
 ) : TypedSerializationStrategy<T>(clazz) {
 
     override fun getColumnDefinition(table: TableDefinition, info: PropertyInfo<*>): ColumnDefinition<Any?> = table.varchar(info.columnName, info.maxLength ?: varcharLength)
-    override fun decodeValue(targetType: KClass<T>, getValue: (KClass<*>) -> Any?): T? = decodeValue.invoke(targetType, getValue)
+    override fun decodeValue(targetType: KType, getValue: (KClass<*>) -> Any?): T? = decodeValue.invoke(targetType, getValue)
     override fun encodeValue(value: Any): Any? = encodeValue.invoke(value)
     fun withLength(length: Int) = VarCharSerializationStrategy(clazz, length, decodeValue, encodeValue)
 }
@@ -105,7 +105,7 @@ object IdSerializationStrategy : SerializationStrategy {
     val idSerialization = VarCharSerializationStrategy(
             Id::class,
             ID_LEN,
-            { clazz, getValue -> getValue<String>()?.let { clazz.primaryConstructor?.call(it) } },
+            { type, getValue -> getValue<String>()?.let { type.clazz?.primaryConstructor?.call(it) as? Id? } },
             { value -> (value as Id).id }
     )
 
@@ -114,8 +114,8 @@ object IdSerializationStrategy : SerializationStrategy {
         else -> null
     }
 
-    override fun tryDecodeValueLazy(targetType: KClass<*>, getValue: GetTypedValueFunc): Any? = when {
-        targetType.isSubclassOf(Id::class) -> idSerialization.decodeValue(targetType as KClass<Id>, getValue)
+    override fun tryDecodeValueLazy(targetType: KType, getValue: GetTypedValueFunc): Any? = when {
+        targetType.clazz!!.isSubclassOf(Id::class) -> idSerialization.decodeValue(targetType, getValue)
         else -> SerializationStrategy.Unhandled
     }
 
@@ -129,7 +129,7 @@ object JsonSerializationStrategy : SerializationStrategy {
     override fun tryGetColumnDefinition(table: TableDefinition, info: PropertyInfo<*>): ColumnDefinition<*>? =
             table.varchar(info.columnName, info.maxLength ?: LONG_TEXT_LEN)
 
-    override fun tryDecodeValueLazy(targetType: KClass<*>, getValue: GetTypedValueFunc): Any? =
+    override fun tryDecodeValueLazy(targetType: KType, getValue: GetTypedValueFunc): Any? =
             getValue<String>()?.let { Json.fromJson(it, targetType) }
 
     override fun tryEncodeValue(value: Any): Any? = Json.toJson(value)
