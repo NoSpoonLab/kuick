@@ -117,14 +117,15 @@ class SerializationStrategies(val strategies: Map<KType, SerializationStrategy<o
 inline fun <reified T> type() : KType = T::class.starProjectedType
 
 val defaultSerializationStrategies  = SerializationStrategies(mapOf(
-        Pair(type<Int>(),intSerialization),
-        Pair(type<Long>(), longSerialization),
-        Pair(type<String>(), stringSerialization),
-        Pair(type<Date>(), dateSerializationAsLong),
-        Pair(type<Double>(), doubleSerialization),
-        Pair(type<Boolean>(), booleanSerialization),
-        Pair(type<LocalDate>(), localDateSerialization),
-        Pair(type<LocalDateTime>(), localDateTimeSerialization),
-        Pair(type<Id>(), idSerialization),
-        Pair(type<Email>(), emailSerialization)))
+        type<Int>() to intSerialization,
+        type<Long>() to longSerialization,
+        type<String>() to stringSerialization,
+        type<Date>() to dateSerializationAsLong,
+        type<Double>() to doubleSerialization,
+        type<Boolean>() to booleanSerialization,
+        type<LocalDate>() to localDateSerialization,
+        type<LocalDateTime>() to localDateTimeSerialization,
+        type<Id>() to idSerialization,
+        type<Email>() to emailSerialization)
+)
 
