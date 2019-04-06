@@ -28,7 +28,7 @@ open class ModelRepositorySquash<I : Any, T : Any>(
             idField: KProperty1<T, I>,
             defaultMaxLength: Int = LONG_TEXT_LEN,
             serializationStrategies : Map<KType,TypedSerializationStrategy<out Any>>
-    ) : this(modelClass, idField, defaultMaxLength, SerializationStrategies(serializationStrategies))
+    ) : this(modelClass, idField, defaultMaxLength, TypedSerializationStrategies(serializationStrategies))
 
     val table = ORMTableDefinition(serializationStrategies, modelClass)
 

@@ -71,7 +71,7 @@ inline fun <reified T : Any> SerializationStrategy(
 
 }
 
-class SerializationStrategies(val strategies: Map<KType, TypedSerializationStrategy<out Any>> = mapOf()) : SerializationStrategy {
+class TypedSerializationStrategies(val strategies: Map<KType, TypedSerializationStrategy<out Any>> = mapOf()) : SerializationStrategy {
     override fun tryGetColumnDefinition(table: TableDefinition, info: PropertyInfo<*>): ColumnDefinition<*>? {
         val strategy = strategies[info.returnType] ?: return SerializationStrategy.UnhandledColumnDefinition
         return strategy.getColumnDefinition(table, info)
@@ -110,9 +110,9 @@ class ComposableStrategies(val first: SerializationStrategy, val second: Seriali
 
 fun <T : Any> SerializationStrategy.with(serialization: TypedSerializationStrategy<T>): SerializationStrategy =
         when {
-            this is SerializationStrategies -> SerializationStrategies(strategies + mapOf(serialization.clazz.starProjectedType to serialization))
-            this is ComposableStrategies && this.second is SerializationStrategies -> ComposableStrategies(this.first, this.second.with(serialization))
-            else -> ComposableStrategies(this, SerializationStrategies(mapOf(serialization.clazz.starProjectedType to serialization)))
+            this is TypedSerializationStrategies -> TypedSerializationStrategies(strategies + mapOf(serialization.clazz.starProjectedType to serialization))
+            this is ComposableStrategies && this.second is TypedSerializationStrategies -> ComposableStrategies(this.first, this.second.with(serialization))
+            else -> ComposableStrategies(this, TypedSerializationStrategies(mapOf(serialization.clazz.starProjectedType to serialization)))
         }
 
 fun SerializationStrategy.with(next: SerializationStrategy) =

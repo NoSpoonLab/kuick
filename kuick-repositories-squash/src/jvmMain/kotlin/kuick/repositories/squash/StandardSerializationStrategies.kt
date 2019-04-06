@@ -131,7 +131,7 @@ object IdSerializationStrategy : SerializationStrategy {
     }
 }
 
-val defaultSerializationStrategies: SerializationStrategy = SerializationStrategies()
+val defaultSerializationStrategies: SerializationStrategy = TypedSerializationStrategies()
         .with(intSerialization)
         .with(longSerialization)
         .with(stringSerialization)
