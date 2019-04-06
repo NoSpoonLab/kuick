@@ -89,7 +89,7 @@ class TypedSerializationStrategies(val strategies: Map<KType, TypedSerialization
     }
 }
 
-class ComposableStrategies(val strategies: List<SerializationStrategy>) : SerializationStrategy {
+class SerializationStrategies(val strategies: List<SerializationStrategy>) : SerializationStrategy {
     constructor(vararg strategies: SerializationStrategy) : this(strategies.toList())
 
     override fun tryGetColumnDefinition(table: TableDefinition, info: PropertyInfo<*>): ColumnDefinition<*>? {
@@ -122,16 +122,16 @@ fun SerializationStrategy.with(next: SerializationStrategy): SerializationStrate
         when (this) {
             is TypedSerializationStrategy<*> -> return TypedSerializationStrategies().with(this).with(next)
             is TypedSerializationStrategies -> return TypedSerializationStrategies(strategies + mapOf(next.type to next))
-            is ComposableStrategies -> {
+            is SerializationStrategies -> {
                 val last = strategies.lastOrNull()
                 if (last is TypedSerializationStrategies || last is TypedSerializationStrategy<*>) {
-                    return ComposableStrategies(this.strategies.dropLast(1) + last.with(next))
+                    return SerializationStrategies(this.strategies.dropLast(1) + last.with(next))
                 }
             }
         }
     }
 
-    return if (this is ComposableStrategies) ComposableStrategies(strategies + next) else ComposableStrategies(this, next)
+    return if (this is SerializationStrategies) SerializationStrategies(strategies + next) else SerializationStrategies(this, next)
 }
 
 operator fun SerializationStrategy.plus(next: SerializationStrategy): SerializationStrategy = with(next)
