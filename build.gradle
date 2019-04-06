@@ -33,14 +33,16 @@ subprojects {
     group = "com.nospoonlab"
 
     kotlin {
-        jvm() {
+        jvm {
             configure([compilations.main, compilations.test]) {
                 kotlinOptions {
                     jvmTarget = "1.8"
+                    suppressWarnings = true
+                    apiVersion = "1.3"
                 }
             }
         }
-        js() {
+        js {
             configure([compilations.main, compilations.test]) {
                 kotlinOptions {
                     target = "v5"

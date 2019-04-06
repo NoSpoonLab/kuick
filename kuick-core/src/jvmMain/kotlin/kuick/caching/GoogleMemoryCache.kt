@@ -16,7 +16,7 @@ class GoogleMemoryCache<K: Any, T:Any>(maxSize: Long, duration: Duration) : Cach
             .build<String, T>()
 
     @UseExperimental(KuickInternal::class)
-    override suspend fun get(key: K, builder: suspend () -> T?): T {
+    override suspend fun get(key: K, builder: suspend () -> T): T {
         val injector = injector()
         return cache.get(key.toString()) {
             runBlocking {
