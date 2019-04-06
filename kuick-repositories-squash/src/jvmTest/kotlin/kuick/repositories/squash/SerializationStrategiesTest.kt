@@ -56,13 +56,13 @@ class SerializationStrategiesTest {
     @Test
     fun testPrioritySerialization() {
         val defaultSet = defaultSerializationStrategies
-        val myDefaultSet = dateSerializationAsDateTime + defaultSerializationStrategies
+        val customSet = dateSerializationAsDateTime + defaultSerializationStrategies
 
         defaultSet.tryGetColumnDefinition(table(), PropertyInfo(this::dateProp)).also { def ->
             assertNotNull(def)
             assertEquals(LongColumnType, def.type)
         }
-        myDefaultSet.tryGetColumnDefinition(table(), PropertyInfo(this::dateProp)).also { def ->
+        customSet.tryGetColumnDefinition(table(), PropertyInfo(this::dateProp)).also { def ->
             assertNotNull(def)
             assertEquals(DateTimeColumnType, def.type)
         }
