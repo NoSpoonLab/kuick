@@ -25,11 +25,19 @@ class PropertyInfo<T>(val prop: KProperty<T>) {
 }
 
 interface BaseSerializationStrategy {
-    fun tryGetColumnDefinition(table: TableDefinition, prop: PropertyInfo<*>): ColumnDefinition<*>?
+    object Unhandled
+
+    companion object {
+        val UnhandledColumnDefinition: ColumnDefinition<*>? = null
+    }
+
+    fun tryGetColumnDefinition(table: TableDefinition, info: PropertyInfo<*>): ColumnDefinition<*>?
+    fun tryReadColumnValue(field: Field, resultRow: ResultRow, columnName: String, tableName: String): Any?
+    fun tryDecodeValue(value: Any): Any?
 }
 
 open class SerializationStrategy<T : Any>(
-        val getColumnDefinition: (table: TableDefinition, columnName: String) -> ColumnDefinition<Any?>,
+        val getColumnDefinition: (table: TableDefinition, info: PropertyInfo<*>) -> ColumnDefinition<Any?>,
         val readColumnValue: (field: Field, resultRow: ResultRow, columnName: String, tableName: String) -> T?,
         val decodeValue: (value: Any) -> Any?
 )
@@ -38,12 +46,12 @@ class VarCharSerializationStrategy<T : Any>(
         varcharLength: Int,
         readColumnValue: (Field, ResultRow, String, String) -> T?,
         decodeValue: (Any) -> Any?
-) : SerializationStrategy<T>({ table, columnName -> table.varchar(columnName, varcharLength) }, readColumnValue, decodeValue) {
+) : SerializationStrategy<T>({ table, info -> table.varchar(info.columnName, info.maxLength ?: varcharLength) }, readColumnValue, decodeValue) {
     fun withLength(length: Int) = VarCharSerializationStrategy(length, readColumnValue, decodeValue)
 }
 
 val dateSerializationAsDateTime = SerializationStrategy<Date>(
-        { table, columnName -> table.datetime(columnName) },
+        { table, info -> table.datetime(info.columnName) },
         { type, result, columnName, tableName ->
             result.columnValue<LocalDateTime>(columnName, tableName)?.let {
                 val zoneOffset = ZoneOffset.UTC.normalized().rules.getOffset(it)
@@ -54,7 +62,7 @@ val dateSerializationAsDateTime = SerializationStrategy<Date>(
 )
 
 val dateSerializationAsLong = SerializationStrategy<Date>(
-        { table, columnName -> table.long(columnName) },
+        { table, info -> table.long(info.columnName) },
         { field, result, columnName, tableName -> result.columnValue<Long>(columnName, tableName)?.let { Date(it) } },
         { value -> (value as Date).time }
 )
@@ -66,25 +74,25 @@ val stringSerialization = VarCharSerializationStrategy(
         { value -> value })
 
 val intSerialization = SerializationStrategy(
-        { table, columnName -> table.integer(columnName) },
+        { table, info -> table.integer(info.columnName) },
         { field, result, columnName, tableName -> result.columnValue<Int>(columnName, tableName) },
         { value -> value }
 )
 
 val longSerialization = SerializationStrategy(
-        { table, columnName -> table.long(columnName) },
+        { table, info -> table.long(info.columnName) },
         { type, result, columnName, tableName -> result.columnValue<Long>(columnName, tableName) },
         { value -> value }
 )
 
 val doubleSerialization = SerializationStrategy(
-        { table, columnName -> table.decimal(columnName, 5, 4) },
+        { table, info -> table.decimal(info.columnName, 5, 4) },
         { field, result, columnName, tableName -> result.columnValue<Double>(columnName, tableName) },
         { value -> value }
 )
 
 val booleanSerialization = SerializationStrategy(
-        { table, columnName -> table.bool(columnName) },
+        { table, info -> table.bool(info.columnName) },
         { field, result, columnName, tableName -> result.columnValue<Boolean>(columnName, tableName) },
         { value -> value }
 )
@@ -110,13 +118,6 @@ val localDateTimeSerialization = VarCharSerializationStrategy(
         { value -> DATE_TIME_FORMAT.format(value as LocalDateTime) }
 )
 
-val idSerialization = VarCharSerializationStrategy(
-        ID_LEN,
-        { field, result, columnName, tableName -> result.columnValue<String>(columnName, tableName)?.let { field.type.kotlin.primaryConstructor?.call(it) as Id? } },
-        { value -> (value as Id).id }
-)
-
-
 val emailSerialization = VarCharSerializationStrategy(
         LONG_TEXT_LEN,
         { field, result, columnName, tableName -> result.columnValue<String>(columnName, tableName)?.let { Email(it) } },
@@ -124,31 +125,80 @@ val emailSerialization = VarCharSerializationStrategy(
 )
 
 class SerializationStrategies(val strategies: Map<KType, SerializationStrategy<out Any>> = mapOf()) : BaseSerializationStrategy {
-    override fun tryGetColumnDefinition(table: TableDefinition, prop: PropertyInfo<*>): ColumnDefinition<*>? {
-        return strategies[prop.returnType]?.getColumnDefinition?.invoke(table, prop.columnName)
+    override fun tryGetColumnDefinition(table: TableDefinition, info: PropertyInfo<*>): ColumnDefinition<*>? {
+        val strategy = strategies[info.returnType] ?: return BaseSerializationStrategy.UnhandledColumnDefinition
+        return strategy.getColumnDefinition.invoke(table, info)
+    }
+
+    override fun tryReadColumnValue(field: Field, resultRow: ResultRow, columnName: String, tableName: String): Any? {
+        val strategy = strategies[field.type.kotlin.starProjectedType] ?: return BaseSerializationStrategy.Unhandled
+        return strategy.readColumnValue(field, resultRow, columnName, tableName)
+    }
+
+    override fun tryDecodeValue(value: Any): Any? {
+        val strategy = strategies[value::class.starProjectedType] ?: return BaseSerializationStrategy.Unhandled
+        return strategy.decodeValue(value)
     }
 }
 
 class ComposableStrategies(val first: BaseSerializationStrategy, val second: BaseSerializationStrategy) : BaseSerializationStrategy {
-    override fun tryGetColumnDefinition(table: TableDefinition, prop: PropertyInfo<*>): ColumnDefinition<*>? {
-        return first.tryGetColumnDefinition(table, prop) ?: second.tryGetColumnDefinition(table, prop)
+    override fun tryGetColumnDefinition(table: TableDefinition, info: PropertyInfo<*>): ColumnDefinition<*>? {
+        return first.tryGetColumnDefinition(table, info) ?: second.tryGetColumnDefinition(table, info)
+    }
+
+    override fun tryReadColumnValue(field: Field, resultRow: ResultRow, columnName: String, tableName: String): Any? {
+        val result = first.tryReadColumnValue(field, resultRow, columnName, tableName)
+        if (result != BaseSerializationStrategy.Unhandled) return result
+        return second.tryReadColumnValue(field, resultRow, columnName, tableName)
+    }
+
+    override fun tryDecodeValue(value: Any): Any? {
+        val result = first.tryDecodeValue(value)
+        if (result != BaseSerializationStrategy.Unhandled) return result
+        return second.tryDecodeValue(value)
     }
 }
 
-fun <T : Any> BaseSerializationStrategy.withSerialization(clazz: KClass<T>, serialization: SerializationStrategy<T>) =
-        if (this is SerializationStrategies) {
-            SerializationStrategies(strategies + mapOf(clazz.starProjectedType to serialization))
-        } else {
-            ComposableStrategies(this, SerializationStrategies(mapOf(clazz.starProjectedType to serialization)))
+fun <T : Any> BaseSerializationStrategy.withSerialization(clazz: KClass<T>, serialization: SerializationStrategy<T>): BaseSerializationStrategy =
+        when {
+            this is SerializationStrategies -> SerializationStrategies(strategies + mapOf(clazz.starProjectedType to serialization))
+            this is ComposableStrategies && this.second is SerializationStrategies -> ComposableStrategies(this.first, this.second.withSerialization(clazz, serialization))
+            else -> ComposableStrategies(this, SerializationStrategies(mapOf(clazz.starProjectedType to serialization)))
         }
 
 inline fun <reified T : Any> BaseSerializationStrategy.withSerialization(serialization: SerializationStrategy<T>) =
         withSerialization(T::class, serialization)
 
+fun BaseSerializationStrategy.withSerialization(next: BaseSerializationStrategy) =
+        ComposableStrategies(this, next)
+
 
 inline fun <reified T> type(): KType = T::class.starProjectedType
 
-val defaultSerializationStrategies = SerializationStrategies(mapOf(
+object IdSerializationStrategy : BaseSerializationStrategy {
+    val idSerialization = VarCharSerializationStrategy(
+            ID_LEN,
+            { field, result, columnName, tableName -> result.columnValue<String>(columnName, tableName)?.let { field.type.kotlin.primaryConstructor?.call(it) as Id? } },
+            { value -> (value as Id).id }
+    )
+
+    override fun tryGetColumnDefinition(table: TableDefinition, info: PropertyInfo<*>) = when {
+        info.returnType.isSubtypeOf(type<Id>()) -> idSerialization.getColumnDefinition(table, info)
+        else -> null
+    }
+
+    override fun tryReadColumnValue(field: Field, resultRow: ResultRow, columnName: String, tableName: String): Any? = when {
+        field.type.kotlin.isSubclassOf(Id::class) -> idSerialization.readColumnValue.invoke(field, resultRow, columnName, tableName)
+        else -> BaseSerializationStrategy.Unhandled
+    }
+
+    override fun tryDecodeValue(value: Any): Any? = when (value) {
+        is Id -> idSerialization.decodeValue.invoke(value)
+        else -> BaseSerializationStrategy.Unhandled
+    }
+}
+
+val defaultSerializationStrategies: BaseSerializationStrategy = SerializationStrategies(mapOf(
         type<Int>() to intSerialization,
         type<Long>() to longSerialization,
         type<String>() to stringSerialization,
@@ -157,7 +207,6 @@ val defaultSerializationStrategies = SerializationStrategies(mapOf(
         type<Boolean>() to booleanSerialization,
         type<LocalDate>() to localDateSerialization,
         type<LocalDateTime>() to localDateTimeSerialization,
-        type<Id>() to idSerialization,
-        type<Email>() to emailSerialization)
-)
+        type<Email>() to emailSerialization
+)).withSerialization(IdSerializationStrategy)
 

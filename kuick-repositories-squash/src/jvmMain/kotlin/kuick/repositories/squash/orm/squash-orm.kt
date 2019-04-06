@@ -3,8 +3,7 @@ package kuick.repositories.squash.orm
 import kuick.db.DomainTransaction
 import kuick.json.Json
 import kuick.models.Id
-import kuick.repositories.squash.SerializationStrategy
-import kuick.repositories.squash.type
+import kuick.repositories.squash.*
 import kuick.utils.nonStaticFields
 import org.jetbrains.squash.connection.*
 import org.jetbrains.squash.definition.ColumnDefinition
@@ -25,7 +24,6 @@ import java.util.concurrent.atomic.*
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
 import kotlin.reflect.full.*
-import kotlin.reflect.KType
 
 
 const val LOCAL_DATE_LEN = 16
@@ -58,7 +56,7 @@ class DomainTransactionSquash(val db: DatabaseConnection): DomainTransaction, Cl
 }
 
 open class ORMTableDefinition<T : Any> (
-        val serializationStrategies : Map<KType, SerializationStrategy<*>>,
+        val serializationStrategies : BaseSerializationStrategy,
         val clazz: KClass<T>,
         val tableName: String = clazz.simpleName!!
 ): TableDefinition(tableName) {
@@ -188,11 +186,12 @@ open class ORMTableDefinition<T : Any> (
         return ormDef.clazz.constructors.first().call(*fieldValues.toTypedArray())
     }
 
-    private fun <T:Any> ResultRow.readColumnValue(clazz: KClass<T>, field: Field, columnName: String, tableName: String): Any? = when  {
-        serializationStrategies.containsKey(field.type.kotlin.starProjectedType) -> serializationStrategies[field.type.kotlin.starProjectedType]!!.readColumnValue.invoke(field,this,columnName,tableName)
-        else -> when {
-            field.type.kotlin.isSubclassOf(Id::class) ->serializationStrategies[type<Id>()]!!.readColumnValue.invoke(field,this,columnName,tableName)
-            else -> columnValue<String>(columnName, tableName)?.let { field.apply { isAccessible = true }.get(Json.fromJson("{\"${field.name}\":$it}", clazz)) }
+    private fun <T:Any> ResultRow.readColumnValue(clazz: KClass<T>, field: Field, columnName: String, tableName: String): Any? = run {
+        val result = serializationStrategies.tryReadColumnValue(field, this, columnName, tableName)
+        if (result == BaseSerializationStrategy.Unhandled) {
+            columnValue<String>(columnName, tableName)?.let { field.apply { isAccessible = true }.get(Json.fromJson("{\"${field.name}\":$it}", clazz)) }
+        } else {
+            result
         }
     }
 
@@ -219,11 +218,12 @@ open class ORMTableDefinition<T : Any> (
         }
     }
 
-    private fun decodeValue(value: Any?) = when {
-        value == null -> null
-        serializationStrategies.containsKey(value::class.starProjectedType) -> serializationStrategies[value::class.starProjectedType]!!.decodeValue.invoke(value)
-        value is Id -> serializationStrategies[type<Id>()]!!.decodeValue.invoke(value)
-        else -> Json.toJson(value)
+    private fun decodeValue(value: Any?): Any? = when (value) {
+        null -> null
+        else -> {
+            val result = serializationStrategies.tryDecodeValue(value)
+            if (result == BaseSerializationStrategy.Unhandled) Json.toJson(value) else result
+        }
     }
 
     //=================================

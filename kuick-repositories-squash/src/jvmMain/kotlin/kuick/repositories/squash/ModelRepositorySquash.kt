@@ -21,8 +21,16 @@ open class ModelRepositorySquash<I : Any, T : Any>(
         val modelClass: KClass<T>,
         val idField: KProperty1<T, I>,
         val defaultMaxLength: Int = LONG_TEXT_LEN,
-        serializationStrategies : Map<KType,SerializationStrategy<out Any>> = defaultSerializationStrategies.strategies
+        serializationStrategies : BaseSerializationStrategy = defaultSerializationStrategies
 ) : ModelRepository<I, T> {
+
+    @Deprecated("Use the main constructor instead")
+    constructor(
+            modelClass: KClass<T>,
+            idField: KProperty1<T, I>,
+            defaultMaxLength: Int = LONG_TEXT_LEN,
+            serializationStrategies : Map<KType,SerializationStrategy<out Any>>
+    ) : this(modelClass, idField, defaultMaxLength, SerializationStrategies(serializationStrategies))
 
     val table = ORMTableDefinition(serializationStrategies, modelClass)
 
@@ -35,15 +43,9 @@ open class ModelRepositorySquash<I : Any, T : Any>(
             //println("Registering field ${prop} with return type: ${prop.returnType}")
 
             with(table) {
-                var columnDefinition: ColumnDefinition<Any?> = when {
-                    serializationStrategies.containsKey(info.returnType) -> {
-                        var strategy = serializationStrategies[info.returnType]!!
-                        if (strategy is VarCharSerializationStrategy && info.maxLength!=null) strategy= strategy.withLength(info.maxLength)
-                        strategy.getColumnDefinition.invoke(table,info.columnName)
-                    }
-                    info.returnType.isSubtypeOf(type<Id>()) -> serializationStrategies[type<Id>()]!!.getColumnDefinition.invoke(table,info.columnName)
-                    else -> varchar(info.columnName, info.maxLength?:defaultMaxLength)
-                }
+                var columnDefinition: ColumnDefinition<Any?> =
+                        serializationStrategies.tryGetColumnDefinition(table, info)
+                                ?: varchar(info.columnName, info.maxLength ?: defaultMaxLength)
                 if (info.nullableProp) columnDefinition = columnDefinition.nullable()
                 prop to columnDefinition
             }
