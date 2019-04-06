@@ -82,15 +82,7 @@ class SerializationStrategiesTest {
             assertTrue(def.type is StringColumnType)
         }
 
-        // @TODO: This whole test shows that this interface is shitty as hell
-
         assertEquals("""{"a":10,"b":"hello"}""", JsonSerializationStrategy.tryEncodeValue(MyDataClass(10, "hello")))
-
-        val resultRow = object : ResultRow {
-            override fun columnValue(type: KClass<*>, index: Int): Any? = """{"a":10,"b":"hello"}"""
-            override fun columnValue(type: KClass<*>, columnName: String, tableName: String?): Any? = """{"a":10,"b":"hello"}"""
-        }
-
-        //JsonSerializationStrategy.tryReadColumnValue(SerializationStrategiesTest::class.java.getField(::myDataProp.name), resultRow, "demo", "test", MyDataClass::class)
+        assertEquals(MyDataClass(10, "hello"), JsonSerializationStrategy.tryDecodeValueLazy(MyDataClass::class) { """{"a":10,"b":"hello"}""" })
     }
 }

@@ -3,8 +3,6 @@ package kuick.repositories.squash
 import kuick.repositories.annotations.*
 import kuick.util.*
 import org.jetbrains.squash.definition.*
-import org.jetbrains.squash.results.*
-import java.lang.reflect.*
 import kotlin.reflect.*
 import kotlin.reflect.full.*
 import kotlin.reflect.jvm.*
@@ -20,6 +18,9 @@ class PropertyInfo<T>(val prop: KProperty<T>) {
     }.joinToString("")
 }
 
+typealias GetTypedValueFunc = (KClass<*>) -> Any?
+inline operator fun <reified T> GetTypedValueFunc.invoke(): T? = this(T::class) as T?
+
 interface SerializationStrategy {
     object Unhandled
 
@@ -28,7 +29,9 @@ interface SerializationStrategy {
     }
 
     fun tryGetColumnDefinition(table: TableDefinition, info: PropertyInfo<*>): ColumnDefinition<*>?
-    fun tryReadColumnValue(field: Field, resultRow: ResultRow, columnName: String, tableName: String, clazz: KClass<*>): Any?
+
+    /** Decodes a value obtained lazily from [getValue] that is called with a requested type to the [targetType] */
+    fun tryDecodeValueLazy(targetType: KClass<*>, getValue: GetTypedValueFunc): Any?
 
     /** Encodes a typed value in a way that can be stored in the database */
     fun tryEncodeValue(value: Any): Any?
@@ -40,37 +43,37 @@ abstract class TypedSerializationStrategy<T : Any>(
     val type = clazz.starProjectedType
 
     abstract fun getColumnDefinition(table: TableDefinition, info: PropertyInfo<*>): ColumnDefinition<Any?>
-    abstract fun readColumnValue(field: Field, resultRow: ResultRow, columnName: String, tableName: String, clazz: KClass<*>): T?
-    abstract fun decodeValue(value: Any): Any?
+    abstract fun decodeValue(targetType: KClass<T>, getValue: GetTypedValueFunc): T?
+    abstract fun encodeValue(value: Any): Any?
 
     final override fun tryGetColumnDefinition(table: TableDefinition, info: PropertyInfo<*>): ColumnDefinition<*>? {
         if (info.returnType == type) return getColumnDefinition(table, info)
         return SerializationStrategy.UnhandledColumnDefinition
     }
 
-    final override fun tryReadColumnValue(field: Field, resultRow: ResultRow, columnName: String, tableName: String, clazz: KClass<*>): Any? {
-        if (field.type.kotlin == type) return readColumnValue(field, resultRow, columnName, tableName, clazz)
+    final override fun tryDecodeValueLazy(targetType: KClass<*>, getValue: GetTypedValueFunc): Any? {
+        if (targetType == type) return decodeValue(targetType as KClass<T>, getValue)
         return SerializationStrategy.Unhandled
     }
 
     final override fun tryEncodeValue(value: Any): Any? {
-        if (value::class.starProjectedType == type) return decodeValue(value)
+        if (value::class.starProjectedType == type) return encodeValue(value)
         return SerializationStrategy.Unhandled
     }
 }
 
 inline fun <reified T : Any> SerializationStrategy(
         noinline getColumnDefinition: (table: TableDefinition, info: PropertyInfo<*>) -> ColumnDefinition<Any?>,
-        noinline readColumnValue: (field: Field, resultRow: ResultRow, columnName: String, tableName: String) -> T?,
+        noinline readColumnValue: (targetType: KClass<*>, getValue: GetTypedValueFunc) -> T?,
         noinline decodeValue: (value: Any) -> Any?
 ) = object : TypedSerializationStrategy<T>(T::class) {
     override fun getColumnDefinition(table: TableDefinition, info: PropertyInfo<*>): ColumnDefinition<Any?> =
             getColumnDefinition(table, info)
 
-    override fun readColumnValue(field: Field, resultRow: ResultRow, columnName: String, tableName: String, clazz: KClass<*>): T? =
-            readColumnValue(field, resultRow, columnName, tableName)
+    override fun decodeValue(targetType: KClass<T>, getValue: GetTypedValueFunc): T? =
+            readColumnValue(targetType, getValue)
 
-    override fun decodeValue(value: Any): Any? = decodeValue(value)
+    override fun encodeValue(value: Any): Any? = decodeValue(value)
 
 }
 
@@ -80,14 +83,14 @@ class TypedSerializationStrategies(val strategies: Map<KType, TypedSerialization
         return strategy.getColumnDefinition(table, info)
     }
 
-    override fun tryReadColumnValue(field: Field, resultRow: ResultRow, columnName: String, tableName: String, clazz: KClass<*>): Any? {
-        val strategy = strategies[field.type.kotlin.starProjectedType] ?: return SerializationStrategy.Unhandled
-        return strategy.readColumnValue(field, resultRow, columnName, tableName, clazz)
+    override fun tryDecodeValueLazy(targetType: KClass<*>, getValue: GetTypedValueFunc): Any? {
+        val strategy = (strategies[targetType.starProjectedType] as? TypedSerializationStrategy<Any>) ?: return SerializationStrategy.Unhandled
+        return strategy.decodeValue(targetType as KClass<Any>, getValue)
     }
 
     override fun tryEncodeValue(value: Any): Any? {
         val strategy = strategies[value::class.starProjectedType] ?: return SerializationStrategy.Unhandled
-        return strategy.decodeValue(value)
+        return strategy.encodeValue(value)
     }
 }
 
@@ -102,9 +105,9 @@ class SerializationStrategies(val strategies: List<SerializationStrategy>) : Ser
         return SerializationStrategy.UnhandledColumnDefinition
     }
 
-    override fun tryReadColumnValue(field: Field, resultRow: ResultRow, columnName: String, tableName: String, clazz: KClass<*>): Any? {
+    override fun tryDecodeValueLazy(targetType: KClass<*>, getValue: (KClass<*>) -> Any?): Any? {
         strategies.fastForEach { strategy ->
-            val result = strategy.tryReadColumnValue(field, resultRow, columnName, tableName, clazz)
+            val result = strategy.tryDecodeValueLazy(targetType, getValue)
             if (result != SerializationStrategy.Unhandled) return result
         }
         return SerializationStrategy.Unhandled

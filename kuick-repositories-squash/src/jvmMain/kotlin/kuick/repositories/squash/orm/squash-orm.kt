@@ -16,7 +16,6 @@ import org.jetbrains.squash.query.where
 import org.jetbrains.squash.results.*
 import org.jetbrains.squash.statements.*
 import java.io.*
-import java.lang.reflect.Field
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -181,9 +180,11 @@ open class ORMTableDefinition<T : Any> (
             try {
                 val property = ormDef.clazz.memberProperties.first { it.name == f.name }
                 val columnDef = ormDef[property]
-                serializationStrategies.tryReadColumnValue(f, this, columnDef.name.id, ormDef.compoundName.id, ormDef.clazz)
+                val columnName = columnDef.name.id
+                val tableName = ormDef.compoundName.id
+                serializationStrategies.tryDecodeValueLazy(f.type.kotlin) { clazz -> columnValue(clazz, columnName, tableName) }
             } catch (t: Throwable) {
-                throw IllegalStateException("Had a problem reading field ${f}", t)
+                throw IllegalStateException("Had a problem reading field $f", t)
             }
         }
         return ormDef.clazz.constructors.first().call(*fieldValues.toTypedArray())

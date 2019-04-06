@@ -14,25 +14,21 @@ import kotlin.reflect.full.*
 class VarCharSerializationStrategy<T : Any>(
         clazz: KClass<T>,
         val varcharLength: Int,
-        private val readColumnValue: (Field, ResultRow, String, String) -> T?,
-        private val decodeValue: (Any) -> Any?
+        private val decodeValue: (targetType: KClass<T>, getValue: GetTypedValueFunc) -> T?,
+        private val encodeValue: (value: Any) -> Any?
 ) : TypedSerializationStrategy<T>(clazz) {
 
-    override fun getColumnDefinition(table: TableDefinition, info: PropertyInfo<*>): ColumnDefinition<Any?> =
-            table.varchar(info.columnName, info.maxLength ?: varcharLength)
-
-    override fun readColumnValue(field: Field, resultRow: ResultRow, columnName: String, tableName: String, clazz: KClass<*>): T? =
-            readColumnValue.invoke(field, resultRow, columnName, tableName)
-
-    override fun decodeValue(value: Any): Any? = decodeValue.invoke(value)
-
-    fun withLength(length: Int) = VarCharSerializationStrategy(clazz, length, readColumnValue, decodeValue)
+    override fun getColumnDefinition(table: TableDefinition, info: PropertyInfo<*>): ColumnDefinition<Any?> = table.varchar(info.columnName, info.maxLength ?: varcharLength)
+    override fun decodeValue(targetType: KClass<T>, getValue: (KClass<*>) -> Any?): T? = decodeValue.invoke(targetType, getValue)
+    override fun encodeValue(value: Any): Any? = encodeValue.invoke(value)
+    fun withLength(length: Int) = VarCharSerializationStrategy(clazz, length, decodeValue, encodeValue)
 }
 
 val dateSerializationAsDateTime = SerializationStrategy(
         { table, info -> table.datetime(info.columnName) },
-        { type, result, columnName, tableName ->
-            result.columnValue<LocalDateTime>(columnName, tableName)?.let {
+        { targetType, getValue ->
+            val value = getValue<LocalDateTime>()
+            value?.let {
                 val zoneOffset = ZoneOffset.UTC.normalized().rules.getOffset(it)
                 Date.from(it.toInstant(zoneOffset))
             }
@@ -42,45 +38,45 @@ val dateSerializationAsDateTime = SerializationStrategy(
 
 val dateSerializationAsLong = SerializationStrategy(
         { table, info -> table.long(info.columnName) },
-        { field, result, columnName, tableName -> result.columnValue<Long>(columnName, tableName)?.let { Date(it) } },
+        { targetType, getValue -> getValue<Long>()?.let { Date(it) } },
         { value -> (value as Date).time }
 )
 
 val stringSerialization = VarCharSerializationStrategy(
         String::class,
         LONG_TEXT_LEN,
-        { field, result, columnName, tableName -> result.columnValue<String>(columnName, tableName) },
+        { targetType, getValue -> getValue<String>() },
         { value -> value })
 
 val intSerialization = SerializationStrategy(
         { table, info -> table.integer(info.columnName) },
-        { field, result, columnName, tableName -> result.columnValue<Int>(columnName, tableName) },
+        { targetType, getValue -> getValue<Int>() },
         { value -> value }
 )
 
 val longSerialization = SerializationStrategy(
         { table, info -> table.long(info.columnName) },
-        { type, result, columnName, tableName -> result.columnValue<Long>(columnName, tableName) },
+        { targetType, getValue -> getValue<Long>() },
         { value -> value }
 )
 
 val doubleSerialization = SerializationStrategy(
         { table, info -> table.decimal(info.columnName, 5, 4) },
-        { field, result, columnName, tableName -> result.columnValue<Double>(columnName, tableName) },
+        { targetType, getValue -> getValue<Double>() },
         { value -> value }
 )
 
 val booleanSerialization = SerializationStrategy(
         { table, info -> table.bool(info.columnName) },
-        { field, result, columnName, tableName -> result.columnValue<Boolean>(columnName, tableName) },
+        { targetType, getValue -> getValue<Boolean>() },
         { value -> value }
 )
 
 val localDateSerialization = VarCharSerializationStrategy(
         LocalDate::class,
         LOCAL_DATE_TIME_LEN,
-        { field, result, columnName, tableName ->
-            result.columnValue<String>(columnName, tableName)?.takeIf { it != "0000-00-00" }?.let { dateAsStr ->
+        { _, getValue ->
+            getValue<String>()?.takeIf { it != "0000-00-00" }?.let { dateAsStr ->
                 ignoreErrors { LocalDate.parse(dateAsStr, DATE_FORMAT) }
                         ?: ignoreErrors { LocalDate.parse(Json.fromJson<LocalDate>(dateAsStr).toString(), DATE_FORMAT) }
                         ?: error("Unknown date format [$dateAsStr]")
@@ -92,8 +88,8 @@ val localDateSerialization = VarCharSerializationStrategy(
 val localDateTimeSerialization = VarCharSerializationStrategy(
         LocalDateTime::class,
         LOCAL_DATE_TIME_LEN,
-        { field, result, columnName, tableName ->
-            result.columnValue<String>(columnName, tableName)?.let { LocalDateTime.parse(it, DATE_TIME_FORMAT) }
+        { _, getValue ->
+            getValue<String>()?.let { LocalDateTime.parse(it, DATE_TIME_FORMAT) }
         },
         { value -> DATE_TIME_FORMAT.format(value as LocalDateTime) }
 )
@@ -101,7 +97,7 @@ val localDateTimeSerialization = VarCharSerializationStrategy(
 val emailSerialization = VarCharSerializationStrategy(
         Email::class,
         LONG_TEXT_LEN,
-        { field, result, columnName, tableName -> result.columnValue<String>(columnName, tableName)?.let { Email(it) } },
+        { _, getValue -> getValue<String>()?.let { Email(it) } },
         { value -> (value as Email).email }
 )
 
@@ -109,7 +105,7 @@ object IdSerializationStrategy : SerializationStrategy {
     val idSerialization = VarCharSerializationStrategy(
             Id::class,
             ID_LEN,
-            { field, result, columnName, tableName -> result.columnValue<String>(columnName, tableName)?.let { field.type.kotlin.primaryConstructor?.call(it) as Id? } },
+            { clazz, getValue -> getValue<String>()?.let { clazz.primaryConstructor?.call(it) } },
             { value -> (value as Id).id }
     )
 
@@ -118,30 +114,25 @@ object IdSerializationStrategy : SerializationStrategy {
         else -> null
     }
 
-    override fun tryReadColumnValue(field: Field, resultRow: ResultRow, columnName: String, tableName: String, clazz: KClass<*>): Any? = when {
-        field.type.kotlin.isSubclassOf(Id::class) -> idSerialization.readColumnValue(field, resultRow, columnName, tableName, clazz)
+    override fun tryDecodeValueLazy(targetType: KClass<*>, getValue: GetTypedValueFunc): Any? = when {
+        targetType.isSubclassOf(Id::class) -> idSerialization.decodeValue(targetType as KClass<Id>, getValue)
         else -> SerializationStrategy.Unhandled
     }
 
     override fun tryEncodeValue(value: Any): Any? = when (value) {
-        is Id -> idSerialization.decodeValue(value)
+        is Id -> idSerialization.encodeValue(value)
         else -> SerializationStrategy.Unhandled
     }
 }
 
 object JsonSerializationStrategy : SerializationStrategy {
-    override fun tryGetColumnDefinition(table: TableDefinition, info: PropertyInfo<*>): ColumnDefinition<*>? {
-        return table.varchar(info.columnName, info.maxLength ?: LONG_TEXT_LEN)
-    }
+    override fun tryGetColumnDefinition(table: TableDefinition, info: PropertyInfo<*>): ColumnDefinition<*>? =
+            table.varchar(info.columnName, info.maxLength ?: LONG_TEXT_LEN)
 
-    override fun tryReadColumnValue(field: Field, resultRow: ResultRow, columnName: String, tableName: String, clazz: KClass<*>): Any? {
-        return resultRow.columnValue<String>(columnName, tableName)
-                ?.let { field.apply { isAccessible = true }.get(Json.fromJson("{\"${field.name}\":$it}", clazz)) }
-    }
+    override fun tryDecodeValueLazy(targetType: KClass<*>, getValue: GetTypedValueFunc): Any? =
+            getValue<String>()?.let { Json.fromJson(it, targetType) }
 
-    override fun tryEncodeValue(value: Any): Any? {
-        return Json.toJson(value)
-    }
+    override fun tryEncodeValue(value: Any): Any? = Json.toJson(value)
 
 }
 
