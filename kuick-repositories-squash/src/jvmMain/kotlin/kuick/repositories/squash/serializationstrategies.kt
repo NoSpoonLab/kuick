@@ -1,27 +1,22 @@
 package kuick.repositories.squash
 
-import kuick.json.Json
-import kuick.models.Email
-import kuick.models.Id
-import kuick.models.KLocalDate
+import kuick.json.*
+import kuick.models.*
 import kuick.repositories.squash.orm.*
 import org.jetbrains.squash.definition.*
-import org.jetbrains.squash.results.ResultRow
-import java.lang.reflect.Field
-import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.ZoneOffset
+import org.jetbrains.squash.results.*
+import java.lang.reflect.*
+import java.time.*
 import java.util.*
-import kotlin.reflect.KClass
-import kotlin.reflect.KType
-import kotlin.reflect.full.primaryConstructor
-import kotlin.reflect.full.starProjectedType
+import kotlin.reflect.*
+import kotlin.reflect.full.*
 
 
 open class SerializationStrategy<T : Any>(
         val getColumnDefinition: (table: TableDefinition, columnName: String) -> ColumnDefinition<Any?>,
         val readColumnValue: (field: Field, resultRow: ResultRow, columnName: String, tableName: String) -> T?,
-        val decodeValue: (value: Any) -> Any?)
+        val decodeValue: (value: Any) -> Any?
+)
 
 class VarCharSerializationStrategy<T : Any>(
         varcharLength: Int,
@@ -31,7 +26,6 @@ class VarCharSerializationStrategy<T : Any>(
     fun withLength(length: Int) = VarCharSerializationStrategy(length, readColumnValue, decodeValue)
 }
 
-
 val dateSerializationAsDateTime = SerializationStrategy<Date>(
         { table, columnName -> table.datetime(columnName) },
         { type, result, columnName, tableName ->
@@ -40,13 +34,14 @@ val dateSerializationAsDateTime = SerializationStrategy<Date>(
                 Date.from(it.toInstant(zoneOffset))
             }
         },
-        { value -> LocalDateTime.ofInstant((value as Date).toInstant(), ZoneOffset.UTC.normalized()) })
-
+        { value -> LocalDateTime.ofInstant((value as Date).toInstant(), ZoneOffset.UTC.normalized()) }
+)
 
 val dateSerializationAsLong = SerializationStrategy<Date>(
         { table, columnName -> table.long(columnName) },
         { field, result, columnName, tableName -> result.columnValue<Long>(columnName, tableName)?.let { Date(it) } },
-        { value -> (value as Date).time })
+        { value -> (value as Date).time }
+)
 
 
 val stringSerialization = VarCharSerializationStrategy(
@@ -57,22 +52,26 @@ val stringSerialization = VarCharSerializationStrategy(
 val intSerialization = SerializationStrategy(
         { table, columnName -> table.integer(columnName) },
         { field, result, columnName, tableName -> result.columnValue<Int>(columnName, tableName) },
-        { value -> value })
+        { value -> value }
+)
 
 val longSerialization = SerializationStrategy(
         { table, columnName -> table.long(columnName) },
         { type, result, columnName, tableName -> result.columnValue<Long>(columnName, tableName) },
-        { value -> value })
+        { value -> value }
+)
 
 val doubleSerialization = SerializationStrategy(
         { table, columnName -> table.decimal(columnName, 5, 4) },
         { field, result, columnName, tableName -> result.columnValue<Double>(columnName, tableName) },
-        { value -> value })
+        { value -> value }
+)
 
 val booleanSerialization = SerializationStrategy(
         { table, columnName -> table.bool(columnName) },
         { field, result, columnName, tableName -> result.columnValue<Boolean>(columnName, tableName) },
-        { value -> value })
+        { value -> value }
+)
 
 val localDateSerialization = VarCharSerializationStrategy(
         LOCAL_DATE_TIME_LEN,
@@ -83,7 +82,8 @@ val localDateSerialization = VarCharSerializationStrategy(
                         ?: error("Unknown date format [$dateAsStr]")
             }
         },
-        { value -> DATE_FORMAT.format((value as LocalDate)) })
+        { value -> DATE_FORMAT.format((value as LocalDate)) }
+)
 
 
 val localDateTimeSerialization = VarCharSerializationStrategy(
@@ -91,31 +91,34 @@ val localDateTimeSerialization = VarCharSerializationStrategy(
         { field, result, columnName, tableName ->
             result.columnValue<String>(columnName, tableName)?.let { LocalDateTime.parse(it, DATE_TIME_FORMAT) }
         },
-        { value -> DATE_TIME_FORMAT.format(value as LocalDateTime) })
+        { value -> DATE_TIME_FORMAT.format(value as LocalDateTime) }
+)
 
 val idSerialization = VarCharSerializationStrategy(
         ID_LEN,
         { field, result, columnName, tableName -> result.columnValue<String>(columnName, tableName)?.let { field.type.kotlin.primaryConstructor?.call(it) as Id? } },
-        { value -> (value as Id).id })
+        { value -> (value as Id).id }
+)
 
 
 val emailSerialization = VarCharSerializationStrategy(
         LONG_TEXT_LEN,
-        { field, result, columnName, tableName -> result.columnValue<String>(columnName, tableName)?.let { Email(it) }},
-        { value -> (value as Email).email })
+        { field, result, columnName, tableName -> result.columnValue<String>(columnName, tableName)?.let { Email(it) } },
+        { value -> (value as Email).email }
+)
 
-class SerializationStrategies(val strategies: Map<KType, SerializationStrategy<out Any>> = mapOf()){
+class SerializationStrategies(val strategies: Map<KType, SerializationStrategy<out Any>> = mapOf()) {
     fun <T : Any> withSerialization(clazz: KClass<T>, serialization: SerializationStrategy<T>) =
             SerializationStrategies(strategies + mapOf(clazz.starProjectedType to serialization))
 
-    inline fun <reified T : Any> withSerialization(serialization: SerializationStrategy<T>)
-        = withSerialization(T::class, serialization)
+    inline fun <reified T : Any> withSerialization(serialization: SerializationStrategy<T>) =
+            withSerialization(T::class, serialization)
 
 }
 
-inline fun <reified T> type() : KType = T::class.starProjectedType
+inline fun <reified T> type(): KType = T::class.starProjectedType
 
-val defaultSerializationStrategies  = SerializationStrategies(mapOf(
+val defaultSerializationStrategies = SerializationStrategies(mapOf(
         type<Int>() to intSerialization,
         type<Long>() to longSerialization,
         type<String>() to stringSerialization,
