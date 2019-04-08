@@ -2,10 +2,7 @@ package kuick.repositories.elasticsearch
 
 
 import kuick.json.Json
-import kuick.repositories.ModelQuery
-import kuick.repositories.ModelRepository
-import kuick.repositories.ScoredModel
-import kuick.repositories.ScoredViewRepository
+import kuick.repositories.*
 import kuick.repositories.elasticsearch.orm.ElasticSearchIndexSchema
 import kuick.repositories.elasticsearch.orm.toElasticSearch
 import org.elasticsearch.action.get.GetResponse
@@ -45,13 +42,17 @@ open class ModelRepositoryElasticSearch<I : String, T : Any>(
             it.toModel()
         }
 
-    override suspend fun findBy(q: ModelQuery<T>): List<T> =
-        client.search(
+    override suspend fun findBy(q: ModelQuery<T>): List<T> {
+        val a = q.tryGetAttributed()
+        return client.search(
             indexName,
-            q.toElasticSearch(schema)
+            q.toElasticSearch(schema),
+                a?.skip?.toInt(),
+                a?.limit
         ).hits.map {
             it.toModel()
         }.toList()
+    }
 
     override suspend fun searchBy(q: ModelQuery<T>): List<ScoredModel<T>> =
         client.search(

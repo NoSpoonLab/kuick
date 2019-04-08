@@ -33,6 +33,8 @@ fun <T : Any> ModelQuery<T>.toElasticSearch(
 
                 is FilterExpAnd<T> -> right.process(left.process(it))
 
+                is DecoratedModelQuery<T> -> this.base.process(it) // Ignore DecoratedModelQuery
+
                 else -> throw NotImplementedError("Missing implementation of .toElasticSearch() for ${this}")
             }
         }

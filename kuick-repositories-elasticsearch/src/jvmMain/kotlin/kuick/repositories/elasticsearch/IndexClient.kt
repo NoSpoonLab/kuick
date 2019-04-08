@@ -3,6 +3,7 @@ package kuick.repositories.elasticsearch
 import com.google.inject.*
 import kuick.di.*
 import kuick.json.*
+import kuick.repositories.*
 import org.elasticsearch.action.*
 import org.elasticsearch.action.admin.indices.create.*
 import org.elasticsearch.action.admin.indices.get.*
@@ -16,6 +17,7 @@ import org.elasticsearch.client.*
 import org.elasticsearch.common.xcontent.*
 import org.elasticsearch.index.query.*
 import org.elasticsearch.search.builder.*
+import org.elasticsearch.search.sort.*
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.coroutines.*
@@ -71,12 +73,19 @@ open class IndexClient @Inject constructor(
             indexName: String,
             query: QueryBuilder,
             from: Int? = null,
-            size: Int? = null
+            size: Int? = null,
+            sort: OrderByDescriptor<*>? = null
     ): SearchResponse = suspendCoroutine { c ->
         val searchSourceBuilder = SearchSourceBuilder()
         searchSourceBuilder.query(query)
         if (from != null) searchSourceBuilder.from(from)
         if (size != null) searchSourceBuilder.size(size)
+        val sortList = sort?.list
+        if (sortList != null) {
+            for (it in sortList) {
+                searchSourceBuilder.sort(it.prop.name, if (it.ascending) SortOrder.ASC else SortOrder.DESC)
+            }
+        }
         val searchRequest = SearchRequest()
         searchRequest.source(searchSourceBuilder)
         searchRequest.indices(indexName)
