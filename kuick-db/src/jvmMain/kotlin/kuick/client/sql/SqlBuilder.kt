@@ -26,13 +26,15 @@ abstract class SqlBuilder {
 
     // Tables
     open fun sqlCreateTable(table: String, ifNotExists: Boolean = true): String = buildString {
-        append("CREATE TABLE ${table.quoteTableName()}()")
+        append("CREATE TABLE")
         if (ifNotExists) append(" IF NOT EXISTS")
+        append(" ${table.quoteTableName()}()")
         append(";")
     }
     open fun sqlDropTable(table: String, ifExists: Boolean = true): String = buildString {
-        append("DROP TABLE ${table.quoteTableName()}")
+        append("DROP TABLE")
         if (ifExists) append(" IF EXISTS")
+        append(" ${table.quoteTableName()}")
         append(";")
     }
 

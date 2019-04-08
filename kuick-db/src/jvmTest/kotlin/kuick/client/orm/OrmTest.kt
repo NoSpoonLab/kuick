@@ -40,7 +40,7 @@ class OrmTest {
                 preparable.synchronizeTable(TableDefinition(Demo::class))
                 assertEquals(
                         listOf(
-                                "CREATE TABLE \"Demo\"() IF NOT EXISTS;",
+                                "CREATE TABLE IF NOT EXISTS \"Demo\"();",
                                 "SHOW COLUMNS FROM \"Demo\";",
                                 "ALTER TABLE \"Demo\" ADD COLUMN \"name\" VARCHAR NOT NULL;"
                         ),
@@ -59,8 +59,24 @@ class OrmTest {
                 preparable.synchronizeTable(TableDefinition(Demo::class))
                 assertEquals(
                         listOf(
-                                "CREATE TABLE \"Demo\"() IF NOT EXISTS;",
+                                "CREATE TABLE IF NOT EXISTS \"Demo\"();",
                                 "SHOW COLUMNS FROM \"Demo\";"
+                        ),
+                        preparable.logs
+                )
+            }
+        }
+    }
+
+    @Test
+    fun testTypedInsert() {
+        runBlocking {
+            LogDbPreparable().register(
+            ).also { preparable ->
+                preparable.insert(TableDefinition(Demo::class), Demo("hello"))
+                assertEquals(
+                        listOf(
+                                "INSERT INTO \"Demo\" (\"name\") VALUES (?);"
                         ),
                         preparable.logs
                 )

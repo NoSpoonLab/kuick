@@ -38,13 +38,15 @@ suspend fun DbPreparable.createIndex(table: String, columns: List<String>, uniqu
 suspend fun DbPreparable.dropIndex(table: String, name: String) = query(sql.sqlDropIndex(table, name))
 
 
-suspend fun DbPreparable.insert(tableName: String, columns: List<String>, vararg values: List<String>) {
+suspend fun DbPreparable.insert(tableName: String, columns: List<String>, vararg values: List<Any?>) {
     prepare(sql.sqlInsert(tableName, columns)).use { stm ->
         for (value in values) {
             stm.exec(*value.toTypedArray())
         }
     }
 }
+
+suspend fun DbPreparable.insert(tableName: String, data: Map<String, Any?>) = insert(tableName, data.keys.toList(), data.values.toList())
 
 interface DbConnection : DbPreparable, Closeable {
     override val sql: SqlBuilder
@@ -92,7 +94,8 @@ data class DbColumns(val names: List<String>) : List<String> by names {
 
 data class DbRow(val columns: DbColumns, val values: List<Any?>) : List<Any?> by values {
     override val size get() = columns.size
+    val map by lazy { columns.zip(values).map { it.first to it.second }.toMap() }
     operator fun get(name: String): Any? = columns.get(name)?.let { get(it) }
     override operator fun get(index: Int): Any? = values.getOrNull(index)
-    override fun toString(): String = "{" + columns.names.zip(values).joinToString(",") { "${it.first}: ${it.second}" } + "}"
+    override fun toString(): String = map.toString()
 }

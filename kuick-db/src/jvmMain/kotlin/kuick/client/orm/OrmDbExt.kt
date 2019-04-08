@@ -4,9 +4,11 @@ import kuick.client.db.*
 import kuick.orm.*
 
 fun <T : Any> DbPreparable.columnType(column: ColumnDefinition<T>): String {
-    return when {
-        Int::class == column.clazz -> sql.typeInt()
-        else -> sql.typeVarchar()
+    val columnType = column.columnType
+    return when (columnType) {
+        is ColumnType.INT -> sql.typeInt()
+        is ColumnType.VARCHAR -> sql.typeVarchar(columnType.length)
+        else -> sql.typeVarchar(column.maxLength)
     }
 }
 
@@ -27,3 +29,9 @@ suspend fun <T : Any> DbPreparable.synchronizeTable(table: TableDefinition<T>) {
         }
     }
 }
+
+suspend fun <T : Any> DbPreparable.insert(table: TableDefinition<T>, instance: T) =
+        insert(table.name, table.untype(instance))
+
+suspend fun <T : Any> DbPreparable.query(table: TableDefinition<T>, sql: String, vararg args: Any?): List<T> =
+        query(sql, *args).map { table.type(it.map) }
