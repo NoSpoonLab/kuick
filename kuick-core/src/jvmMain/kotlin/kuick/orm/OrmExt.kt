@@ -15,6 +15,7 @@ class ColumnDefinition<T : Any>(val table: TableDefinition<T>, val prop: KProper
 
 class TableDefinition<T : Any>(val clazz: KClass<T>) {
     val name = clazz.findAnnotation<DbName>()?.name ?: clazz.simpleName
-    ?: error("Can't determine table name for $clazz")
-    val columns = clazz.memberProperties.map { ColumnDefinition(this, it) }
+        ?: error("Can't determine table name for $clazz")
+
+    val columns = clazz.memberProperties.filter { it.visibility == KVisibility.PUBLIC }.map { ColumnDefinition(this, it) }
 }

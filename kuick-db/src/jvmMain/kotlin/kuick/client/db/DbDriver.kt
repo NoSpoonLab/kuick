@@ -69,6 +69,14 @@ class DbRowSet(val columns: DbColumns, val rows: List<DbRow>) : List<DbRow> by r
         val RESULT_FALSE = DbRowSet(RESULT_COLUMNS, listOf(DbRow(RESULT_COLUMNS, listOf(false))))
         val RESULT_TRUE = DbRowSet(RESULT_COLUMNS, listOf(DbRow(RESULT_COLUMNS, listOf(true))))
         fun RESULT_BOOL(value: Boolean) = if (value) RESULT_TRUE else RESULT_FALSE
+
+        operator fun invoke(vararg rows: Map<String, Any?>): DbRowSet = invoke(rows.toList())
+
+        operator fun invoke(rows: List<Map<String, Any?>>): DbRowSet {
+            val keys = rows.map { it.keys }.reduce { a, b -> a + b }
+            val columns = DbColumns(keys.toList())
+            return DbRowSet(columns, rows.map { row -> DbRow(columns, columns.map { row[it] }) })
+        }
     }
     operator fun get(row: Int, column: Int): Any? = this[row][column]
     operator fun get(row: Int, column: String): Any? = this[row][column]
@@ -76,6 +84,7 @@ class DbRowSet(val columns: DbColumns, val rows: List<DbRow>) : List<DbRow> by r
 }
 
 data class DbColumns(val names: List<String>) : List<String> by names {
+    constructor(vararg names: String) : this(names.toList())
     private val namesToPos by lazy { names.withIndex().map { it.value to it.index }.toMap() }
     override val size get() = names.size
     fun get(name: String): Int? = namesToPos[name]
