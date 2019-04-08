@@ -18,7 +18,7 @@ import kuick.repositories.ModelRepository
 open class CQRSModelRepositoryDecorator<I : Any, T : Any>(
     private val mainRepo: ModelRepository<I, T>,
     private val queryRepo: ModelRepository<I, T>
-) : ModelRepository<I, T> {
+) : ModelRepository<I, T> by queryRepo {
 
     override suspend fun init() {
         mainRepo.init()
@@ -52,9 +52,5 @@ open class CQRSModelRepositoryDecorator<I : Any, T : Any>(
         mainRepo.deleteBy(q)
         queryRepo.deleteBy(q)
     }
-
-    override suspend fun findById(i: I): T? = queryRepo.findById(i)
-
-    override suspend fun findBy(q: ModelQuery<T>): List<T> = queryRepo.findBy(q)
 
 }

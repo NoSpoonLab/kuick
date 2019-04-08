@@ -14,7 +14,7 @@ import kotlin.reflect.KProperty1
 
 open class ModelRepositoryElasticSearch<I : String, T : Any>(
     private val modelClass: KClass<T>,
-    private val idField: KProperty1<T, I>,
+    override val idField: KProperty1<T, I>,
     private val client: IndexClient,
     customMapping: ElasticSearchIndexSchema<T>.() -> Unit = {}
 ) : ModelRepository<I, T>, ScoredViewRepository<I, T> {
@@ -27,11 +27,6 @@ open class ModelRepositoryElasticSearch<I : String, T : Any>(
     override suspend fun init() {
         client.createIndex(indexName, schema.getMapping())
     }
-
-    override suspend fun findById(i: I): T? =
-        client.get(indexName, i).let {
-            if (!it.isExists) null else it.toModel()
-        }
 
     override suspend fun findBy(q: ModelQuery<T>): List<T> {
         val a = q.tryGetAttributed()

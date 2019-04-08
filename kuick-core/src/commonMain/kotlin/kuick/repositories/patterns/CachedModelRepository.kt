@@ -16,7 +16,7 @@ interface Cache {
  */
 class CachedModelRepository<I: Any, T: Any>(
         val modelClass: KClass<T>,
-        val idField: KProperty1<T, I>,
+        override val idField: KProperty1<T, I>,
         val repo: ModelRepository<I, T>,
         private val cache: Cache,
         private val cacheField: KProperty1<T, *>
