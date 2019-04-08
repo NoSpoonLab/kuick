@@ -42,7 +42,7 @@ class OrmTest {
                         listOf(
                                 "CREATE TABLE \"Demo\"() IF NOT EXISTS;",
                                 "SHOW COLUMNS FROM \"Demo\";",
-                                "ALTER TABLE \"Demo\" ADD COLUMN \"name\" VARCHAR;"
+                                "ALTER TABLE \"Demo\" ADD COLUMN \"name\" VARCHAR NOT NULL;"
                         ),
                         preparable.logs
                 )

@@ -16,7 +16,7 @@ suspend fun <T : Any> DbPreparable.synchronizeTable(table: TableDefinition<T>) {
     val alreadyCreatedColumns = listColumns(tableName).toSet()
     for (column in table.columns) {
         if (column.name !in alreadyCreatedColumns) {
-            addColumn(tableName, column.name, columnType(column))
+            addColumn(tableName, column.name, columnType(column), column.nullable)
         }
     }
     for (column in table.columns) {

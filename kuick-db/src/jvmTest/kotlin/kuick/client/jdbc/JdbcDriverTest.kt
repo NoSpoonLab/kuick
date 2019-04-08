@@ -15,7 +15,7 @@ class JdbcDriverTest {
 
                     println(transaction.listTables())
 
-                    transaction.addColumn("test", "demo", sql.typeVarchar(64))
+                    transaction.addColumn("test", "demo", sql.typeVarchar(64), true)
 
                     println(transaction.listColumns("test"))
 

@@ -25,7 +25,7 @@ suspend fun DbPreparable.dropTable(table: String, ifExists: Boolean = true) = qu
 suspend fun DbPreparable.listTables() = query(sql.sqlListTables()).map { it.first() as String }
 
 // Columns
-suspend fun DbPreparable.addColumn(table: String, column: String, type: String) = query(sql.sqlAddColumn(table, column, type))
+suspend fun DbPreparable.addColumn(table: String, column: String, type: String, nullable: Boolean = true) = query(sql.sqlAddColumn(table, column, type, nullable))
 suspend fun DbPreparable.dropColumn(table: String, column: String) = query(sql.sqlDropColumn(table, column))
 suspend fun DbPreparable.listColumns(table: String) = query(sql.sqlListColumns(table)).map { it.first() as String }
 

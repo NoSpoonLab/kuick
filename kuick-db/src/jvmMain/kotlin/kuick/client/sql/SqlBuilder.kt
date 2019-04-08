@@ -37,7 +37,7 @@ abstract class SqlBuilder {
     }
 
     // Columns
-    open fun sqlAddColumn(table: String, column: String, type: String) = "ALTER TABLE ${table.quoteTableName()} ADD COLUMN ${column.quoteTableName()} $type;"
+    open fun sqlAddColumn(table: String, column: String, type: String, nullable: Boolean) = "ALTER TABLE ${table.quoteTableName()} ADD COLUMN ${column.quoteTableName()} $type ${if (nullable) "NULL" else "NOT NULL"};"
     open fun sqlDropColumn(table: String, column: String) = "ALTER TABLE ${table.quoteTableName()} DROP COLUMN ${column.quoteTableName()};"
 
     // Indices
