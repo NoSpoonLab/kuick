@@ -52,14 +52,13 @@ open class ModelRepositorySquash<I : Any, T : Any>(
 
     override suspend fun init() {
         domainTransaction { tr ->
-            tr.squashTr().databaseSchema().create(table)
-        }
-        domainTransaction { tr ->
-            val tableName = tr.squashTr().connection.dialect.idSQL(table.compoundName)
-            //tr.squashTr().executeStatement("ALTER TABLE \"$tableName\" ADD PRIMARY KEY (${idProperty.columnName});")
+            val squashTr = tr.squashTr()
+            squashTr.databaseSchema().create(table)
+            val tableNameQuoted = squashTr.connection.dialect.idSQL(table.compoundName)
+            //squashTr.executeStatement("ALTER TABLE tableNameQuoted ADD PRIMARY KEY (${idProperty.columnName});")
             for (info in properties) {
                 if (info.unique) {
-                    tr.squashTr().executeStatement("CREATE UNIQUE INDEX unique_${info.columnName} ON $tableName (${info.columnName});")
+                    squashTr.executeStatement("CREATE UNIQUE INDEX unique_${info.columnName} ON $tableNameQuoted (${info.columnName});")
                 }
             }
         }
