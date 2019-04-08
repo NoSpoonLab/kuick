@@ -34,7 +34,7 @@ class PostgressTransaction(val connection: PostgressConnection, val transaction:
 }
 
 class PostgresPreparedStatement(val prepared: PgPreparedQuery) : DbPreparedStatement {
-    override suspend fun exec(vararg args: Any?): List<DbRow> {
+    override suspend fun exec(vararg args: Any?): DbRowSet {
         val tuple = when (args.size) {
             0 -> Tuple.tuple()
             1 -> Tuple.of(args.first())
@@ -43,12 +43,12 @@ class PostgresPreparedStatement(val prepared: PgPreparedQuery) : DbPreparedState
         return prepared.executeAwait(tuple).toListDbRow()
     }
 
-    private fun PgRowSet.toListDbRow(): List<DbRow> {
+    private fun PgRowSet.toListDbRow(): DbRowSet {
         val columns = DbColumns(this.columnsNames())
         val columnCount = columns.size
         val out = arrayListOf<DbRow>()
         for (row in this) out += DbRow(columns, (0 until columnCount).map { row.getValue(it) })
-        return out
+        return DbRowSet(columns, out)
     }
 
     override fun close() {

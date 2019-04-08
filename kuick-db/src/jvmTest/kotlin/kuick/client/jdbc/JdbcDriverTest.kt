@@ -9,9 +9,16 @@ class JdbcDriverTest {
     fun test() {
         runBlocking {
             JdbcDriver.connect("jdbc:h2:mem:0").use { connection ->
+                val sql = connection.sql
                 connection.transaction { transaction ->
                     transaction.createTable("test")
-                    transaction.addColumn("test", "demo", "VARCHAR(64)")
+
+                    println(transaction.listTables())
+
+                    transaction.addColumn("test", "demo", sql.typeVarchar(64))
+
+                    println(transaction.listColumns("test"))
+
                     transaction.insert("test", listOf("demo"), listOf("hello"), listOf("world"))
                     transaction.insert("test", listOf("demo"), listOf("test"))
                     transaction.createIndex("test", listOf("demo"), unique = true)
@@ -19,8 +26,12 @@ class JdbcDriverTest {
                     for (item in transaction.query("SELECT * FROM ${transaction.sql.quoteTableName("test")};")) {
                         println(item)
                     }
+                    transaction.deleteAll("test")
+                    for (item in transaction.query("SELECT * FROM ${transaction.sql.quoteTableName("test")};")) {
+                        println(item)
+                    }
                     transaction.dropTable("test")
-                    assertEquals(1, transaction.query("SELECT 1;").first().get(0))
+                    assertEquals(1, transaction.query("SELECT 1;")[0, 0])
                 }
             }
         }

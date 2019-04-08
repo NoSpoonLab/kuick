@@ -15,15 +15,19 @@ interface DbPreparable {
     suspend fun prepare(sql: String): DbPreparedStatement
 }
 
-suspend fun DbPreparable.query(sql: String, vararg args: Any?): List<DbRow> = prepare(sql).use { it.exec(*args) }
+suspend fun DbPreparable.query(sql: String, vararg args: Any?): DbRowSet = prepare(sql).use { it.exec(*args) }
+suspend fun DbPreparable.delete(table: String, condition: String): DbRowSet = query(sql.sqlDelete(table, condition))
+suspend fun DbPreparable.deleteAll(table: String): DbRowSet = delete(table, "1=1")
 
 // Tables
 suspend fun DbPreparable.createTable(table: String) = query(sql.sqlCreateTable(table))
 suspend fun DbPreparable.dropTable(table: String) = query(sql.sqlDropTable(table))
+suspend fun DbPreparable.listTables() = query(sql.sqlListTables()).map { it.first() as String }
 
 // Columns
 suspend fun DbPreparable.addColumn(table: String, column: String, type: String) = query(sql.sqlAddColumn(table, column, type))
 suspend fun DbPreparable.dropColumn(table: String, column: String) = query(sql.sqlDropColumn(table, column))
+suspend fun DbPreparable.listColumns(table: String) = query(sql.sqlListColumns(table)).map { it.first() as String }
 
 // Indices
 fun DbPreparable.createIndexName(columns: List<String>, unique: Boolean = false): String {
@@ -55,25 +59,30 @@ interface DbTransaction : DbPreparable {
 }
 
 interface DbPreparedStatement : Closeable {
-    suspend fun exec(vararg args: Any?): List<DbRow>
+    suspend fun exec(vararg args: Any?): DbRowSet
     override fun close()
 }
 
-data class DbColumns(val names: List<String>) {
-    private val namesToPos = names.withIndex().map { it.value to it.index }.toMap()
-    val size get() = names.size
+class DbRowSet(val columns: DbColumns, val rows: List<DbRow>) : List<DbRow> by rows {
+    companion object {
+        private val RESULT_COLUMNS = DbColumns(listOf("result"))
+        val RESULT_FALSE = DbRowSet(RESULT_COLUMNS, listOf(DbRow(RESULT_COLUMNS, listOf(false))))
+        val RESULT_TRUE = DbRowSet(RESULT_COLUMNS, listOf(DbRow(RESULT_COLUMNS, listOf(true))))
+        fun RESULT_BOOL(value: Boolean) = if (value) RESULT_TRUE else RESULT_FALSE
+    }
+    operator fun get(row: Int, column: Int): Any? = this[row][column]
+    operator fun get(row: Int, column: String): Any? = this[row][column]
+}
+
+data class DbColumns(val names: List<String>) : List<String> by names {
+    private val namesToPos by lazy { names.withIndex().map { it.value to it.index }.toMap() }
+    override val size get() = names.size
     fun get(name: String): Int? = namesToPos[name]
 }
 
-data class DbRow(val columns: DbColumns, val values: List<Any?>) {
-    val size get() = columns.size
-    fun get(name: String): Any? = columns.get(name)?.let { get(it) }
-    fun get(index: Int): Any? = values.getOrNull(index)
-    override fun toString(): String = columns.names.zip(values).joinToString(",") { "${it.first}: ${it.second}" }
-
-    companion object {
-        val RESULT_FALSE = listOf(DbRow(DbColumns(listOf("result")), listOf(false)))
-        val RESULT_TRUE = listOf(DbRow(DbColumns(listOf("result")), listOf(true)))
-        fun RESULT_BOOL(value: Boolean) = if (value) RESULT_TRUE else RESULT_FALSE
-    }
+data class DbRow(val columns: DbColumns, val values: List<Any?>) : List<Any?> by values {
+    override val size get() = columns.size
+    operator fun get(name: String): Any? = columns.get(name)?.let { get(it) }
+    override operator fun get(index: Int): Any? = values.getOrNull(index)
+    override fun toString(): String = "{" + columns.names.zip(values).joinToString(",") { "${it.first}: ${it.second}" } + "}"
 }

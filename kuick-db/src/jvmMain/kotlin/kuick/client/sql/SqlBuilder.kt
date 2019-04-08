@@ -32,7 +32,7 @@ abstract class SqlBuilder {
     open fun sqlAddColumn(table: String, column: String, type: String) = "ALTER TABLE ${table.quoteTableName()} ADD COLUMN ${column.quoteTableName()} $type;"
     open fun sqlDropColumn(table: String, column: String) = "ALTER TABLE ${table.quoteTableName()} DROP COLUMN ${column.quoteTableName()};"
 
-    open fun sqlInsert(table: String, columns: List<String>): String = "INSERT INTO ${table.quoteTableName()} (${columns.joinToString(", ") { it.quoteTableName() }}) VALUES (${columns.joinToString(", ") { "?" }})"
+    // Indices
     open fun sqlCreateIndex(table: String, columns: List<String>, unique: Boolean, index: String): String = buildString {
         append("CREATE ")
         if (unique) append("UNIQUE ")
@@ -40,5 +40,24 @@ abstract class SqlBuilder {
         append(" (").append(columns.joinToString(", ") { it.quoteIdentifier() }).append(")")
     }
     open fun sqlDropIndex(table: String, index: String): String = "DROP INDEX ${index.quoteIdentifier()} ON ${table.quoteTableName()};"
+
+    // Rows
+    open fun sqlInsert(table: String, columns: List<String>): String = "INSERT INTO ${table.quoteTableName()} (${columns.joinToString(", ") { it.quoteTableName() }}) VALUES (${columns.joinToString(", ") { "?" }});"
+    open fun sqlDelete(table: String, condition: String): String = "DELETE FROM ${table.quoteTableName()} WHERE $condition;"
+
+    // Describe
+    open fun sqlListTables(): String = "SHOW TABLES;"
+    open fun sqlListColumns(table: String): String = "SHOW COLUMNS FROM ${table.quoteTableName()};"
+
+    // Types
+    open fun typeVarchar(length: Int? = null) = if (length == null) "VARCHAR" else "VARCHAR($length)"
+    open fun typeInt() = "INT"
 }
 
+object PgSqlBuilder : SqlBuilder() {
+    override fun sqlListTables(): String = "SELECT tablename FROM pg_catalog.pg_tables WHERE schemaname != 'pg_catalog' AND schemaname != 'information_schema';"
+}
+
+object H2SqlBuilder : SqlBuilder() {
+    override fun sqlListTables(): String = "SELECT TABLE_NAME AS tablename FROM INFORMATION_SCHEMA.TABLES;"
+}
