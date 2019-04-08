@@ -20,8 +20,6 @@ class NullModelRepository<I: Any, T: Any>(): ModelRepository<I, T> {
 
     override suspend fun findById(i: I): T? = null
 
-    override suspend fun findOneBy(q: ModelQuery<T>): T? = null
-
     override suspend fun findBy(q: ModelQuery<T>): List<T> = emptyList()
 
 }

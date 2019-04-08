@@ -2,7 +2,6 @@ package kuick.repositories.patterns
 
 import kuick.repositories.ModelQuery
 import kuick.repositories.ModelRepository
-import kotlin.reflect.KProperty1
 
 /**
  * [ModelRepository]
@@ -25,8 +24,6 @@ open class ModelRepositoryDecorator<I: Any, T: Any>(private val repo: ModelRepos
     override suspend fun init() = repo.init()
 
     override suspend fun findById(i: I): T? = repo.findById(i)
-
-    override suspend fun findOneBy(q: ModelQuery<T>): T? = repo.findOneBy(q)
 
     override suspend fun findBy(q: ModelQuery<T>): List<T> = repo.findBy(q)
 

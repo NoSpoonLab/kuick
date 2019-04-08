@@ -45,7 +45,5 @@ open class BusModelRepositoryDecorator<I: Any, T: Any>(
 
     override suspend fun findById(i: I): T? = repo.findById(i)
 
-    override suspend fun findOneBy(q: ModelQuery<T>): T? = repo.findOneBy(q)
-
     override suspend fun findBy(q: ModelQuery<T>): List<T> = repo.findBy(q)
 }
