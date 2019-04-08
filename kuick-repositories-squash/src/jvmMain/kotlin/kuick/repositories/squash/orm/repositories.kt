@@ -7,6 +7,7 @@ import org.jetbrains.squash.expressions.Expression
 import org.jetbrains.squash.schema.create
 
 
+@Deprecated("")
 interface EntityRepository<I: Id, T: Any> {
 
     suspend fun insert(tr: DomainTransaction, t: T): T
@@ -22,6 +23,7 @@ interface EntityRepository<I: Id, T: Any> {
 }
 
 
+@Deprecated("")
 open class BaseSquashRepository<I: Id, T: Any>(
         val schema: ORMTableDefinition<T>,
         val getId: (T) -> I,
@@ -53,6 +55,7 @@ open class BaseSquashRepository<I: Id, T: Any>(
 
 
 
+@Deprecated("")
 interface EntityTwoKeysRepository<I1: Id, I2: Any, T: Any> {
 
     suspend fun insert(tr: DomainTransaction, t: T): T
@@ -66,6 +69,7 @@ interface EntityTwoKeysRepository<I1: Id, I2: Any, T: Any> {
 }
 
 
+@Deprecated("")
 open class BaseSquashTwoKeysRepository<I1: Id, I2: Any, T: Any>(
         val schema: ORMTableDefinition<T>,
         val getId: (T) -> Pair<I1, I2>,
@@ -93,8 +97,10 @@ open class BaseSquashTwoKeysRepository<I1: Id, I2: Any, T: Any>(
 
 
 
+@Deprecated("")
 data class ThreeKeys<I1: Id, I2: Id, I3: Id>(val k1: I1, val k2: I2, val k3: I3)
 
+@Deprecated("")
 open class BaseSquashThreeKeysDAL<I1: Id, I2: Id, I3: Id, T: Any>(
         val schema: ORMTableDefinition<T>,
         val getId: (T) -> ThreeKeys<I1, I2, I3>,

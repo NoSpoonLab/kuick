@@ -1,5 +1,6 @@
 package kuick.repositories.squash.orm
 
+import kuick.core.*
 import kuick.db.DomainTransaction
 import kuick.json.Json
 import kuick.models.Id
@@ -36,10 +37,9 @@ const val VERY_LONG_TEXT_LEN = 25000
 val DATE_FORMAT = DateTimeFormatter.ISO_DATE
 val DATE_TIME_FORMAT = DateTimeFormatter.ISO_DATE_TIME
 
-
-
 typealias LazyDomainTransactionSquash = DomainTransactionSquash
 
+@KuickInternalWarning
 class DomainTransactionSquash(val db: DatabaseConnection): DomainTransaction, Closeable {
     private var _tr = AtomicReference<Transaction?>(null)
     val tr: Transaction get() {
@@ -55,6 +55,7 @@ class DomainTransactionSquash(val db: DatabaseConnection): DomainTransaction, Cl
     }
 }
 
+@KuickInternalWarning
 open class ORMTableDefinition<T : Any> (
         val serializationStrategies : SerializationStrategy,
         val clazz: KClass<T>,
@@ -221,14 +222,20 @@ open class ORMTableDefinition<T : Any> (
 
 private fun <T:Any> KClass<T>.toDAOFields() = java.nonStaticFields()
 
+@KuickInternalWarning
+@Deprecated("")
 inline fun <reified T> ResultRow.columnValue(columnName: String, tableName: String?  = null): T? =
         columnValue(T::class, columnName, tableName) as? T?
 
-inline fun <T> ignoreErrors(callback: () -> T): T? = runCatching { callback() }.getOrNull()
+@KuickInternalWarning
+private inline fun <T> ignoreErrors(callback: () -> T): T? = runCatching { callback() }.getOrNull()
 
+@KuickInternalWarning
 fun DomainTransaction.squashTr() = (this as LazyDomainTransactionSquash).tr
 
 
+@KuickInternalWarning
+@Deprecated("")
 infix fun <V: Any> ColumnDefinition<V>.eqEnum(literal: V?): Expression<Boolean> {
 
     return when {
@@ -238,6 +245,8 @@ infix fun <V: Any> ColumnDefinition<V>.eqEnum(literal: V?): Expression<Boolean> 
     }
 }
 
+@KuickInternalWarning
+@Deprecated("")
 infix fun <V : Any> ColumnDefinition<V>.withinEnum(literals: Collection<V>?): Expression<Boolean> {
 
     return when {
@@ -247,22 +256,30 @@ infix fun <V : Any> ColumnDefinition<V>.withinEnum(literals: Collection<V>?): Ex
     }
 }
 
+@KuickInternalWarning
+@Deprecated("")
 infix fun <V> ColumnDefinition<V>.eqId(literal: V?): Expression<Boolean> = when {
     literal == null -> this.eq<V?>(null)
     literal is ColumnDefinition<*> -> this.eq(literal)
     else -> this.eq<V>((literal as Id).id as V)
 }
 
+@KuickInternalWarning
+@Deprecated("")
 infix fun <V> ColumnDefinition<V>.eqLocalDate(literal: V?): Expression<Boolean> = when (literal) {
     null -> this.eq<V?>(null)
     else -> this.eq<V>((literal as LocalDate).toString() as V)
 }
 
+@KuickInternalWarning
+@Deprecated("")
 infix fun <V> ColumnDefinition<V>.gteqLocalDateTime(literal: V?): Expression<Boolean> = when (literal) {
     null -> this.gteq<V?>(null)
     else -> this.gteq<V>((literal as LocalDateTime).toString() as V)
 }
 
+@KuickInternalWarning
+@Deprecated("")
 infix fun <V> ColumnDefinition<V>.ltLocalDateTime(literal: V?): Expression<Boolean> = when (literal) {
     null -> this.lt<V?>(null)
     else -> this.lt<V>((literal as LocalDateTime).toString() as V)
