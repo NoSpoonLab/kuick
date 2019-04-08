@@ -1,4 +1,5 @@
 dependencies {
+    jvmMainApi project(":kuick-core")
     jvmMainApi 'io.vertx:vertx-lang-kotlin-coroutines:3.7.0'
     jvmMainApi 'io.reactiverse:reactive-pg-client:0.11.2'
     jvmMainApi 'com.h2database:h2:1.4.197'

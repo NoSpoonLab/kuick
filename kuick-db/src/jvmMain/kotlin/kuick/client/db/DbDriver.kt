@@ -20,8 +20,8 @@ suspend fun DbPreparable.delete(table: String, condition: String): DbRowSet = qu
 suspend fun DbPreparable.deleteAll(table: String): DbRowSet = delete(table, "1=1")
 
 // Tables
-suspend fun DbPreparable.createTable(table: String) = query(sql.sqlCreateTable(table))
-suspend fun DbPreparable.dropTable(table: String) = query(sql.sqlDropTable(table))
+suspend fun DbPreparable.createTable(table: String, ifNotExists: Boolean = true) = query(sql.sqlCreateTable(table, ifNotExists))
+suspend fun DbPreparable.dropTable(table: String, ifExists: Boolean = true) = query(sql.sqlDropTable(table, ifExists))
 suspend fun DbPreparable.listTables() = query(sql.sqlListTables()).map { it.first() as String }
 
 // Columns

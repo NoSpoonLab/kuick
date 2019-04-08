@@ -25,8 +25,16 @@ abstract class SqlBuilder {
     @JvmName("quoteStringLiteralExt") fun quoteStringLiteral(str: String): String = str.quoteStringLiteral()
 
     // Tables
-    open fun sqlCreateTable(table: String): String = "CREATE TABLE ${table.quoteTableName()}();"
-    open fun sqlDropTable(table: String): String = "DROP TABLE ${table.quoteTableName()};"
+    open fun sqlCreateTable(table: String, ifNotExists: Boolean = true): String = buildString {
+        append("CREATE TABLE ${table.quoteTableName()}()")
+        if (ifNotExists) append(" IF NOT EXISTS")
+        append(";")
+    }
+    open fun sqlDropTable(table: String, ifExists: Boolean = true): String = buildString {
+        append("DROP TABLE ${table.quoteTableName()}")
+        if (ifExists) append(" IF EXISTS")
+        append(";")
+    }
 
     // Columns
     open fun sqlAddColumn(table: String, column: String, type: String) = "ALTER TABLE ${table.quoteTableName()} ADD COLUMN ${column.quoteTableName()} $type;"
