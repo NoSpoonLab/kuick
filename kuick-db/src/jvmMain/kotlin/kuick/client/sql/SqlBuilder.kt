@@ -4,7 +4,9 @@ import kuick.orm.*
 import kuick.repositories.*
 
 abstract class SqlBuilder {
-    object Iso : SqlBuilder()
+    companion object {
+        val Iso = object : SqlBuilder() {}
+    }
 
     protected fun String.quoteGeneric(quoteChar: Char): String = buildString {
         val base = this@quoteGeneric
@@ -14,6 +16,9 @@ abstract class SqlBuilder {
             when (c) {
                 '\'' -> append("\\\'")
                 '"' -> append("\\\"")
+                '\n' -> append("\\n")
+                '\r' -> append("\\r")
+                '\t' -> append("\\t")
                 else -> append(c)
             }
         }
@@ -76,7 +81,9 @@ abstract class SqlBuilder {
     }
 
     open fun where(q: ModelQuery<*>, table: TableDefinition<*>): String = when (q) {
-        is FieldEqs<*, *> -> "${table.columnsByProp[q.field]!!.name.quoteIdentifier()} = ${q.value.quote()}"
+        is SimpleFieldBinop<*, *> -> "${table.columnsByProp[q.field]!!.name.quoteIdentifier()} ${q.op} ${q.value.quote()}"
+        is FilterExpBinopLogic<*> -> "(${where(q.left, table)} ${q.op} ${where(q.right, table)})"
+        is FilterExpUnopLogic<*> -> "${q.op} ${where(q.exp, table)}"
         is DecoratedModelQuery<*> -> where(q.base, table)
         else -> TODO("$q, $table")
     }
@@ -101,6 +108,15 @@ abstract class SqlBuilder {
             append(";")
         }
     }
+
+    open fun <T : Any> sqlDelete(q: ModelQuery<T>, table: TableDefinition<T>): String {
+        return buildString {
+            append("DELETE FROM ${table.name.quoteTableName()}")
+            append(" WHERE ")
+            append(where(q, table))
+            append(";")
+        }
+    }
 }
 
 object PgSqlBuilder : SqlBuilder() {
@@ -108,7 +124,9 @@ object PgSqlBuilder : SqlBuilder() {
     override fun sqlListColumns(table: String): String = "SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_NAME = ${table.quoteStringLiteral()};"
     override fun sqlPlaceholders(count: Int, start: Int) = (0 until count).joinToString(", ") { "\$${it + start}" }
 }
+val SqlBuilder.Companion.Postgres get() = PgSqlBuilder
 
 object H2SqlBuilder : SqlBuilder() {
     override fun sqlListTables(): String = "SELECT TABLE_NAME AS tablename FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA != 'INFORMATION_SCHEMA';"
 }
+val SqlBuilder.Companion.H2 get() = H2SqlBuilder

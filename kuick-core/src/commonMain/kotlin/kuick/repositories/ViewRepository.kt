@@ -4,8 +4,8 @@ import kotlin.reflect.*
 
 
 interface ViewRepository<I : Any, T : Any> {
+    // Interface
     val idField: KProperty1<T, I>
-
     suspend fun init()
     suspend fun findBy(q: ModelQuery<T>): List<T>
     suspend fun getAll(): List<T>

@@ -3,6 +3,7 @@ package kuick.client.db
 import kuick.client.sql.*
 import java.io.*
 import java.lang.RuntimeException
+import kotlin.coroutines.*
 
 class DbException(message: String?, val sql: String, cause: Throwable) : RuntimeException("$message in $sql", cause)
 
@@ -47,6 +48,24 @@ suspend fun DbPreparable.insert(tableName: String, columns: List<String>, vararg
 }
 
 suspend fun DbPreparable.insert(tableName: String, data: Map<String, Any?>) = insert(tableName, data.keys.toList(), data.values.toList())
+
+interface DbConnectionProvider : CoroutineContext.Element {
+    override val key get() = DbConnectionProvider
+
+    suspend fun <T> get(callback: suspend (DbConnection) -> T): T
+    companion object : CoroutineContext.Key<DbConnectionProvider>
+}
+
+suspend fun dbConnectionProvider(): DbConnectionProvider = coroutineContext[DbConnectionProvider] ?: error("Not DbClientPool in the coroutineContext")
+suspend fun <T> dbClient(callback: suspend (DbConnection) -> T) = dbConnectionProvider().get { callback(it) }
+
+suspend fun <T> DbConnectionProvider.getTransaction(callback: suspend (DbTransaction) -> T): T {
+    return get { connection ->
+        connection.transaction {
+            callback(it)
+        }
+    }
+}
 
 interface DbConnection : DbPreparable, Closeable {
     override val sql: SqlBuilder

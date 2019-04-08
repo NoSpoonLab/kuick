@@ -7,9 +7,12 @@ import org.h2.jdbc.*
 import java.sql.*
 
 object JdbcDriver : DbDriver {
-    internal val Dispatchers = kotlinx.coroutines.Dispatchers.IO
+    //internal val Dispatchers = kotlinx.coroutines.Dispatchers.IO
+    //internal val Dispatchers = kotlinx.coroutines.Dispatchers.Unconfined
+    //internal val Dispatchers = kotlinx.coroutines.Dispatchers.Default
 
     override suspend fun connect(url: String): DbConnection = JdbcConnection(url, DriverManager.getConnection(url))
+    suspend fun connectMemoryH2() = connect("jdbc:h2:mem:0")
 }
 
 class JdbcConnection(val url: String, val connection: Connection) : DbConnection {
@@ -47,7 +50,8 @@ class JdbcPreparedStatement(val sql: String, val prepareStatement: PreparedState
     override suspend fun exec(vararg args: Any?): DbRowSet {
         for (n in 0 until args.size) prepareStatement.setObject(n + 1, args[n])
         try {
-            return withContext(JdbcDriver.Dispatchers) {
+            //return withContext(JdbcDriver.Dispatchers) {
+            return run {
                 if (isSelection) {
                     prepareStatement.executeQuery().toListDbRow()
                 } else {

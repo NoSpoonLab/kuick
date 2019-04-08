@@ -8,7 +8,7 @@ class JdbcDriverTest {
     @Test
     fun test() {
         runBlocking {
-            JdbcDriver.connect("jdbc:h2:mem:0").use { connection ->
+            JdbcDriver.connectMemoryH2().use { connection ->
                 val sql = connection.sql
                 connection.transaction { transaction ->
                     transaction.createTable("test")
