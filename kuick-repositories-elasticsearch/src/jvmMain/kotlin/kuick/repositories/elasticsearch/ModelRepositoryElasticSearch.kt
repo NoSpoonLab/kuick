@@ -33,15 +33,6 @@ open class ModelRepositoryElasticSearch<I : String, T : Any>(
             if (!it.isExists) null else it.toModel()
         }
 
-    override suspend fun findOneBy(q: ModelQuery<T>): T? =
-        client.search(
-            indexName,
-            q.toElasticSearch(schema),
-            size = 1
-        ).hits.getAt(0).let {
-            it.toModel()
-        }
-
     override suspend fun findBy(q: ModelQuery<T>): List<T> {
         val a = q.tryGetAttributed()
         return client.search(
