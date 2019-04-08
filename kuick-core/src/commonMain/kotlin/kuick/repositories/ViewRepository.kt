@@ -16,6 +16,7 @@ interface ViewRepository<I : Any, T : Any> {
     suspend fun findOneBy(q: ModelQuery<T>): T? = findBy(q, skip = 0L, limit = 1).firstOrNull()
 }
 
+suspend fun <I : Any, T : Any> ViewRepository<I, T>.findOneBy(q: ModelQuery<T>): T? = findBy(q, skip = 0L, limit = 1).firstOrNull()
 
 data class ScoredModel<T : Any>(
     val score: Float,
