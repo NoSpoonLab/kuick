@@ -77,6 +77,7 @@ open class ModelRepositoryMemory<I : Any, T : Any>(
         }
         is FilterExpAnd<T> -> this.match(q.left) and this.match(q.right)
         is FilterExpOr<T> -> this.match(q.left) or this.match(q.right)
+        is DecoratedModelQuery<T> -> this.match(q.base)
 
         else -> throw NotImplementedError("Missing implementation of .toSquash() for ${this}")
     }

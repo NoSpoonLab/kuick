@@ -11,13 +11,11 @@ interface ViewRepository<I : Any, T : Any> {
 
     suspend fun getAll(): List<T>
 
+    // Default implementations
+    suspend fun findBy(q: ModelQuery<T>, skip: Long = 0L, limit: Int? = null, orderBy: OrderByDescriptor<T>? = null): List<T> = findBy(AttributedModelQuery(base = q, skip = skip, limit = limit, orderBy = orderBy))
+    suspend fun findOneBy(q: ModelQuery<T>): T? = findBy(q, skip = 0L, limit = 1).firstOrNull()
 }
 
-suspend fun <I : Any, T : Any> ViewRepository<I, T>.findBy(q: ModelQuery<T>, skip: Long = 0L, limit: Int? = null, orderBy: OrderByDescriptor<T>? = null): List<T> {
-    return findBy(AttributedModelQuery(base = q, skip = skip, limit = limit, orderBy = orderBy))
-}
-
-suspend fun <I : Any, T : Any> ViewRepository<I, T>.findOneBy(q: ModelQuery<T>): T? = findBy(q, skip = 0L, limit = 1).firstOrNull()
 
 data class ScoredModel<T : Any>(
     val score: Float,

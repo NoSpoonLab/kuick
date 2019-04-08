@@ -91,9 +91,6 @@ open class ModelRepositorySquash<I : Any, T : Any>(
 
     override suspend fun findById(i: I): T? = findOneBy(idField eq i)
 
-    override suspend fun findOneBy(q: ModelQuery<T>): T? =
-            domainTransaction { tr -> table.selectOne(tr) { q.toSquash() } }
-
     override suspend fun findBy(q: ModelQuery<T>): List<T> =
             domainTransaction { tr -> table.select(tr, q.tryGetAttributed()) { q.toSquash() } }
 
