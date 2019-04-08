@@ -95,7 +95,7 @@ open class ModelRepositorySquash<I : Any, T : Any>(
             domainTransaction { tr -> table.selectOne(tr) { q.toSquash() } }
 
     override suspend fun findBy(q: ModelQuery<T>): List<T> =
-            domainTransaction { tr -> table.select(tr) { q.toSquash() } }
+            domainTransaction { tr -> table.select(tr, q.tryGetAttributed()) { q.toSquash() } }
 
     override suspend fun getAll(): List<T> = domainTransaction { tr -> table.selectAll(tr) }
 
@@ -119,6 +119,7 @@ open class ModelRepositorySquash<I : Any, T : Any>(
         is FilterExpAnd<T> -> left.toSquash() and right.toSquash()
         is FilterExpOr<T> -> left.toSquash() or right.toSquash()
         is FilterExpNot<T> -> not(exp.toSquash())
+        is DecoratedModelQuery<T> -> this.base.toSquash() // Ignore
         else -> throw NotImplementedError("Missing implementation of .toSquash() for ${this}")
     }
 
