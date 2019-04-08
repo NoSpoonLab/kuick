@@ -8,6 +8,28 @@ sealed class ModelQuery<T : Any>
 
 sealed class ModelFilterExp<T : Any> : ModelQuery<T>()
 
+interface OrderByDescriptor<T> {
+    val list: List<OrderBy<T>>
+}
+data class OrderBy<T>(val prop: KProperty1<T, *>, val ascending: Boolean) : OrderByDescriptor<T> {
+    override val list = listOf(this)
+}
+data class OrderByMultiple<T>(val other: List<OrderByDescriptor<T>>) : OrderByDescriptor<T> {
+    override val list = other.flatMap { it.list }
+}
+
+operator fun <T> OrderByDescriptor<T>.plus(other: OrderByDescriptor<T>) = OrderByMultiple(listOf(this, other))
+
+fun <T> KProperty1<T, Any>.asc(): OrderByDescriptor<T> = OrderBy(this, ascending = true)
+fun <T> KProperty1<T, Any>.desc(): OrderByDescriptor<T> = OrderBy(this, ascending = false)
+
+open class DecoratedModelQuery<T : Any>(val base: ModelQuery<T>) : ModelQuery<T>()
+
+class AttributedModelQuery<T : Any>(base: ModelQuery<T>, val skip: Long = 0L, val limit: Int? = null, val orderBy: OrderByDescriptor<T>? = null) : DecoratedModelQuery<T>(base)
+
+// @TODO: Could we want to find in children? Should we need a vistor for this graph?
+fun <T : Any> ModelQuery<T>.tryGetAttributed(): AttributedModelQuery<T>? = this as? AttributedModelQuery<T>
+
 // NOT
 data class FilterExpNot<T : Any>(val exp: ModelFilterExp<T>) : ModelFilterExp<T>()
 

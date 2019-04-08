@@ -3,6 +3,7 @@ package kuick.repositories.squash
 import kotlinx.coroutines.*
 import kuick.db.*
 import kuick.di.*
+import kuick.repositories.*
 import kuick.repositories.annotations.*
 import org.h2.jdbc.*
 import org.jetbrains.squash.dialects.h2.*
@@ -91,6 +92,28 @@ class SquashRepoTest {
             assertFailsWith<JdbcSQLException> {
                 repo.insert(UserEmail("b", "test"))
             }
+            Unit
+        }
+    }
+
+    @Test
+    fun `queries can limit and order`(): Unit = runBlocking {
+        data class Demo(val name: String, val v: Int)
+
+        val db = H2Connection.createMemoryConnection()
+        val repo = ModelRepositorySquash(Demo::class, Demo::name)
+        val injector = Guice { bindDatabaseSquash(db) }
+        withInjectorContext(injector) {
+            repo.init()
+            repo.insert(Demo("a", 1))
+            repo.insert(Demo("b", 2))
+            repo.insert(Demo("c", 2))
+            repo.insert(Demo("d", 4))
+            repo.insert(Demo("e", 5))
+            assertEquals(
+                    listOf(Demo("d", 4), Demo("b", 2)),
+                    repo.findBy(Demo::v gt 1, skip = 1, limit = 2, orderBy = Demo::v.desc() + Demo::name.asc())
+            )
             Unit
         }
     }

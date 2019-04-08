@@ -15,6 +15,11 @@ interface ViewRepository<I : Any, T : Any> {
 
 }
 
+suspend fun <I : Any, T : Any> ViewRepository<I, T>.findBy(q: ModelQuery<T>, skip: Long = 0L, limit: Int? = null, orderBy: OrderByDescriptor<T>? = null): List<T> {
+    return findBy(AttributedModelQuery(base = q, skip = skip, limit = limit, orderBy = orderBy))
+}
+
+
 data class ScoredModel<T : Any>(
     val score: Float,
     val model: T

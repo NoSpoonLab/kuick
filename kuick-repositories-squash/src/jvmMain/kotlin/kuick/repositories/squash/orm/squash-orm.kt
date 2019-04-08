@@ -4,6 +4,7 @@ import kuick.core.*
 import kuick.db.DomainTransaction
 import kuick.json.Json
 import kuick.models.Id
+import kuick.repositories.*
 import kuick.repositories.squash.*
 import kuick.utils.nonStaticFields
 import org.jetbrains.squash.connection.*
@@ -11,9 +12,7 @@ import org.jetbrains.squash.definition.ColumnDefinition
 import org.jetbrains.squash.definition.Table
 import org.jetbrains.squash.definition.TableDefinition
 import org.jetbrains.squash.expressions.*
-import org.jetbrains.squash.query.from
-import org.jetbrains.squash.query.orderBy
-import org.jetbrains.squash.query.where
+import org.jetbrains.squash.query.*
 import org.jetbrains.squash.results.*
 import org.jetbrains.squash.statements.*
 import java.io.*
@@ -100,7 +99,9 @@ open class ORMTableDefinition<T : Any> (
 
     fun selectAll(tr: DomainTransaction): List<T> = select(tr.squashTr())
 
-    fun select(tr: DomainTransaction, predicate: () -> Expression<Boolean>): List<T> = select(tr.squashTr(), predicate)
+    fun select(tr: DomainTransaction, predicate: () -> Expression<Boolean>): List<T> = select(tr.squashTr(), predicate, null)
+
+    fun select(tr: DomainTransaction, a: AttributedModelQuery<T>?, predicate: () -> Expression<Boolean>): List<T> = select(tr.squashTr(), predicate, a)
 
     fun selectOrdered(tr: DomainTransaction, predicate: () -> Expression<Boolean>, ascending: Boolean, orderBy: () -> Expression<*>): List<T> = selectOrdered(tr.squashTr(), predicate, ascending, orderBy)
 
@@ -118,12 +119,19 @@ open class ORMTableDefinition<T : Any> (
         }
     }
 
-    private fun select(tr: Transaction, predicate: (() -> Expression<Boolean>)? = null): List<T> =
-            from(this).let {
-                if(predicate != null)
-                    it.where(predicate)
-                else
-                    it
+    private fun select(tr: Transaction, predicate: (() -> Expression<Boolean>)? = null, a: AttributedModelQuery<T>? = null): List<T> =
+            from(this).apply {
+                predicate?.let { where(it) }
+                val limit = a?.limit
+                val orderByList = a?.orderBy?.list
+                if (limit != null) {
+                    limit(a.limit!!.toLong(), a.skip)
+                }
+                if (orderByList != null && orderByList.isNotEmpty()) {
+                    for (orderBy in orderByList) {
+                        orderBy(this@ORMTableDefinition[orderBy.prop], orderBy.ascending)
+                    }
+                }
             }.monitorAndExecuteOn(tr)
 
     private fun selectOrdered(tr: Transaction, predicate: () -> Expression<Boolean>,
