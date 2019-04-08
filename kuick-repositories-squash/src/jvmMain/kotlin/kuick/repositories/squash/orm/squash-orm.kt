@@ -228,7 +228,7 @@ inline fun <reified T> ResultRow.columnValue(columnName: String, tableName: Stri
         columnValue(T::class, columnName, tableName) as? T?
 
 @KuickInternalWarning
-private inline fun <T> ignoreErrors(callback: () -> T): T? = runCatching { callback() }.getOrNull()
+inline fun <T> ignoreErrors(callback: () -> T): T? = runCatching { callback() }.getOrNull()
 
 @KuickInternalWarning
 fun DomainTransaction.squashTr() = (this as LazyDomainTransactionSquash).tr
