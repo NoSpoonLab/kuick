@@ -55,12 +55,11 @@ open class ModelRepositorySquash<I : Any, T : Any>(
             tr.squashTr().databaseSchema().create(table)
         }
         domainTransaction { tr ->
-            //println(tr.squashTr().databaseSchema().tables().toList())
-            val tableName = table.tableName.toUpperCase()
+            val tableName = tr.squashTr().connection.dialect.idSQL(table.compoundName)
             //tr.squashTr().executeStatement("ALTER TABLE \"$tableName\" ADD PRIMARY KEY (${idProperty.columnName});")
             for (info in properties) {
                 if (info.unique) {
-                    tr.squashTr().executeStatement("CREATE UNIQUE INDEX unique_${info.columnName} ON \"$tableName\" (${info.columnName});")
+                    tr.squashTr().executeStatement("CREATE UNIQUE INDEX unique_${info.columnName} ON $tableName (${info.columnName});")
                 }
             }
         }
