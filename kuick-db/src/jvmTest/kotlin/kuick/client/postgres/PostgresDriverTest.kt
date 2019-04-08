@@ -20,7 +20,7 @@ class PostgresDriverTest {
             .build()
 
     @Test
-    //@Ignore
+    @Ignore
     fun test() {
         runBlocking {
             PostgresDriver.connect("postgres://postgres@${container.ipAddress}:5432/postgres").use { connection ->
