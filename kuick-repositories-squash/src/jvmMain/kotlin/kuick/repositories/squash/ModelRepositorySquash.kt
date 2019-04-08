@@ -1,5 +1,6 @@
 package kuick.repositories.squash
 
+import kuick.core.*
 import kuick.db.domainTransaction
 import kuick.json.Json
 import kuick.models.Id
@@ -15,6 +16,7 @@ import kotlin.reflect.KType
 import kotlin.reflect.full.*
 
 
+@UseExperimental(KuickInternalWarning::class)
 open class ModelRepositorySquash<I : Any, T : Any>(
         val modelClass: KClass<T>,
         val idField: KProperty1<T, I>,
@@ -32,21 +34,35 @@ open class ModelRepositorySquash<I : Any, T : Any>(
     ) : this(modelClass, idField, TypedSerializationStrategies(serializationStrategies.map { it.key.clazz!! to it.value }.toMap()), fallbackStrategy)
 
     val serializationStrategies = baseSerializationStrategies + fallbackStrategy
+    val properties = modelClass.java.nonStaticFields().map { field ->
+        val prop = modelClass.declaredMemberProperties.firstOrNull { it.name == field.name }
+                ?: throw IllegalStateException("Property not found for field: ${field.name}")
+        //println("Registering field ${prop} with return type: ${prop.returnType}")
+        PropertyInfo(prop)
+    }
+    val idProperty = properties.first { it.prop == idField }
     val table = ORMTableDefinition(serializationStrategies, modelClass).also { table ->
-        for (field in modelClass.java.nonStaticFields()) {
-            val prop = modelClass.declaredMemberProperties.firstOrNull { it.name == field.name }
-                    ?: throw IllegalStateException("Property not found for field: ${field.name}")
-            //println("Registering field ${prop} with return type: ${prop.returnType}")
-            val info = PropertyInfo(prop)
+        for (info in properties) {
+            val prop = info.prop
             val columnDefinition = serializationStrategies.tryGetColumnDefinition(table, info) ?: error("Can't find columnDefinition")
             val columnDefinitionWithNulability = if (info.nullableProp) columnDefinition.nullable() else columnDefinition
-            table.put(prop, columnDefinitionWithNulability)
+            table.put(prop as KProperty1<T, Any?>, columnDefinitionWithNulability)
         }
     }
 
     override suspend fun init() {
         domainTransaction { tr ->
             tr.squashTr().databaseSchema().create(table)
+        }
+        domainTransaction { tr ->
+            //println(tr.squashTr().databaseSchema().tables().toList())
+            val tableName = table.tableName.toUpperCase()
+            //tr.squashTr().executeStatement("ALTER TABLE \"$tableName\" ADD PRIMARY KEY (${idProperty.columnName});")
+            for (info in properties) {
+                if (info.unique) {
+                    tr.squashTr().executeStatement("CREATE UNIQUE INDEX unique_${info.columnName} ON \"$tableName\" (${info.columnName});")
+                }
+            }
         }
     }
 
