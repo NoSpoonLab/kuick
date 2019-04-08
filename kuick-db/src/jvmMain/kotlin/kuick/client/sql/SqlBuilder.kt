@@ -41,8 +41,10 @@ abstract class SqlBuilder {
     }
     open fun sqlDropIndex(table: String, index: String): String = "DROP INDEX ${index.quoteIdentifier()} ON ${table.quoteTableName()};"
 
+    open fun sqlPlaceholders(count: Int, start: Int = 1) = (0 until count).joinToString(", ") { "?" }
+
     // Rows
-    open fun sqlInsert(table: String, columns: List<String>): String = "INSERT INTO ${table.quoteTableName()} (${columns.joinToString(", ") { it.quoteTableName() }}) VALUES (${columns.joinToString(", ") { "?" }});"
+    open fun sqlInsert(table: String, columns: List<String>): String = "INSERT INTO ${table.quoteTableName()} (${columns.joinToString(", ") { it.quoteTableName() }}) VALUES (${sqlPlaceholders(columns.size)});"
     open fun sqlDelete(table: String, condition: String): String = "DELETE FROM ${table.quoteTableName()} WHERE $condition;"
 
     // Describe
@@ -56,8 +58,10 @@ abstract class SqlBuilder {
 
 object PgSqlBuilder : SqlBuilder() {
     override fun sqlListTables(): String = "SELECT tablename FROM pg_catalog.pg_tables WHERE schemaname != 'pg_catalog' AND schemaname != 'information_schema';"
+    override fun sqlListColumns(table: String): String = "SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_NAME = ${table.quoteStringLiteral()};"
+    override fun sqlPlaceholders(count: Int, start: Int) = (0 until count).joinToString(", ") { "\$${it + start}" }
 }
 
 object H2SqlBuilder : SqlBuilder() {
-    override fun sqlListTables(): String = "SELECT TABLE_NAME AS tablename FROM INFORMATION_SCHEMA.TABLES;"
+    override fun sqlListTables(): String = "SELECT TABLE_NAME AS tablename FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA != 'INFORMATION_SCHEMA';"
 }

@@ -4,7 +4,7 @@ import kuick.client.sql.*
 import java.io.*
 import java.lang.RuntimeException
 
-class DbException(message: String?, cause: Throwable) : RuntimeException(message, cause)
+class DbException(message: String?, val sql: String, cause: Throwable) : RuntimeException("$message in $sql", cause)
 
 interface DbDriver {
     suspend fun connect(url: String): DbConnection
@@ -72,6 +72,7 @@ class DbRowSet(val columns: DbColumns, val rows: List<DbRow>) : List<DbRow> by r
     }
     operator fun get(row: Int, column: Int): Any? = this[row][column]
     operator fun get(row: Int, column: String): Any? = this[row][column]
+    override fun toString(): String = rows.toString()
 }
 
 data class DbColumns(val names: List<String>) : List<String> by names {

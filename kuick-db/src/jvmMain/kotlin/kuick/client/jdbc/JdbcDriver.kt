@@ -55,7 +55,7 @@ class JdbcPreparedStatement(val sql: String, val prepareStatement: PreparedState
                 }
             }
         } catch (e: JdbcSQLException) {
-            throw DbException(e.message, e)
+            throw DbException(e.message, sql, e)
         }
     }
 
