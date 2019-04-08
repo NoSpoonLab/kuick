@@ -117,6 +117,19 @@ abstract class SqlBuilder {
             append(";")
         }
     }
+
+    open fun <T : Any> sqlUpdate(keys: List<String>, q: ModelQuery<T>, table: TableDefinition<T>): String =
+            buildString {
+                append("UPDATE ${table.name.quoteTableName()}")
+                append(" SET ")
+                for ((index, key) in keys.withIndex()) {
+                    if (index != 0) append(",")
+                    append("${key.quoteIdentifier()} = ${sqlPlaceholders(1, index + 1)}")
+                }
+                append(" WHERE ")
+                append(where(q, table))
+                append(";")
+            }
 }
 
 object PgSqlBuilder : SqlBuilder() {

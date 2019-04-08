@@ -16,7 +16,9 @@ class DbModelRepository<I : Any, T : Any>(
     override suspend fun insert(t: T): T = dbClient { it.insert(table, t) }
 
     override suspend fun updateBy(t: T, q: ModelQuery<T>): T {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        val map = table.untype(t)
+        dbClient { it.query(it.sql.sqlUpdate(map.keys.toList(), q, table), *map.values.toTypedArray()) }
+        return t
     }
 
     override suspend fun deleteBy(q: ModelQuery<T>): Unit = run { dbClient { it.query(it.sql.sqlDelete(q, table)) } }
