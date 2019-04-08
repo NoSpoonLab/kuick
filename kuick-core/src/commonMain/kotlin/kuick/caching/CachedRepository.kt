@@ -11,7 +11,7 @@ import kotlin.reflect.KProperty1
 
 open class CachedRepository<I: Any, T: Any, C:Any>(
         val modelClass: KClass<T>,
-        val idField: KProperty1<T, I>,
+        override val idField: KProperty1<T, I>,
         val repo: ModelRepository<I, T>,
         private val cache: Cache<C, List<T>>,
         private val cacheField: KProperty1<T, C>
