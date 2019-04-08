@@ -31,8 +31,23 @@ suspend fun <T : Any> DbPreparable.synchronizeTable(table: TableDefinition<T>) {
     }
 }
 
-suspend fun <T : Any> DbPreparable.insert(table: TableDefinition<T>, instance: T) =
-        insert(table.name, table.untype(instance))
+data class DbPreparableWithDefinitions(val preparable: DbPreparable, val definitions: TableDefinitions)
+
+fun DbPreparable.withDefinitions(definitions: TableDefinitions) = DbPreparableWithDefinitions(this, definitions)
+
+suspend fun <T : Any> DbPreparable.insert(table: TableDefinition<T>, instance: T): T = instance.also {
+    insert(table.name, table.untype(instance))
+}
 
 suspend fun <T : Any> DbPreparable.query(table: TableDefinition<T>, sql: String, vararg args: Any?): List<T> =
         query(sql, *args).map { table.type(it.map) }
+
+suspend inline fun <reified T : Any> DbPreparableWithDefinitions.insert(instance: T) {
+    val table = definitions.get<T>()
+    preparable.insert(table, instance)
+}
+
+suspend inline fun <reified T : Any> DbPreparableWithDefinitions.query(sql: String, vararg args: Any?): List<T> {
+    val table = definitions.get<T>()
+    return preparable.query(table, sql, *args)
+}

@@ -69,12 +69,16 @@ class OrmTest {
         }
     }
 
+    val definitions = TableDefinitions()
+
     @Test
     fun testTypedInsert() {
         runBlocking {
             LogDbPreparable().register(
             ).also { preparable ->
-                preparable.insert(TableDefinition(Demo::class), Demo("hello"))
+                val def = preparable.withDefinitions(definitions)
+                def.insert(Demo("hello"))
+                //preparable.insert(TableDefinition(Demo::class), Demo("hello"))
                 //preparable.insert(TableDefinition(DemoNullable::class), DemoNullable(null))
                 assertEquals(
                         listOf(

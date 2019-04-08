@@ -5,6 +5,7 @@ import kuick.models.*
 import kuick.repositories.annotations.*
 import kuick.util.*
 import java.util.*
+import kotlin.collections.LinkedHashMap
 import kotlin.reflect.*
 import kotlin.reflect.full.*
 
@@ -30,12 +31,24 @@ class ColumnDefinition<T : Any>(val table: TableDefinition<T>, val prop: KProper
 
 inline fun <reified T : Any> TableDefinition(serialization: TableSerializationStrategy = defaultTableSerializationStrategy) = TableDefinition(T::class, serialization)
 
+class TableDefinitions(val serialization: TableSerializationStrategy = defaultTableSerializationStrategy) {
+    private val definitions = LinkedHashMap<KClass<*>, TableDefinition<*>>()
+
+    fun <T : Any> get(clazz: KClass<T>): TableDefinition<T> =
+            definitions.getOrPut(clazz) { TableDefinition(clazz, serialization) } as TableDefinition<T>
+
+    inline fun <reified T : Any> get(): TableDefinition<T> = get(T::class)
+}
+
 class TableDefinition<T : Any>(val clazz: KClass<T>, val serialization: TableSerializationStrategy = defaultTableSerializationStrategy) {
     val name = clazz.findAnnotation<DbName>()?.name ?: clazz.simpleName
     ?: error("Can't determine table name for $clazz")
 
     val columns = clazz.memberProperties.filter { it.visibility == KVisibility.PUBLIC }.map { ColumnDefinition(this, it) }
     val columnsByName = columns.associateBy { it.name }
+    val columnsByProp = columns.associateBy { it.prop }
+
+    operator fun get(prop: KProperty1<T, *>) = columnsByProp[prop] ?: error("Can't find $prop in $this")
 
     fun untype(instance: T): Map<String, Any?> {
         val out = LinkedHashMap<String, Any?>()

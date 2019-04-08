@@ -1,5 +1,8 @@
 package kuick.client.sql
 
+import kuick.orm.*
+import kuick.repositories.*
+
 abstract class SqlBuilder {
     object Iso : SqlBuilder()
 
@@ -65,6 +68,39 @@ abstract class SqlBuilder {
     open fun typeVarchar(length: Int? = null) = if (length == null) "VARCHAR" else "VARCHAR($length)"
     open fun typeInt() = "INT"
     open fun typeTimestamp() = "TIMESTAMP"
+
+    open fun Any?.quote() = when (this) {
+        null -> "null"
+        is Number -> "$this"
+        else -> this.toString().quoteStringLiteral()
+    }
+
+    open fun where(q: ModelQuery<*>, table: TableDefinition<*>): String = when (q) {
+        is FieldEqs<*, *> -> "${table.columnsByProp[q.field]!!.name.quoteIdentifier()} = ${q.value.quote()}"
+        is DecoratedModelQuery<*> -> where(q.base, table)
+        else -> TODO("$q, $table")
+    }
+
+    open fun <T : Any> sqlSelect(q: ModelQuery<T>, table: TableDefinition<T>): String {
+        val a = q.tryGetAttributed()
+        val limit = a?.limit
+        val offset = a?.skip
+        val orderBy = a?.orderBy?.list
+        return buildString {
+            append("SELECT * FROM ${table.name.quoteTableName()}")
+            append(" WHERE ")
+            append(where(q, table))
+            if (orderBy != null && orderBy.isNotEmpty()) {
+                append(" ORDER BY")
+                for (v in orderBy) {
+                    append(" ${table[v.prop].name.quoteIdentifier()} ${if (v.ascending) "ASC" else "DESC"}")
+                }
+            }
+            if (limit != null) append(" LIMIT $limit")
+            if (offset != null) append(" OFFSET $offset")
+            append(";")
+        }
+    }
 }
 
 object PgSqlBuilder : SqlBuilder() {
