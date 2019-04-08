@@ -1,13 +1,16 @@
 package kuick.orm
 
+import kuick.json.*
 import kuick.models.*
 import kuick.repositories.annotations.*
 import kuick.util.*
+import java.util.*
 import kotlin.reflect.*
 import kotlin.reflect.full.*
 
 sealed class ColumnType {
     object INT : ColumnType()
+    object TIMESTAMP : ColumnType()
     data class VARCHAR(val length: Int? = null) : ColumnType()
 }
 
@@ -29,7 +32,7 @@ inline fun <reified T : Any> TableDefinition(serialization: TableSerializationSt
 
 class TableDefinition<T : Any>(val clazz: KClass<T>, val serialization: TableSerializationStrategy = defaultTableSerializationStrategy) {
     val name = clazz.findAnnotation<DbName>()?.name ?: clazz.simpleName
-        ?: error("Can't determine table name for $clazz")
+    ?: error("Can't determine table name for $clazz")
 
     val columns = clazz.memberProperties.filter { it.visibility == KVisibility.PUBLIC }.map { ColumnDefinition(this, it) }
     val columnsByName = columns.associateBy { it.name }
@@ -59,10 +62,12 @@ interface TableSerializationStrategy {
         val resolved = resolve(column)
         return if (resolved != null && resolved != this) resolved.columnType(column) else ColumnType.VARCHAR()
     }
+
     fun serialize(column: ColumnDefinition<*>, value: Any?): Any? {
         val resolved = resolve(column)
         return if (resolved != null && resolved != this) resolved.serialize(column, value) else value
     }
+
     fun deserialize(column: ColumnDefinition<*>, value: Any?): Any? {
         val resolved = resolve(column)
         return if (resolved != null && resolved != this) resolved.deserialize(column, value) else value
@@ -100,6 +105,18 @@ object StringSerializationStrategy : TypedTableSerializationStrategy(String::cla
     override fun columnType(column: ColumnDefinition<*>): ColumnType? = ColumnType.VARCHAR(column.maxLength)
 }
 
+object LongDateSerializationStrategy : TypedTableSerializationStrategy(Date::class) {
+    override fun columnType(column: ColumnDefinition<*>): ColumnType? = ColumnType.INT
+    override fun serialize(column: ColumnDefinition<*>, value: Any?): Any? = (value as Date).time
+    override fun deserialize(column: ColumnDefinition<*>, value: Any?): Any? = Date((value as Number).toLong())
+}
+
+object DateSerializationStrategy : TypedTableSerializationStrategy(Date::class) {
+    override fun columnType(column: ColumnDefinition<*>): ColumnType? = ColumnType.TIMESTAMP
+    override fun serialize(column: ColumnDefinition<*>, value: Any?): Any? = value
+    override fun deserialize(column: ColumnDefinition<*>, value: Any?): Any? = value
+}
+
 object IdSerializationStrategy : TableSerializationStrategy {
     override fun resolve(column: ColumnDefinition<*>): TableSerializationStrategy? = if (column.clazz.isSubclassOf(Id::class)) this else null
     override fun columnType(column: ColumnDefinition<*>): ColumnType? = ColumnType.VARCHAR(column.maxLength)
@@ -107,11 +124,29 @@ object IdSerializationStrategy : TableSerializationStrategy {
     override fun deserialize(column: ColumnDefinition<*>, value: Any?): Any? = column.clazz.primaryConstructor!!.call((value as String))
 }
 
-val defaultTableSerializationStrategy: TableSerializationStrategy =
-        TableSerializationStrategies(
+object JsonSerializationStrategy : TableSerializationStrategy {
+    override fun resolve(column: ColumnDefinition<*>): TableSerializationStrategy? = this
+    override fun columnType(column: ColumnDefinition<*>): ColumnType? = ColumnType.VARCHAR(column.maxLength)
+
+    override fun serialize(column: ColumnDefinition<*>, value: Any?): Any? {
+        val result = value?.let { Json.toJson(value) }
+        return result
+    }
+
+    override fun deserialize(column: ColumnDefinition<*>, value: Any?): Any? = Json.fromJson(value as String, column.type)
+}
+
+private fun constructStandardTableSerializationStrategy(date: TypedTableSerializationStrategy): TableSerializationStrategy {
+    return TableSerializationStrategies(
             TypedTableSerializationStrategies(
                     IntSerializationStrategy,
-                    StringSerializationStrategy
+                    StringSerializationStrategy,
+                    date
             ),
-            IdSerializationStrategy
-        )
+            IdSerializationStrategy,
+            JsonSerializationStrategy
+    )
+}
+
+val oldTableSerializationStrategy: TableSerializationStrategy = constructStandardTableSerializationStrategy(LongDateSerializationStrategy)
+val defaultTableSerializationStrategy: TableSerializationStrategy = constructStandardTableSerializationStrategy(DateSerializationStrategy)

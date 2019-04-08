@@ -7,6 +7,7 @@ fun <T : Any> DbPreparable.columnType(column: ColumnDefinition<T>): String {
     val columnType = column.columnType
     return when (columnType) {
         is ColumnType.INT -> sql.typeInt()
+        is ColumnType.TIMESTAMP -> sql.typeTimestamp()
         is ColumnType.VARCHAR -> sql.typeVarchar(columnType.length)
         else -> sql.typeVarchar(column.maxLength)
     }

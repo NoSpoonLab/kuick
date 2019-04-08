@@ -30,6 +30,7 @@ class OrmTest {
     }
 
     data class Demo(val name: String)
+    data class DemoNullable(val name: String?)
 
     @Test
     fun testSynchronizeTableNew() {
@@ -74,6 +75,7 @@ class OrmTest {
             LogDbPreparable().register(
             ).also { preparable ->
                 preparable.insert(TableDefinition(Demo::class), Demo("hello"))
+                //preparable.insert(TableDefinition(DemoNullable::class), DemoNullable(null))
                 assertEquals(
                         listOf(
                                 "INSERT INTO \"Demo\" (\"name\") VALUES (?);"

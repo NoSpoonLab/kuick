@@ -82,6 +82,6 @@ class PostgresPreparedStatement(val transaction: PostgressTransaction, val sql: 
     }
 
     override fun close() {
-        //prepared.close()
+        prepared.close()
     }
 }

@@ -64,6 +64,7 @@ abstract class SqlBuilder {
     // Types
     open fun typeVarchar(length: Int? = null) = if (length == null) "VARCHAR" else "VARCHAR($length)"
     open fun typeInt() = "INT"
+    open fun typeTimestamp() = "TIMESTAMP"
 }
 
 object PgSqlBuilder : SqlBuilder() {
