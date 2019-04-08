@@ -3,8 +3,7 @@ package kuick.repositories.squash.orm
 import kuick.db.DomainTransaction
 import kuick.json.Json
 import kuick.models.Id
-import kuick.repositories.squash.SerializationStrategy
-import kuick.repositories.squash.type
+import kuick.repositories.squash.*
 import kuick.utils.nonStaticFields
 import org.jetbrains.squash.connection.*
 import org.jetbrains.squash.definition.ColumnDefinition
@@ -17,7 +16,6 @@ import org.jetbrains.squash.query.where
 import org.jetbrains.squash.results.*
 import org.jetbrains.squash.statements.*
 import java.io.*
-import java.lang.reflect.Field
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -25,7 +23,7 @@ import java.util.concurrent.atomic.*
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
 import kotlin.reflect.full.*
-import kotlin.reflect.KType
+import kotlin.reflect.jvm.*
 
 
 const val LOCAL_DATE_LEN = 16
@@ -57,11 +55,18 @@ class DomainTransactionSquash(val db: DatabaseConnection): DomainTransaction, Cl
     }
 }
 
-open class ORMTableDefinition<T : Any> (val serializationStrategies : Map<KType, SerializationStrategy<*>>, val clazz: KClass<T>, val tableName: String = clazz.simpleName!!): TableDefinition(tableName) {
+open class ORMTableDefinition<T : Any> (
+        val serializationStrategies : SerializationStrategy,
+        val clazz: KClass<T>,
+        val tableName: String = clazz.simpleName!!
+): TableDefinition(tableName) {
     private val _map: MutableMap<KProperty1<T, *>, ColumnDefinition<*>> = mutableMapOf()
 
-    infix fun <R: Any?> KProperty1<T, R>.to(cd: ColumnDefinition<R>) {
-        _map.put(this, cd)
+    @Deprecated("Do not use this, since this can be confused with Kotlin's to that generate pairs. Also an infix function SHOULD NOT mutate anything because that could be misleading and a source of bugs.", ReplaceWith("put(this, cd)"))
+    infix fun <R: Any?> KProperty1<T, R>.to(cd: ColumnDefinition<R>) = put(this, cd)
+
+    fun <R: Any?> put(prop: KProperty1<T, R>, cd: ColumnDefinition<R>) {
+        _map[prop] = cd
     }
 
     operator fun <R: Any?> get(p: KProperty1<T, R>): ColumnDefinition<R> {
@@ -175,23 +180,16 @@ open class ORMTableDefinition<T : Any> (val serializationStrategies : Map<KType,
         val fieldValues = fields.map { f ->
             try {
                 val property = ormDef.clazz.memberProperties.first { it.name == f.name }
-                val columnDef = ormDef.get(property)
-                readColumnValue(ormDef.clazz, f, columnDef.name.id, ormDef.compoundName.id)
+                val columnDef = ormDef[property]
+                val columnName = columnDef.name.id
+                val tableName = ormDef.compoundName.id
+                serializationStrategies.tryDecodeValueLazy(f.kotlinProperty!!.returnType) { clazz -> columnValue(clazz, columnName, tableName) }
             } catch (t: Throwable) {
-                throw IllegalStateException("Had a problem reading field ${f}", t)
+                throw IllegalStateException("Had a problem reading field $f", t)
             }
         }
         return ormDef.clazz.constructors.first().call(*fieldValues.toTypedArray())
     }
-
-    private fun <T:Any> ResultRow.readColumnValue(clazz: KClass<T>, field: Field, columnName: String, tableName: String): Any? = when  {
-        serializationStrategies.containsKey(field.type.kotlin.starProjectedType) -> serializationStrategies[field.type.kotlin.starProjectedType]!!.readColumnValue.invoke(field,this,columnName,tableName)
-        else -> when {
-            field.type.kotlin.isSubclassOf(Id::class) ->serializationStrategies[type<Id>()]!!.readColumnValue.invoke(field,this,columnName,tableName)
-            else -> columnValue<String>(columnName, tableName)?.let { field.apply { isAccessible = true }.get(Json.fromJson("{\"${field.name}\":$it}", clazz)) }
-        }
-    }
-
 
     infix fun <D:Any, T : Table> InsertValuesStatement<T, Unit>.from(data: D) {
         val clazz = data::class.java
@@ -215,12 +213,7 @@ open class ORMTableDefinition<T : Any> (val serializationStrategies : Map<KType,
         }
     }
 
-    private fun decodeValue(value: Any?) = when {
-        value == null -> null
-        serializationStrategies.containsKey(value::class.starProjectedType) -> serializationStrategies[value::class.starProjectedType]!!.decodeValue.invoke(value)
-        value is Id -> serializationStrategies[type<Id>()]!!.decodeValue.invoke(value)
-        else -> Json.toJson(value)
-    }
+    private fun decodeValue(value: Any?): Any? = value?.let { serializationStrategies.tryEncodeValue(value) }
 
     //=================================
 

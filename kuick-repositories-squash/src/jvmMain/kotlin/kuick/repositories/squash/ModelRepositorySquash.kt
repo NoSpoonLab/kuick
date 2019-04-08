@@ -4,7 +4,6 @@ import kuick.db.domainTransaction
 import kuick.json.Json
 import kuick.models.Id
 import kuick.repositories.*
-import kuick.repositories.annotations.*
 import kuick.repositories.squash.orm.*
 import kuick.utils.nonStaticFields
 import org.jetbrains.squash.definition.*
@@ -14,43 +13,34 @@ import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
 import kotlin.reflect.KType
 import kotlin.reflect.full.*
-import kotlin.reflect.jvm.*
 
 
 open class ModelRepositorySquash<I : Any, T : Any>(
         val modelClass: KClass<T>,
         val idField: KProperty1<T, I>,
-        val defaultMaxLength: Int = LONG_TEXT_LEN,
-        serializationStrategies : Map<KType,SerializationStrategy<out Any>> = defaultSerializationStrategies.strategies
+        baseSerializationStrategies: SerializationStrategy = defaultSerializationStrategies,
+        fallbackStrategy: SerializationStrategy = JsonSerializationStrategy
 ) : ModelRepository<I, T> {
 
-    val table = ORMTableDefinition(serializationStrategies, modelClass)
+    @Deprecated("Use the main constructor instead")
+    constructor(
+            modelClass: KClass<T>,
+            idField: KProperty1<T, I>,
+            defaultMaxLength: Int = LONG_TEXT_LEN,
+            serializationStrategies : Map<KType, TypedSerializationStrategy<out Any>>,
+            fallbackStrategy: SerializationStrategy = JsonSerializationStrategy
+    ) : this(modelClass, idField, TypedSerializationStrategies(serializationStrategies.map { it.key.clazz!! to it.value }.toMap()), fallbackStrategy)
 
-    init {
-
-        modelClass.java.nonStaticFields().forEach { field ->
+    val serializationStrategies = baseSerializationStrategies + fallbackStrategy
+    val table = ORMTableDefinition(serializationStrategies, modelClass).also { table ->
+        for (field in modelClass.java.nonStaticFields()) {
             val prop = modelClass.declaredMemberProperties.firstOrNull { it.name == field.name }
-            if (prop == null) throw IllegalStateException("Property not found for field: ${field.name}")
-
-            val maxLength = prop.javaField?.getAnnotation(MaxLength::class.java)?.maxLength
-            val nullableProp = prop.returnType.isMarkedNullable
-            val returnType = prop.returnType.classifier!!.starProjectedType
-            val columnName = prop.name.toSnakeCase()
+                    ?: throw IllegalStateException("Property not found for field: ${field.name}")
             //println("Registering field ${prop} with return type: ${prop.returnType}")
-
-            with(table) {
-                var columnDefinition: ColumnDefinition<Any?> = when {
-                    serializationStrategies.containsKey(returnType) -> {
-                        var strategy = serializationStrategies[returnType]!!
-                        if (strategy is VarCharSerializationStrategy && maxLength!=null) strategy= strategy.withLength(maxLength)
-                        strategy.getColumnDefinition.invoke(table,columnName)
-                    }
-                    returnType.isSubtypeOf(type<Id>()) -> serializationStrategies[type<Id>()]!!.getColumnDefinition.invoke(table,columnName)
-                    else -> varchar(columnName, maxLength?:defaultMaxLength)
-                }
-                if (nullableProp) columnDefinition = columnDefinition.nullable()
-                prop to columnDefinition
-            }
+            val info = PropertyInfo(prop)
+            val columnDefinition = serializationStrategies.tryGetColumnDefinition(table, info) ?: error("Can't find columnDefinition")
+            val columnDefinitionWithNulability = if (info.nullableProp) columnDefinition.nullable() else columnDefinition
+            table.put(prop, columnDefinitionWithNulability)
         }
     }
 
@@ -129,6 +119,3 @@ open class ModelRepositorySquash<I : Any, T : Any>(
 //        .contains(this)
 }
 
-private fun String.toSnakeCase(): String = flatMap {
-    if (it.isUpperCase()) listOf('_', it.toLowerCase()) else listOf(it)
-}.joinToString("")
