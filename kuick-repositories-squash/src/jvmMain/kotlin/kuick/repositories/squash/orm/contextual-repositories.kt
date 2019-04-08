@@ -7,7 +7,7 @@ import kuick.models.Id
 import org.jetbrains.squash.expressions.Expression
 import org.jetbrains.squash.schema.create
 
-
+@Deprecated("")
 interface ContextualRepository<I: Id, T: Any> {
 
     suspend fun insert(t: T): T
@@ -23,6 +23,7 @@ interface ContextualRepository<I: Id, T: Any> {
 }
 
 
+@Deprecated("")
 open class SquashContextualRepository<I: Id, T: Any>(
         val schema: ORMTableDefinition<T>,
         val getId: (T) -> I,
