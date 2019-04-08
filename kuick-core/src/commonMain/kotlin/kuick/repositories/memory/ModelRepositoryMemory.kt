@@ -8,7 +8,7 @@ import kotlin.reflect.KProperty1
 
 open class ModelRepositoryMemory<I : Any, T : Any>(
         val modelClass: KClass<T>,
-        val idField: KProperty1<T, I>
+        override val idField: KProperty1<T, I>
 ) : ModelRepository<I, T>, ScoredViewRepository<I, T> {
 
     val table = mutableMapOf<I, T>()
@@ -33,8 +33,6 @@ open class ModelRepositoryMemory<I : Any, T : Any>(
 
     override suspend fun deleteBy(q: ModelQuery<T>) =
             findBy(q).forEach { delete(idField.get(it)) }
-
-    override suspend fun findById(i: I): T? = table[i]
 
     override suspend fun findBy(q: ModelQuery<T>): List<T> =
             table.values.filter { it.match(q) }

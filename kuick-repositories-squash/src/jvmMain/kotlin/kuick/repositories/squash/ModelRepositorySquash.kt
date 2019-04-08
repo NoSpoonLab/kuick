@@ -19,7 +19,7 @@ import kotlin.reflect.full.*
 @UseExperimental(KuickInternalWarning::class)
 open class ModelRepositorySquash<I : Any, T : Any>(
         val modelClass: KClass<T>,
-        val idField: KProperty1<T, I>,
+        override val idField: KProperty1<T, I>,
         baseSerializationStrategies: SerializationStrategy = defaultSerializationStrategies,
         fallbackStrategy: SerializationStrategy = JsonSerializationStrategy
 ) : ModelRepository<I, T> {
@@ -88,8 +88,6 @@ open class ModelRepositorySquash<I : Any, T : Any>(
             q.toSquash()
         }
     }
-
-    override suspend fun findById(i: I): T? = findOneBy(idField eq i)
 
     override suspend fun findBy(q: ModelQuery<T>): List<T> =
             domainTransaction { tr -> table.select(tr, q.tryGetAttributed()) { q.toSquash() } }

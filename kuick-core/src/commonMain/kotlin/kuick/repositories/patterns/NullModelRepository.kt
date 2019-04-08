@@ -2,8 +2,10 @@ package kuick.repositories.patterns
 
 import kuick.repositories.ModelQuery
 import kuick.repositories.ModelRepository
+import kotlin.reflect.*
 
 class NullModelRepository<I: Any, T: Any>(): ModelRepository<I, T> {
+    override val idField: KProperty1<T, I> get() = TODO()
 
     override suspend fun insert(t: T): T = t
 
@@ -17,8 +19,6 @@ class NullModelRepository<I: Any, T: Any>(): ModelRepository<I, T> {
     override suspend fun init() {}
 
     override suspend fun getAll(): List<T> = emptyList()
-
-    override suspend fun findById(i: I): T? = null
 
     override suspend fun findBy(q: ModelQuery<T>): List<T> = emptyList()
 
