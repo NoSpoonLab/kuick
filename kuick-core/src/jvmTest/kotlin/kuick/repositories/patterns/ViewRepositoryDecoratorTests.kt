@@ -1,12 +1,10 @@
 package kuick.repositories.patterns
 
-import kotlinx.coroutines.runBlocking
-import kuick.bus.SyncBus
-import kuick.repositories.ModelRepository
-import kuick.repositories.eq
-import kuick.repositories.memory.ModelRepositoryMemory
-import kotlin.test.Test
-import kotlin.test.assertEquals
+import kotlinx.coroutines.*
+import kuick.bus.*
+import kuick.repositories.*
+import kuick.repositories.memory.*
+import kotlin.test.*
 
 
 class ViewRepositoryDecoratorTests {
@@ -89,7 +87,6 @@ class ViewRepositoryDecoratorTests {
                 isw)
         Unit
     }
-
 
 
     @Test
