@@ -55,8 +55,6 @@ open class CQRSModelRepositoryDecorator<I : Any, T : Any>(
 
     override suspend fun findById(i: I): T? = queryRepo.findById(i)
 
-    override suspend fun findOneBy(q: ModelQuery<T>): T? = queryRepo.findOneBy(q)
-
     override suspend fun findBy(q: ModelQuery<T>): List<T> = queryRepo.findBy(q)
 
 }

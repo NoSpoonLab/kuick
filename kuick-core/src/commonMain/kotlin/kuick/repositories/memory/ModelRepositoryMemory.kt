@@ -36,8 +36,6 @@ open class ModelRepositoryMemory<I : Any, T : Any>(
 
     override suspend fun findById(i: I): T? = table[i]
 
-    override suspend fun findOneBy(q: ModelQuery<T>): T? = findBy(q).firstOrNull()
-
     override suspend fun findBy(q: ModelQuery<T>): List<T> =
             table.values.filter { it.match(q) }
 
@@ -79,6 +77,7 @@ open class ModelRepositoryMemory<I : Any, T : Any>(
         }
         is FilterExpAnd<T> -> this.match(q.left) and this.match(q.right)
         is FilterExpOr<T> -> this.match(q.left) or this.match(q.right)
+        is DecoratedModelQuery<T> -> this.match(q.base)
 
         else -> throw NotImplementedError("Missing implementation of .toSquash() for ${this}")
     }

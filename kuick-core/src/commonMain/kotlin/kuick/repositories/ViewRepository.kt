@@ -7,16 +7,13 @@ interface ViewRepository<I : Any, T : Any> {
 
     suspend fun findById(i: I): T?
 
-    suspend fun findOneBy(q: ModelQuery<T>): T?
-
     suspend fun findBy(q: ModelQuery<T>): List<T>
 
     suspend fun getAll(): List<T>
 
-}
-
-suspend fun <I : Any, T : Any> ViewRepository<I, T>.findBy(q: ModelQuery<T>, skip: Long = 0L, limit: Int? = null, orderBy: OrderByDescriptor<T>? = null): List<T> {
-    return findBy(AttributedModelQuery(base = q, skip = skip, limit = limit, orderBy = orderBy))
+    // Default implementations
+    suspend fun findBy(q: ModelQuery<T>, skip: Long = 0L, limit: Int? = null, orderBy: OrderByDescriptor<T>? = null): List<T> = findBy(AttributedModelQuery(base = q, skip = skip, limit = limit, orderBy = orderBy))
+    suspend fun findOneBy(q: ModelQuery<T>): T? = findBy(q, skip = 0L, limit = 1).firstOrNull()
 }
 
 

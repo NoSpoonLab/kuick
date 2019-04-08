@@ -12,13 +12,7 @@ open class BusModelRepositoryDecorator<I: Any, T: Any>(
         private val modelClass: KClass<T>,
         private val repo: ModelRepository<I, T>,
         private val bus: Bus
-): ModelRepository<I, T> {
-    override suspend fun init() {
-        repo.init()
-    }
-
-    override suspend fun getAll(): List<T> = repo.getAll()
-
+): ModelRepository<I, T> by repo {
     override suspend fun insert(t: T): T {
         val t = repo.insert(t)
         bus.publishAsync(modelClass.changeEventTopic(ModelChangeType.INSERT), t)
@@ -42,10 +36,4 @@ open class BusModelRepositoryDecorator<I: Any, T: Any>(
     override suspend fun deleteBy(q: ModelQuery<T>) {
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
-
-    override suspend fun findById(i: I): T? = repo.findById(i)
-
-    override suspend fun findOneBy(q: ModelQuery<T>): T? = repo.findOneBy(q)
-
-    override suspend fun findBy(q: ModelQuery<T>): List<T> = repo.findBy(q)
 }

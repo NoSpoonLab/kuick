@@ -1,18 +1,9 @@
 package kuick.repositories.elasticsearch
 
-import kotlinx.coroutines.runBlocking
-import kuick.repositories.elasticsearch.orm.ElasticSearchFieldType.TEXT
-import kuick.repositories.elasticsearch.orm.field
-import kuick.repositories.eq
-import kuick.repositories.like
+import kotlinx.coroutines.*
+import kuick.repositories.*
 import org.assertj.core.api.Assertions.assertThat
-import org.jboss.arquillian.junit.*
-import org.junit.Ignore
-import org.junit.Test
-import org.junit.runner.*
-import kotlin.test.assertEquals
-import kotlin.test.assertFalse
-import kotlin.test.assertTrue
+import kotlin.test.*
 
 
 internal class ModelRepositoryElasticSearchTest : AbstractITTestWithElasticSearch() {
@@ -282,6 +273,25 @@ internal class ModelRepositoryElasticSearchTest : AbstractITTestWithElasticSearc
         assertThat(result.map { it.model })
             .containsAll(searchedModels)
             .hasSameSizeAs(searchedModels)
+        Unit
+    }
+
+    @Test
+    fun `findBy with skip limit and order should work`() = runBlocking {
+        modelRepositoryElasticSearch.init()
+        assertEquals(0, modelRepositoryElasticSearch.getAll().size)
+
+        modelRepositoryElasticSearch.insertMany(setOf(
+                TestModel("1", "some random text", 2, true),
+                TestModel("2", "some random text", 2, true),
+                TestModel("3", "some random text", 2, true),
+                TestModel("4", "some random text", 4, true)
+        ))
+
+        val result = modelRepositoryElasticSearch.findBy(TestModel::val1 eq "some random text", skip = 1L, limit = 2, orderBy = TestModel::id.desc())
+        assertThat(result).hasSize(2)
+        assertEquals(listOf("3", "2"), result.map { it.id })
+
         Unit
     }
 
