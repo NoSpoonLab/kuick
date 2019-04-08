@@ -5,6 +5,7 @@ import io.reactiverse.kotlin.pgclient.PgClient
 import io.reactiverse.pgclient.*
 import io.vertx.core.*
 import kuick.client.db.*
+import kuick.client.sql.*
 
 object PostgresDriver : DbDriver {
     override suspend fun connect(url: String): DbConnection {
@@ -14,8 +15,10 @@ object PostgresDriver : DbDriver {
 }
 
 class PostgressConnection(val closeVertx: Vertx?, val connection: PgConnection) : DbConnection {
+    override val sql = SqlBuilder.Iso
+
     override suspend fun <T> transaction(callback: suspend (DbTransaction) -> T): T {
-        return connection.transaction { callback(PostgressTransaction(it)) }
+        return connection.transaction { callback(PostgressTransaction(this, it)) }
     }
 
     override fun close() {
@@ -24,7 +27,8 @@ class PostgressConnection(val closeVertx: Vertx?, val connection: PgConnection) 
     }
 }
 
-class PostgressTransaction(val transaction: PgTransaction) : DbTransaction {
+class PostgressTransaction(val connection: PostgressConnection, val transaction: PgTransaction) : DbTransaction {
+    override val sql: SqlBuilder get() = connection.sql
     override suspend fun prepare(sql: String): DbPreparedStatement =
             PostgresPreparedStatement(transaction.prepareAwait(sql))
 }

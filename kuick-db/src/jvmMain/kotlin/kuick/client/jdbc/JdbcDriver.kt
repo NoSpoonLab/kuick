@@ -2,6 +2,8 @@ package kuick.client.jdbc
 
 import kotlinx.coroutines.*
 import kuick.client.db.*
+import kuick.client.sql.*
+import org.h2.jdbc.*
 import java.sql.*
 
 object JdbcDriver : DbDriver {
@@ -11,6 +13,8 @@ object JdbcDriver : DbDriver {
 }
 
 class JdbcConnection(val connection: Connection) : DbConnection {
+    override val sql = SqlBuilder.Iso
+
     override suspend fun <T> transaction(callback: suspend DbTransaction.() -> T): T {
         connection.autoCommit = false
         connection.setSavepoint()
@@ -30,13 +34,25 @@ class JdbcConnection(val connection: Connection) : DbConnection {
 }
 
 class JdbcTransaction(val connection: JdbcConnection) : DbTransaction {
-    override suspend fun prepare(sql: String) = JdbcPreparedStatement(connection.connection.prepareStatement(sql))
+    override val sql: SqlBuilder get() = connection.sql
+    override suspend fun prepare(sql: String) = JdbcPreparedStatement(sql, connection.connection.prepareStatement(sql))
 }
 
-class JdbcPreparedStatement(val prepareStatement: PreparedStatement) : DbPreparedStatement {
+class JdbcPreparedStatement(val sql: String, val prepareStatement: PreparedStatement) : DbPreparedStatement {
+    val isSelection = sql.startsWith("SELECT", ignoreCase = true)
     override suspend fun exec(vararg args: Any?): List<DbRow> {
-        for (n in 0 until args.size) prepareStatement.setObject(n, args[n])
-        return withContext(JdbcDriver.Dispatchers) { prepareStatement.executeQuery().toListDbRow() }
+        for (n in 0 until args.size) prepareStatement.setObject(n + 1, args[n])
+        try {
+            return withContext(JdbcDriver.Dispatchers) {
+                if (isSelection) {
+                    prepareStatement.executeQuery().toListDbRow()
+                } else {
+                    DbRow.RESULT_BOOL(prepareStatement.execute())
+                }
+            }
+        } catch (e: JdbcSQLException) {
+            throw DbException(e.message, e)
+        }
     }
 
     private fun ResultSet.toListDbRow(): List<DbRow> {
