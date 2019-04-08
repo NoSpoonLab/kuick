@@ -3,4 +3,7 @@ dependencies {
     jvmMainApi 'io.reactiverse:reactive-pg-client:0.11.2'
     jvmMainApi 'com.h2database:h2:1.4.197'
     jvmMainApi "org.postgresql:postgresql:42.1.4"
+
+    jvmTestImplementation 'org.arquillian.cube:arquillian-cube-docker:1.18.2'
+    jvmTestImplementation 'org.jboss.arquillian.junit:arquillian-junit-standalone:1.4.1.Final'
 }
