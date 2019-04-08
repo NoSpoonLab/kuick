@@ -7,6 +7,8 @@ include ':kuick-repositories-squash'
 include ':kuick-redis'
 include ':kuick-cache-redis'
 
+include ':kuick-postgres'
+
 include ':vendor:squash-core'
 include ':vendor:squash-graph'
 include ':vendor:squash-h2'

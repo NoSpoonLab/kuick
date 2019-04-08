@@ -37,6 +37,7 @@ subprojects {
 
     if (multiProject) {
         apply plugin: 'kotlin-multiplatform'
+
         kotlin {
             jvm {
                 configure([compilations.main, compilations.test]) {
@@ -95,6 +96,8 @@ subprojects {
             jvmTestImplementation "org.assertj:assertj-core:3.11.1"
             jvmTestImplementation "io.mockk:mockk:1.9"
         }
+
+        //println(kotlin.targets.jvm.compilations.main.kotlinOptions.jvmTarget)
     } else {
         //println("Other project ${project.name}")
 
