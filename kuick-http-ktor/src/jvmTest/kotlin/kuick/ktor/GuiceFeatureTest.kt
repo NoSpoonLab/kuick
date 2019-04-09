@@ -14,6 +14,7 @@ import org.jetbrains.squash.dialects.h2.*
 import org.junit.Test
 import kotlin.test.*
 
+@UseExperimental(KuickInternal::class)
 class GuiceFeatureTest {
     class Hello(val hello: String)
 
@@ -25,7 +26,6 @@ class GuiceFeatureTest {
     }
 
     @Test
-    @UseExperimental(KuickInternal::class)
     fun test() = runBlocking {
         withTestApplication {
             application.install(GuiceFeature) {
@@ -59,13 +59,105 @@ class GuiceFeatureTest {
                 repo.insert(User(User.Id("hello"), "world"))
             }
 
+            val transactionServices = arrayListOf<DomainTransactionService>()
+
             application.routing {
                 get("/hello") {
+                    transactionServices += injector().get<DomainTransactionService>()
                     val user = repo.findById(User.Id("hello"))
                     call.respondText("${user?.firstName}")
                 }
             }
             assertEquals("world", handleRequest(HttpMethod.Get, "/hello").response.content)
+            assertEquals("world", handleRequest(HttpMethod.Get, "/hello").response.content)
+            assertEquals(2, transactionServices.size)
+            assertSame(transactionServices[0], transactionServices[1])
+        }
+    }
+
+    /*
+    @Test
+    fun testPerRequestDecorator() = runBlocking {
+        withTestApplication {
+            val db = H2Connection.createMemoryConnection()
+            val repo = ModelRepositorySquash(User::class, User::userId)
+
+            val guice = application.install(GuiceFeature) {
+                injector {
+                    bindDatabaseSquashNoDomainTransaction(db)
+                }
+                perRequestInjectorDecorator { injector ->
+                    injector.createChildInjector(GuiceModule {
+                        bindDomainTransactionSquash()
+                    })
+                }
+            }
+
+            guice.withInjector {
+                repo.init()
+                repo.insert(User(User.Id("hello"), "world"))
+            }
+
+            val transactionServices = arrayListOf<DomainTransactionService>()
+
+            application.routing {
+                get("/hello") {
+                    transactionServices += injector().get<DomainTransactionService>()
+                    println("transactionServices: " + transactionServices)
+                    val user = repo.findById(User.Id("hello"))
+                    call.respondText("${user?.firstName}")
+                }
+            }
+            assertEquals("world", handleRequest(HttpMethod.Get, "/hello").response.content)
+            assertEquals("world", handleRequest(HttpMethod.Get, "/hello").response.content)
+
+            assertEquals(2, transactionServices.size)
+            assertNotSame(transactionServices[0], transactionServices[1])
+        }
+    }
+     */
+
+    @Test
+    fun testPerRequestDecorator2() = runBlocking {
+        withTestApplication {
+            val db = H2Connection.createMemoryConnection()
+            val repo = ModelRepositorySquash(User::class, User::userId)
+
+            val injector = Guice {
+                bindDatabaseSquash(db)
+            }
+
+
+            val perCoroutineJob = injector.get<PerCoroutineJob>()
+            val domainTransactionService = injector.get<DomainTransactionService>()
+            perCoroutineJob.register { callback ->
+                withInjectorContextNoIntercepted(injector) { callback() }
+            }
+
+            // Per coroutineJob
+            application.install(PerCoroutineJobFeature(perCoroutineJob))
+
+            perCoroutineJob.runBlocking {
+                repo.init()
+                repo.insert(User(User.Id("hello"), "world"))
+            }
+
+            val transactions = arrayListOf<DomainTransaction>()
+
+            application.routing {
+                get("/hello") {
+                    domainTransactionService.transaction {
+                        transactions += it
+                    }
+                    val user = repo.findById(User.Id("hello"))
+                    call.respondText("${user?.firstName}")
+                }
+            }
+            assertEquals("world", handleRequest(HttpMethod.Get, "/hello").response.content)
+            assertEquals("world", handleRequest(HttpMethod.Get, "/hello").response.content)
+
+            assertEquals(2, transactions.size)
+            assertNotSame(transactions[0], transactions[1])
         }
     }
 }

@@ -2,6 +2,7 @@ package kuick.repositories.squash
 
 import kotlinx.coroutines.*
 import kuick.db.*
+import kuick.di.*
 import kuick.models.*
 import kuick.repositories.*
 import kuick.repositories.annotations.*
@@ -22,7 +23,8 @@ data class User(val userId: UserId,
 fun main(args: Array<String>) = runBlocking {
 
     val db = H2Connection.createMemoryConnection()
-    val transactions = DomainTransactionServiceSquash(db)
+    val injector = Guice { bindPerCoroutineJob() }
+    val transactions = DomainTransactionServiceSquash(db, injector.get())
     db.monitor.before { println(it) }
 
     val repo = ModelRepositorySquash(User::class, User::userId)

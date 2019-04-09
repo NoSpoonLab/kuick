@@ -23,6 +23,8 @@ interface DomainTransactionService {
     @Deprecated("", ReplaceWith("invoke(transactionalActions)"))
     suspend fun <T:Any> transactionNullable(transactionalActions: suspend (DomainTransaction) -> T?): T?
 
+    suspend fun createNewConnection(callback: suspend () -> Unit)
+
     @Deprecated("")
     fun <T : Any> transactionSync(transactionalActions: (DomainTransaction) -> T): T = runBlocking {
         invoke { transactionalActions(it) }
@@ -36,15 +38,23 @@ suspend operator fun <T> DomainTransactionService.invoke(transactionalActions: s
 
 
 // coroutine context element that keeps a (mutable) integer counter
-class DomainTransactionContext(val tr: DomainTransaction) : AbstractCoroutineContextElement(Key) {
-    companion object Key : CoroutineContext.Key<DomainTransactionContext>
+abstract class BaseDomainTransactionContext() : AbstractCoroutineContextElement(Key) {
+    abstract val tr: DomainTransaction
+    companion object Key : CoroutineContext.Key<BaseDomainTransactionContext>
+}
+
+class DomainTransactionContext(override val tr: DomainTransaction) : BaseDomainTransactionContext() {
+}
+
+object DiscardDomainTransactionContext : BaseDomainTransactionContext() {
+    override val tr: DomainTransaction get() = TODO()
 }
 
 class NotInTransactionException: RuntimeException()
 
 @KuickInternalWarning
 @Deprecated("Do not use domainTransactionOrNull")
-suspend fun domainTransactionOrNull(): DomainTransaction? = coroutineContext[DomainTransactionContext]?.tr
+suspend fun domainTransactionOrNull(): DomainTransaction? = coroutineContext[BaseDomainTransactionContext]?.takeUnless { it is DiscardDomainTransactionContext }?.tr
 
 @KuickInternalWarning
 @Deprecated("Do not use domainTransaction")

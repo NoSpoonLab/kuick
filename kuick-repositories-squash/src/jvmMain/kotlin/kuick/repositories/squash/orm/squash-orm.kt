@@ -40,17 +40,24 @@ typealias LazyDomainTransactionSquash = DomainTransactionSquash
 
 @KuickInternalWarning
 class DomainTransactionSquash(val db: DatabaseConnection): DomainTransaction, Closeable {
+    private var closed = false
     private var _tr = AtomicReference<Transaction?>(null)
     val tr: Transaction get() {
+        if (closed) error("Trying to get a closed transaction")
         if (_tr.get() == null) {
             val tr = db.createTransaction()
             _tr.set(tr)
+            //println("Starting transaction $this : $db : ${_tr.get()}")
         }
         return _tr.get()!!
     }
 
     override fun close() {
-        _tr.get()?.close()
+        val tr = _tr.get()
+        //println("Closing $this : $db : $tr")
+        tr?.commit()
+        tr?.close()
+        closed = true
     }
 }
 

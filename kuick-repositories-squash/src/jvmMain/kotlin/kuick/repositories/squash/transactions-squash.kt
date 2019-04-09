@@ -1,29 +1,39 @@
 package kuick.repositories.squash
 
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.*
 import kuick.core.*
-import kuick.db.DomainTransaction
-import kuick.db.DomainTransactionContext
-import kuick.db.DomainTransactionService
-import kuick.db.domainTransaction
+import kuick.db.*
+import kuick.di.*
 import kuick.repositories.squash.orm.*
-import org.jetbrains.squash.connection.DatabaseConnection
-import org.jetbrains.squash.connection.transaction
-import javax.inject.Inject
-import javax.inject.Singleton
-import kotlin.coroutines.coroutineContext
+import org.jetbrains.squash.connection.*
+import javax.inject.*
+import kotlin.coroutines.*
 
 
 @Singleton
-class DomainTransactionServiceSquash @Inject constructor(val db: DatabaseConnection): DomainTransactionService {
+class DomainTransactionServiceSquash @Inject constructor(val db: DatabaseConnection, val perCoroutineJob: PerCoroutineJob) : DomainTransactionService {
+    init {
+        perCoroutineJob.register { callback ->
+            this@DomainTransactionServiceSquash.createNewConnection {
+                callback()
+            }
+        }
+    }
+
+    override suspend fun createNewConnection(callback: suspend () -> Unit) {
+        withContext(DiscardDomainTransactionContext) {
+            callback()
+        }
+    }
 
     @Suppress("OverridingDeprecatedMember")
     @UseExperimental(KuickInternalWarning::class)
     override suspend fun <T : Any> transactionNullable(transactionalActions: suspend (DomainTransaction) -> T?): T? {
 
-        return if (coroutineContext[DomainTransactionContext.Key] != null) {
-            println("Reentrando en transaction {}")
+        //println("LazyDomainTransactionSquash($db)")
+        val ctx = coroutineContext[BaseDomainTransactionContext.Key]
+        return if (ctx != null && ctx != DiscardDomainTransactionContext) {
+            //println("Reentrando en transaction {}")
             domainTransaction { tr -> transactionalActions(tr) }
         } else {
             LazyDomainTransactionSquash(db).use { domainTransaction ->
