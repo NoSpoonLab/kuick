@@ -12,7 +12,7 @@ object JdbcDriver : DbDriver {
     //internal val Dispatchers = kotlinx.coroutines.Dispatchers.Default
 
     override suspend fun connect(url: String): DbConnection = JdbcConnection(url, DriverManager.getConnection(url))
-    suspend fun connectMemoryH2() = connect("jdbc:h2:mem:0")
+    suspend fun connectMemoryH2(index: Int = 0) = connect("jdbc:h2:mem:$index")
 }
 
 class JdbcConnection(val url: String, val connection: Connection) : DbConnection {

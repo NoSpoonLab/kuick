@@ -6,6 +6,7 @@ import kuick.concurrent.atomic.*
 import kuick.utils.*
 import java.util.concurrent.atomic.*
 import kotlin.concurrent.*
+import kotlin.coroutines.*
 
 @Singleton
 class PerCoroutineJob @Inject constructor(val injector: Injector) {
@@ -14,6 +15,14 @@ class PerCoroutineJob @Inject constructor(val injector: Injector) {
     fun register(handler: PerCoroutineJobHandler): PerCoroutineJob {
         handlers = handlers + handler
         return this
+    }
+
+    fun registerContext(context: CoroutineContext.Element) {
+        register { block ->
+            withContext(context) {
+                block()
+            }
+        }
     }
 
     fun runBlocking(callback: suspend () -> Unit) = kotlinx.coroutines.runBlocking { runSuspending(callback) }

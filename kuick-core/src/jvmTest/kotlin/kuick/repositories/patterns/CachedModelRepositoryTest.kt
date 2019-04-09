@@ -11,27 +11,6 @@ import kotlin.test.assertNotEquals
 
 class CachedModelRepositoryTest {
 
-
-    class MemoryCache: Cache {
-
-        private val map: MutableMap<String, Any> = mutableMapOf()
-
-        override suspend fun <T : Any> get(key: String): T? {
-            val cached = map.get(key)
-            return cached?.let { it as T? }
-        }
-
-        override suspend fun <T : Any> put(key: String, cached: T) {
-            map.put(key, cached)
-        }
-
-        override suspend fun remove(key: String) {
-            map.remove(key)
-        }
-
-    }
-
-
     data class Question(val ebookId: String, val questionId: String, val question: String)
 
     @Test

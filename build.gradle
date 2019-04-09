@@ -34,6 +34,8 @@ subprojects {
     def isKuick = project.name.startsWith("kuick")
     def multiProject = true
     def includeJs = isKuick
+    def mustPublish = !project.path.startsWith(":samples")
+    //println(project.path)
 
     if (multiProject) {
         apply plugin: 'kotlin-multiplatform'
@@ -110,41 +112,43 @@ subprojects {
         }
     }
 
-    def publishUser = (rootProject.findProperty("BINTRAY_USER") ?: project.findProperty("bintrayUser") ?: System.getenv("BINTRAY_USER"))?.toString()
-    def publishPassword = (rootProject.findProperty("BINTRAY_KEY") ?: project.findProperty("bintrayApiKey") ?: System.getenv("BINTRAY_API_KEY"))?.toString()
+    if (mustPublish) {
+        def publishUser = (rootProject.findProperty("BINTRAY_USER") ?: project.findProperty("bintrayUser") ?: System.getenv("BINTRAY_USER"))?.toString()
+        def publishPassword = (rootProject.findProperty("BINTRAY_KEY") ?: project.findProperty("bintrayApiKey") ?: System.getenv("BINTRAY_API_KEY"))?.toString()
 
-    if (publishUser != null && publishPassword != null) {
-        publishing {
-            repositories {
-                maven {
-                    credentials {
-                        username = publishUser
-                        password = publishPassword
+        if (publishUser != null && publishPassword != null) {
+            publishing {
+                repositories {
+                    maven {
+                        credentials {
+                            username = publishUser
+                            password = publishPassword
+                        }
+                        url = uri("https://api.bintray.com/maven/nospoonlab/nospoonlab/${project.property("project.repository")}/")
                     }
-                    url = uri("https://api.bintray.com/maven/nospoonlab/nospoonlab/${project.property("project.repository")}/")
                 }
-            }
-            publications {
-                maven(MavenPublication) {
-                    groupId = project.group
-                    artifactId = project.name
-                    version = project.version
-
-                    from multiProject ? components.kotlin : components.java
-
+                publications {
                     maven(MavenPublication) {
-                        pom {
-                            name = project.name
-                            description = project.property("project.description")
-                            url = project.property("project.scm.url")
-                            licenses {
-                                license {
-                                    name = project.property("project.license.name")
-                                    url = project.property("project.license.url")
-                                }
-                            }
-                            scm {
+                        groupId = project.group
+                        artifactId = project.name
+                        version = project.version
+
+                        from multiProject ? components.kotlin : components.java
+
+                        maven(MavenPublication) {
+                            pom {
+                                name = project.name
+                                description = project.property("project.description")
                                 url = project.property("project.scm.url")
+                                licenses {
+                                    license {
+                                        name = project.property("project.license.name")
+                                        url = project.property("project.license.url")
+                                    }
+                                }
+                                scm {
+                                    url = project.property("project.scm.url")
+                                }
                             }
                         }
                     }
