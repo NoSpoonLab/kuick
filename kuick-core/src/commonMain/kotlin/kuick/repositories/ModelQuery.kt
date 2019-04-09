@@ -30,19 +30,29 @@ class AttributedModelQuery<T : Any>(base: ModelQuery<T>, val skip: Long = 0L, va
 // @TODO: Could we want to find in children? Should we need a vistor for this graph?
 fun <T : Any> ModelQuery<T>.tryGetAttributed(): AttributedModelQuery<T>? = this as? AttributedModelQuery<T>
 
+abstract class FilterExpBinopLogic<T: Any>(val op: String) : ModelFilterExp<T>() {
+    abstract val left: ModelFilterExp<T>
+    abstract val right: ModelFilterExp<T>
+}
+
+abstract class FilterExpUnopLogic<T: Any>(val op: String) : ModelFilterExp<T>() {
+    abstract val exp: ModelFilterExp<T>
+}
+
+
 // NOT
-data class FilterExpNot<T : Any>(val exp: ModelFilterExp<T>) : ModelFilterExp<T>()
+data class FilterExpNot<T : Any>(override val exp: ModelFilterExp<T>) : FilterExpUnopLogic<T>("NOT")
 
 //fun <T : Any> ModelFilterExp<T>.not() = FilterExpNot(this)
 fun <T : Any> not(exp: ModelFilterExp<T>) = FilterExpNot(exp)
 
 // AND
-data class FilterExpAnd<T : Any>(val left: ModelFilterExp<T>, val right: ModelFilterExp<T>) : ModelFilterExp<T>()
+data class FilterExpAnd<T : Any>(override val left: ModelFilterExp<T>, override val right: ModelFilterExp<T>) : FilterExpBinopLogic<T>("AND")
 
 infix fun <T : Any> ModelFilterExp<T>.and(right: ModelFilterExp<T>) = FilterExpAnd(this, right)
 
 // OR
-data class FilterExpOr<T : Any>(val left: ModelFilterExp<T>, val right: ModelFilterExp<T>) : ModelFilterExp<T>()
+data class FilterExpOr<T : Any>(override val left: ModelFilterExp<T>, override val right: ModelFilterExp<T>) : FilterExpBinopLogic<T>("OR")
 
 infix fun <T : Any> ModelFilterExp<T>.or(right: ModelFilterExp<T>) = FilterExpOr(this, right)
 
@@ -60,35 +70,40 @@ fun <T : Any, F : Any> KProperty1<T, F?>.isNull() = FieldIsNull(this)
 abstract class FieldBinop<T : Any, F : Any, V : Any>(val field: KProperty1<T, F?>, val value: V?) : ModelFilterExp<T>()
 
 // Field Binary Operator for simple queries
-abstract class SimpleFieldBinop<T : Any, V : Any>(field: KProperty1<T, V?>, value: V?) : FieldBinop<T, V, V>(field, value)
+abstract class SimpleFieldBinop<T : Any, V : Any>(field: KProperty1<T, V?>, value: V?, val op: String) : FieldBinop<T, V, V>(field, value)
 
-// EQ ==
-class FieldEqs<T : Any, V : Any>(field: KProperty1<T, V?>, value: V?) : SimpleFieldBinop<T, V>(field, value)
+// EQ =
+class FieldEqs<T : Any, V : Any>(field: KProperty1<T, V?>, value: V?) : SimpleFieldBinop<T, V>(field, value, "=")
 
 infix fun <T : Any, V : Any> KProperty1<T, @Exact V?>.eq(value: V?) = FieldEqs(this, value)
 
+// NE <>
+class FieldNeq<T : Any, V : Any>(field: KProperty1<T, V?>, value: V?) : SimpleFieldBinop<T, V>(field, value, "<>")
+
+infix fun <T : Any, V : Any> KProperty1<T, @Exact V?>.ne(value: V?) = FieldNeq(this, value)
+
 // LIKE ~=
-class FieldLike<T : Any>(field: KProperty1<T, String?>, value: String) : SimpleFieldBinop<T, String>(field, value)
+class FieldLike<T : Any>(field: KProperty1<T, String?>, value: String) : SimpleFieldBinop<T, String>(field, value, "~=")
 
 infix fun <T : Any> KProperty1<T, String?>.like(value: String) = FieldLike(this, value)
 
-// GT ==
-class FieldGt<T : Any, V : Comparable<V>>(field: KProperty1<T, V?>, value: V) : SimpleFieldBinop<T, V>(field, value)
+// GT >
+class FieldGt<T : Any, V : Comparable<V>>(field: KProperty1<T, V?>, value: V) : SimpleFieldBinop<T, V>(field, value, ">")
 
 infix fun <T : Any, V : Comparable<V>> KProperty1<T, @Exact V?>.gt(value: V) = FieldGt(this, value)
 
-// GTE ==
-class FieldGte<T : Any, V : Comparable<V>>(field: KProperty1<T, V?>, value: V) : SimpleFieldBinop<T, V>(field, value)
+// GTE >=
+class FieldGte<T : Any, V : Comparable<V>>(field: KProperty1<T, V?>, value: V) : SimpleFieldBinop<T, V>(field, value, ">=")
 
 infix fun <T : Any, V : Comparable<V>> KProperty1<T, @Exact V?>.gte(value: V) = FieldGte(this, value)
 
-// LT ==
-class FieldLt<T : Any, V : Comparable<V>>(field: KProperty1<T, V?>, value: V) : SimpleFieldBinop<T, V>(field, value)
+// LT <
+class FieldLt<T : Any, V : Comparable<V>>(field: KProperty1<T, V?>, value: V) : SimpleFieldBinop<T, V>(field, value, "<")
 
 infix fun <T : Any, V : Comparable<V>> KProperty1<T, @Exact V?>.lt(value: V) = FieldLt(this, value)
 
-// LTE ==
-class FieldLte<T : Any, V : Comparable<V>>(field: KProperty1<T, V?>, value: V) : SimpleFieldBinop<T, V>(field, value)
+// LTE <=
+class FieldLte<T : Any, V : Comparable<V>>(field: KProperty1<T, V?>, value: V) : SimpleFieldBinop<T, V>(field, value, "<=")
 
 infix fun <T : Any, V : Comparable<V>> KProperty1<T, @Exact V?>.lte(value: V) = FieldLte(this, value)
 
