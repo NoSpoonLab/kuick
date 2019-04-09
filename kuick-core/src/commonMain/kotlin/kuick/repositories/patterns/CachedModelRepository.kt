@@ -1,26 +1,44 @@
 package kuick.repositories.patterns
 
 import kuick.repositories.*
-import kuick.repositories.memory.ModelRepositoryMemory
-import kotlin.reflect.KClass
-import kotlin.reflect.KProperty1
+import kuick.repositories.memory.*
+import kotlin.reflect.*
 
 interface Cache {
-    suspend fun <T:Any> get(key: String): T?
-    suspend fun <T:Any> put(key: String, cached: T)
+    suspend fun <T : Any> get(key: String): T?
+    suspend fun <T : Any> put(key: String, cached: T)
     suspend fun remove(key: String)
+}
+
+class MemoryCache: Cache {
+
+    private val map: MutableMap<String, Any> = mutableMapOf()
+
+    override suspend fun <T : Any> get(key: String): T? {
+        val cached = map.get(key)
+        return cached?.let { it as T? }
+    }
+
+    override suspend fun <T : Any> put(key: String, cached: T) {
+        map.put(key, cached)
+    }
+
+    override suspend fun remove(key: String) {
+        map.remove(key)
+    }
+
 }
 
 /**
  * [ModelRepository]
  */
-class CachedModelRepository<I: Any, T: Any>(
+class CachedModelRepository<I : Any, T : Any>(
         val modelClass: KClass<T>,
         override val idField: KProperty1<T, I>,
         val repo: ModelRepository<I, T>,
         private val cache: Cache,
         private val cacheField: KProperty1<T, *>
-): ModelRepositoryDecorator<I, T>(repo) {
+) : ModelRepositoryDecorator<I, T>(repo) {
 
     private suspend fun invalidate(t: T) = cache.remove(cacheField(t).toString())
 
@@ -49,7 +67,7 @@ class CachedModelRepository<I: Any, T: Any>(
                 subset = super.findBy(q)
                 cache.put(key, subset)
             }
-            val subRepo = ModelRepositoryMemory<I,T>(modelClass, idField)
+            val subRepo = ModelRepositoryMemory<I, T>(modelClass, idField)
             subset.forEach { subRepo.insert(it) }
             subRepo.findBy(q)
         } else {
@@ -58,9 +76,12 @@ class CachedModelRepository<I: Any, T: Any>(
     }
 
     private fun findCacheQuery(q: ModelQuery<T>): FieldEqs<T, *>? = when {
-        q is FieldEqs<T, *> && q.field == cacheField-> q
+        q is FieldEqs<T, *> && q.field == cacheField -> q
         q is FilterExpAnd<T> -> findCacheQuery(q.left) ?: findCacheQuery(q.right)
         else -> throw NotImplementedError("Missing hadling of query type: ${q}")
     }
 
 }
+
+inline fun <I : Any, reified T : Any> ModelRepository<I, T>.cached(cache: Cache, cacheField: KProperty1<T, *> = idField) = CachedModelRepository(T::class, idField, this, cache, cacheField)
+

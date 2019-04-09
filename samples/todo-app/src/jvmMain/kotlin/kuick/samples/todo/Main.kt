@@ -12,6 +12,7 @@ import io.ktor.routing.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
 import kotlinx.coroutines.*
+import kuick.caching.*
 import kuick.client.db.*
 import kuick.client.jdbc.*
 import kuick.client.repositories.*
@@ -19,6 +20,7 @@ import kuick.core.*
 import kuick.di.*
 import kuick.ktor.*
 import kuick.repositories.annotations.*
+import kuick.repositories.patterns.*
 import java.util.*
 
 suspend fun main(args: Array<String>) {
@@ -44,7 +46,7 @@ fun Application.module() {
     }
 
     perCoroutineJob.runBlocking {
-        Todo.Repository.init()
+        Todo.CachedRepository.init()
     }
 
     install(PerCoroutineJobFeature(perCoroutineJob))
@@ -54,12 +56,12 @@ fun Application.module() {
         }
         get("/remove/{id}") {
             val param = call.parameters["id"] ?: error("Id not specified")
-            Todo.Repository.delete(Todo.Id(param))
+            Todo.CachedRepository.delete(Todo.Id(param))
             call.respondRedirect("/")
         }
         post("/") {
             val post = call.receiveParameters()
-            Todo.Repository.insert(Todo(Todo.Id(), post["item"]!!))
+            Todo.CachedRepository.insert(Todo(Todo.Id(), post["item"]!!))
             call.respondRedirect("/")
         }
     }
@@ -67,7 +69,7 @@ fun Application.module() {
 
 @Suppress("unused")
 open class StandardModel(val injector: Injector) {
-    suspend fun allTodos() = Todo.Repository.getAll()
+    suspend fun allTodos() = Todo.CachedRepository.getAll()
 }
 
 abstract class AbstractId(override val id: String) : kuick.models.Id {
@@ -86,5 +88,6 @@ data class Todo(
 
     companion object {
         val Repository = DbModelRepository(Todo::id)
+        val CachedRepository = Repository.cached(MemoryCache())
     }
 }
