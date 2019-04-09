@@ -1,7 +1,7 @@
 package kuick.repositories.annotations
 
 @Retention(AnnotationRetention.RUNTIME)
-@Target(AnnotationTarget.FIELD)
+@Target(AnnotationTarget.FIELD, AnnotationTarget.VALUE_PARAMETER, AnnotationTarget.TYPE)
 annotation class MaxLength(val maxLength: Int)
 
 //@Retention(AnnotationRetention.RUNTIME)

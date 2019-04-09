@@ -3,69 +3,90 @@ package kuick.samples.todo
 import com.google.inject.*
 import com.soywiz.korio.file.std.*
 import com.soywiz.korte.*
-import com.soywiz.korte.ktor.*
 import com.soywiz.korte.ktor.Korte
 import io.ktor.application.*
-import io.ktor.request.*
-import io.ktor.response.*
-import io.ktor.routing.*
+import io.ktor.http.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
-import kotlinx.coroutines.*
-import kuick.caching.*
 import kuick.client.db.*
 import kuick.client.jdbc.*
 import kuick.client.repositories.*
-import kuick.core.*
 import kuick.di.*
 import kuick.ktor.*
 import kuick.repositories.annotations.*
 import kuick.repositories.patterns.*
-import java.util.*
+import kuick.utils.*
 
 suspend fun main(args: Array<String>) {
     embeddedServer(Netty, port = 8080) { module() }.start(wait = true)
 }
 
-@UseExperimental(KuickInternal::class)
+fun Application.installKorte(templates: Templates) = run { install(Korte) { this.templates = templates } }
+
 fun Application.module() {
     val injector = Guice {
         bindPerCoroutineJob()
     }
-    val perCoroutineJob = injector.get<PerCoroutineJob>()
-    val db = DbClientPool { JdbcDriver.connectMemoryH2() }
 
+    val templates = Templates(resourcesVfs["templates"])
 
-    install(Korte) {
-        (this as TemplateConfigWithTemplates).root(resourcesVfs["templates"])
-    }
-    perCoroutineJob.register { callback ->
-        withContext(db) {
-            callback()
-        }
-    }
+    installKorte(templates)
+    installContextPerRequest(injector, DbClientPool { JdbcDriver.connectMemoryH2() }) { Todo.CachedRepository.init() }
+    installHttpExceptionsSupport()
 
-    perCoroutineJob.runBlocking {
-        Todo.CachedRepository.init()
-    }
-
-    install(PerCoroutineJobFeature(perCoroutineJob))
-    routing {
+    kuickRouting {
+        get("/sample-html") { "Hello world!" }
+        get("/sample-txt") { "Hello world!".withContentType(ContentType.Text.Plain) }
         get("/") {
-            call.respondKorte("index.html", StandardModel(injector))
+            templates.render("index.html", StandardModel(injector))
         }
         get("/remove/{id}") {
-            val param = call.parameters["id"] ?: error("Id not specified")
+            val param = param("id")
             Todo.CachedRepository.delete(Todo.Id(param))
-            call.respondRedirect("/")
+            redirect("/")
         }
         post("/") {
-            val post = call.receiveParameters()
-            Todo.CachedRepository.insert(Todo(Todo.Id(), post["item"]!!))
-            call.respondRedirect("/")
+            val item = post("item")
+            Todo.CachedRepository.insert(Todo(Todo.Id(), item))
+            redirect("/")
         }
     }
 }
+
+//class KorteResult(val templates: Templates, val template: String, val model: Any?) : SuspendingResult<String> {
+//    override suspend fun get(): String = templates.render(template, model)
+//}
+//
+//fun Templates.result(template: String, model: Any?) = KorteResult(this, template, model)
+
+/*
+@Suppress("unused")
+class ApplicationRoutes(val injector: Injector) {
+    val templates = injector.get<Templates>()
+
+    class RootLocation() : Location("/")
+    class RemoveLocation(@MaxLength(64) val id: String) : Location("/remove/{id}")
+
+    @Get
+    @RouteLocation(RemoveLocation::class)
+    suspend fun getIndex(): String {
+        return templates.render("index.html", StandardModel(injector))
+    }
+
+    @Post
+    @RouteLocation(RemoveLocation::class)
+    suspend fun postIndex(@Post @MaxLength(1024) item: String) {
+        Todo.CachedRepository.insert(Todo(Todo.Id(), item))
+        redirect("/")
+    }
+
+    @Get
+    suspend fun remove(location: RemoveLocation) {
+        Todo.CachedRepository.delete(Todo.Id(location.id))
+        redirect("/")
+    }
+}
+*/
 
 @Suppress("unused")
 open class StandardModel(val injector: Injector) {
@@ -84,7 +105,7 @@ data class Todo(
 ) {
     fun removeLink() = "/remove/$id"
 
-    class Id(id: String = UUID.randomUUID().toString()) : AbstractId(id)
+    class Id(id: String = randomUUID()) : AbstractId(id)
 
     companion object {
         val Repository = DbModelRepository(Todo::id)

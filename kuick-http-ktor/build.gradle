@@ -1,5 +1,6 @@
 dependencies {
     jvmApi project(":kuick-http")
+    //jvmApi project(":kuick-db")
     jvmTestImplementation "io.ktor:ktor-server-test-host:$ktor_version"
     jvmTestImplementation project(":kuick-repositories-squash")
 }
