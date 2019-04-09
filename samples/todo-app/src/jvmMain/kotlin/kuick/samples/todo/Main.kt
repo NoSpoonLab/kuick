@@ -13,6 +13,7 @@ import kuick.client.jdbc.*
 import kuick.client.repositories.*
 import kuick.di.*
 import kuick.ktor.*
+import kuick.models.*
 import kuick.repositories.annotations.*
 import kuick.repositories.patterns.*
 import kuick.utils.*
@@ -56,12 +57,6 @@ fun Application.module() {
 @Suppress("unused")
 open class StandardModel(val injector: Injector) {
     suspend fun allTodos() = Todo.CachedRepository.getAll()
-}
-
-abstract class AbstractId(override val id: String) : kuick.models.Id {
-    override fun equals(other: Any?): Boolean = (other is AbstractId) && this.id == other.id
-    override fun hashCode(): Int = id.hashCode()
-    override fun toString(): String = id
 }
 
 data class Todo(
