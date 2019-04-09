@@ -6,7 +6,9 @@ import kuick.orm.*
 import kuick.repositories.*
 import kotlin.reflect.*
 
-class DbModelRepository<I : Any, T : Any>(
+inline fun <reified T : Any, I : Any> DbModelRepository(idField: KProperty1<T, I>): ModelRepository<I, T> = DbModelRepository(T::class, idField)
+
+open class DbModelRepository<I : Any, T : Any>(
         val table: TableDefinition<T>,
         override val idField: KProperty1<T, I>
 ) : ModelRepository<I, T> {

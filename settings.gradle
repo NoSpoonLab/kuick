@@ -15,3 +15,5 @@ include ':vendor:squash-graph'
 include ':vendor:squash-h2'
 include ':vendor:squash-jdbc'
 include ':vendor:squash-postgres'
+
+include ':samples:todo-app'

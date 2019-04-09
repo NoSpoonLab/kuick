@@ -43,7 +43,7 @@ inline fun <reified T> Binder.bindSelf(): Binder = this.apply {
     bind(T::class.java).asEagerSingleton()
 }
 
-class InjectorNotInContextException : RuntimeException()
+class InjectorNotInContextException : RuntimeException("Injector not in context")
 
 class InjectorContext(val injector: Injector) : AbstractCoroutineContextElement(Key) {
     companion object Key : CoroutineContext.Key<InjectorContext>
