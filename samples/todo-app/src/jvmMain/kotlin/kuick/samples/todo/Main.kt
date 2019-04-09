@@ -53,41 +53,6 @@ fun Application.module() {
     }
 }
 
-//class KorteResult(val templates: Templates, val template: String, val model: Any?) : SuspendingResult<String> {
-//    override suspend fun get(): String = templates.render(template, model)
-//}
-//
-//fun Templates.result(template: String, model: Any?) = KorteResult(this, template, model)
-
-/*
-@Suppress("unused")
-class ApplicationRoutes(val injector: Injector) {
-    val templates = injector.get<Templates>()
-
-    class RootLocation() : Location("/")
-    class RemoveLocation(@MaxLength(64) val id: String) : Location("/remove/{id}")
-
-    @Get
-    @RouteLocation(RemoveLocation::class)
-    suspend fun getIndex(): String {
-        return templates.render("index.html", StandardModel(injector))
-    }
-
-    @Post
-    @RouteLocation(RemoveLocation::class)
-    suspend fun postIndex(@Post @MaxLength(1024) item: String) {
-        Todo.CachedRepository.insert(Todo(Todo.Id(), item))
-        redirect("/")
-    }
-
-    @Get
-    suspend fun remove(location: RemoveLocation) {
-        Todo.CachedRepository.delete(Todo.Id(location.id))
-        redirect("/")
-    }
-}
-*/
-
 @Suppress("unused")
 open class StandardModel(val injector: Injector) {
     suspend fun allTodos() = Todo.CachedRepository.getAll()
@@ -103,6 +68,7 @@ data class Todo(
         val id: Id,
         @MaxLength(512) val text: String
 ) {
+    @Suppress("unused")
     fun removeLink() = "/remove/$id"
 
     class Id(id: String = randomUUID()) : AbstractId(id)
