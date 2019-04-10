@@ -1,0 +1,9 @@
+dependencies {
+    jvmMainApi project(":kuick-core")
+    jvmMainApi project(":kuick-db")
+    jvmMainApi 'com.amazonaws:aws-lambda-java-core:1.1.0'
+    jvmMainApi 'com.amazonaws:aws-lambda-java-log4j:1.0.0'
+    jvmMainApi 'com.fasterxml.jackson.core:jackson-core:2.8.5'
+    jvmMainApi 'com.fasterxml.jackson.core:jackson-databind:2.8.5'
+    jvmMainApi 'com.fasterxml.jackson.core:jackson-annotations:2.8.5'
+}

@@ -1,4 +1,14 @@
-def appMainClass = "MainKt"
+def appMainClass = "kuick.samples.serverless.MainKt"
+
+dependencies {
+    jvmMainApi project(":kuick-headless")
+    jvmMainApi project(":kuick-db")
+    jvmMainApi 'com.amazonaws:aws-lambda-java-core:1.1.0'
+    jvmMainApi 'com.amazonaws:aws-lambda-java-log4j:1.0.0'
+    jvmMainApi 'com.fasterxml.jackson.core:jackson-core:2.8.5'
+    jvmMainApi 'com.fasterxml.jackson.core:jackson-databind:2.8.5'
+    jvmMainApi 'com.fasterxml.jackson.core:jackson-annotations:2.8.5'
+}
 
 task jvmFatJar(type: Jar) {
     manifest {
@@ -31,7 +41,9 @@ task buildNativeImage(type: Exec, dependsOn: jvmFatJar) {
     outputs.file(new File(fatJarFile.absolutePath.replace(".jar", "")))
 
     commandLine "docker", "run", "-v", "${fatJarFile.parentFile}:/app", "-w", "/app", "panga/graalvm-ce:latest",
-            "native-image", "--no-server", "-H:Name=app", "--static", "-jar", "/app/${fatJarFile.name}"
+            "native-image", "--no-server",
+            "-H:+ReportUnsupportedElementsAtRuntime",
+            "-H:Name=app", "--static", "-jar", "/app/${fatJarFile.name}"
 }
 
 task runNativeImage(dependsOn: buildNativeImage, type: Exec) {

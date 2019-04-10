@@ -1,4 +1,5 @@
 include ':kuick-core'
+include ':kuick-headless'
 include ':kuick-logging'
 include ':kuick-http'
 include ':kuick-http-ktor'
