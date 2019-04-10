@@ -1,0 +1,49 @@
+def appMainClass = "MainKt"
+
+task jvmFatJar(type: Jar) {
+    manifest {
+        attributes(
+                'Main-Class': appMainClass
+        )
+    }
+
+    //entryCompression = ZipEntryCompression.DEFLATED
+    entryCompression = ZipEntryCompression.STORED
+
+    baseName = 'serverless-todo-app-fat-jar'
+
+    with jvmJar
+
+    from {
+        kotlin.targets.jvm.compilations.main.runtimeDependencyFiles.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+}
+
+task buildNativeImage(type: Exec, dependsOn: jvmFatJar) {
+    def fatJarFile = ((Jar)jvmFatJar).outputs.files.first()
+
+    //doLast {
+    //    println(fatJarFile)
+    //    "".execute().dum
+    //}
+
+    inputs.files(jvmFatJar.outputs)
+    outputs.file(new File(fatJarFile.absolutePath.replace(".jar", "")))
+
+    commandLine "docker", "run", "-v", "${fatJarFile.parentFile}:/app", "-w", "/app", "panga/graalvm-ce:latest",
+            "native-image", "--no-server", "-H:Name=app", "--static", "-jar", "/app/${fatJarFile.name}"
+}
+
+task runNativeImage(dependsOn: buildNativeImage, type: Exec) {
+    def exeFile = buildNativeImage.outputs.files.first()
+
+    commandLine "docker", "run", "-v", "${exeFile.parentFile}:/app", "-w", "/app", "alpine",
+            "/app/${exeFile.name}"
+}
+
+
+// docker run panga/graalvm-ce:latest native-image --help
+// docker run -v /Users/soywiz/projects/nospoon/kuick/samples/serverless-todo-app/build/libs:/app -w /app panga/graalvm-ce:latest native-image --no-server -H:Name=app --static -jar /app/serverless-todo-app-fat-jar-0.0.15-SNAPSHOT.jar
+// docker run -v /Users/soywiz/projects/nospoon/kuick/samples/serverless-todo-app/build/libs:/app -w /app panga/graalvm-ce:latest native-image -cp /app/serverless-todo-app-fat-jar-0.0.15-SNAPSHOT.jar $appMainClass
+// docker run -v $PWD:/app alpine /app/serverless-todo-app-fat-jar-0.0.15-SNAPSHOT
+// docker run -v $PWD:/app alpine /bin/sh -c "chmod +x /app/serverless-todo-app-fat-jar-0.0.15-SNAPSHOT; /app/serverless-todo-app-fat-jar-0.0.15-SNAPSHOT"
