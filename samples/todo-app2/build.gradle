@@ -10,4 +10,6 @@ dependencies {
     jvmMainApi "com.soywiz:korte-ktor-jvm:$korteVersion"
     jvmMainApi "com.soywiz:korte-korio-jvm:$korteVersion"
     jvmMainApi "ch.qos.logback:logback-classic:1.2.1"
+
+    jvmTestImplementation "io.ktor:ktor-server-test-host:$ktor_version"
 }

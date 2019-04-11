@@ -7,6 +7,13 @@ class TodoController
 @Inject constructor(
         private val todoService: TodoService
 ) : TodoApi {
+    override suspend fun getOne(id: String, `$fields`: Set<String>?): TodoResult = todoService.getOne(Todo.Id(id))?.let {
+        TodoResult(
+                id = it.id.id,
+                text = it.text
+        )
+    } ?: throw RuntimeException("404")
+
     override suspend fun getAll(): List<TodoResult> = todoService.getAll().map {
         TodoResult(
                 id = it.id.id,

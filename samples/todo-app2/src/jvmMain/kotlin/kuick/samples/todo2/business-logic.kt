@@ -10,6 +10,7 @@ class TodoService
 @Inject constructor(
         private val todoRepository: TodoRepository
 ) {
+    suspend fun getOne(id: Todo.Id): Todo? = todoRepository.findById(id)
     suspend fun getAll(): List<Todo> = todoRepository.getAll()
     suspend fun add(text: String): Todo = todoRepository.insert(
             Todo(Todo.Id(), text)
