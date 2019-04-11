@@ -1,22 +1,25 @@
-package kuick.samples.todo
+package kuick.samples.todo2
 
-import com.google.inject.*
-import com.soywiz.korio.file.std.*
-import com.soywiz.korte.*
+import com.google.inject.Injector
+import com.soywiz.korio.file.std.resourcesVfs
+import com.soywiz.korte.Templates
 import com.soywiz.korte.ktor.Korte
-import io.ktor.application.*
-import io.ktor.http.*
-import io.ktor.server.engine.*
-import io.ktor.server.netty.*
-import kuick.client.db.*
-import kuick.client.jdbc.*
-import kuick.client.repositories.*
-import kuick.di.*
+import io.ktor.application.Application
+import io.ktor.application.install
+import io.ktor.http.ContentType
+import io.ktor.server.engine.embeddedServer
+import io.ktor.server.netty.Netty
+import kuick.client.db.DbClientPool
+import kuick.client.jdbc.JdbcDriver
+import kuick.client.repositories.DbModelRepository
+import kuick.di.Guice
+import kuick.di.bindPerCoroutineJob
 import kuick.ktor.*
-import kuick.models.*
-import kuick.repositories.annotations.*
-import kuick.repositories.patterns.*
-import kuick.utils.*
+import kuick.models.AbstractId
+import kuick.repositories.annotations.MaxLength
+import kuick.repositories.patterns.MemoryCache
+import kuick.repositories.patterns.cached
+import kuick.utils.randomUUID
 
 suspend fun main(args: Array<String>) {
     embeddedServer(Netty, port = 8080) { module() }.start(wait = true)
