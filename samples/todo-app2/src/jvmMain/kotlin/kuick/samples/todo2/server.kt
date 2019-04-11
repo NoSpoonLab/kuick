@@ -41,6 +41,7 @@ fun Application.module() {
     // What's this? Database config also in Guice module
     installContextPerRequest(injector, DbClientPool { JdbcDriver.connectMemoryH2() }) {
         injector.getInstance(TodoRepository::class.java).init()
+        injector.getInstance(UserRepository::class.java).init()
     }
     installHttpExceptionsSupport()
 
@@ -80,35 +81,68 @@ inline fun <reified T> Route.rpcRouting(injector: Injector) {
 fun Route.restRouting(
         injector: Injector
 ) {
-    val api = injector.getInstance(TodoApi::class.java)!!
-    val resourceName = "todos"
+    val todoApi = injector.getInstance(TodoApi::class.java)!!
+    val userApi = injector.getInstance(UserApi::class.java)!!
 
-    get(resourceName) {
-        val result = api.getAll()
+    get("todos") {
+        val result = todoApi.getAll()
 
         val jsonParser = JsonParser()
 
         val queryParameters = call.request.queryParameters
+
+        var jsonResult = gson.toJsonTree(result).asJsonArray
+
+        // Fields
         val fieldsParamJson = queryParameters["\$fields"]
-        val fieldsParam = (jsonParser.parse(fieldsParamJson) as JsonArray).map { it.asString }.toHashSet()
-
-        val jsonResult = gson.toJsonTree(result).asJsonArray
-
-        val res = JsonArray()
-        jsonResult.forEach { obj ->
-            val jsonObject = JsonObject()
-            obj.asJsonObject.entrySet().forEach {
-                if (fieldsParam.contains(it.key)) jsonObject.add(it.key, it.value)
+        if (fieldsParamJson != null) {
+            val fieldsParam = (jsonParser.parse(fieldsParamJson) as JsonArray).map { it.asString }.toHashSet()
+            val res = JsonArray()
+            jsonResult.forEach { obj ->
+                val jsonObject = JsonObject()
+                obj.asJsonObject.entrySet().forEach {
+                    if (fieldsParam.contains(it.key)) jsonObject.add(it.key, it.value)
+                }
+                res.add(jsonObject)
             }
-            res.add(jsonObject)
+            jsonResult = res
         }
 
+        // Include
 
-        call.respondText(res.toString(), ContentType.Application.Json) // serialization
+        // for each property that supports include there has to be provided a resource getter in config
+        val configuration: Map<String, suspend (String) -> Any> =
+                mapOf(Todo::owner.name to userApi::getOne )
+
+        val includeParamJson = queryParameters["\$include"]
+        if (includeParamJson != null) {
+            val includeParam = (jsonParser.parse(includeParamJson) as JsonArray).map { it.asString }.toHashSet()
+            val res = JsonArray()
+            jsonResult.forEach { obj ->
+                val jsonObject = JsonObject()
+                obj.asJsonObject.entrySet().forEach {
+                    if (includeParam.contains(it.key)) {
+                        jsonObject.add(
+                                it.key,
+                                gson.toJsonTree(
+                                        configuration[it.key]!!(it.value.asString)
+                                )
+                        )
+                    } else {
+                        jsonObject.add(it.key, it.value)
+                    }
+                    res.add(jsonObject)
+                }
+                jsonResult = res
+            }
+        }
+
+        call.respondText(jsonResult.toString(), ContentType.Application.Json) // serialization
+
     }
 
-    post(resourceName) {
-        data class Request(val text: String)
+    post("todos") {
+        data class Request(val text: String, val owner: String)
 
 
         val bodyJson = call.receiveText()
@@ -116,10 +150,22 @@ fun Route.restRouting(
         val jsonParser = JsonParser()
         val fromJson = jsonParser.parse(bodyJson) as JsonObject
 
-        val result = api.add(fromJson["text"].asString)
+        val result = todoApi.add(fromJson["text"].asString, fromJson["owner"].asString)
         val jsonResult = gson.toJson(result)
 
+        call.respondText(jsonResult, ContentType.Application.Json) // serialization
+    }
 
+    post("users") {
+        data class Request(val name: String)
+
+        val bodyJson = call.receiveText()
+
+        val jsonParser = JsonParser()
+        val fromJson = jsonParser.parse(bodyJson) as JsonObject
+
+        val result = userApi.add(fromJson["name"].asString)
+        val jsonResult = gson.toJson(result)
 
         call.respondText(jsonResult, ContentType.Application.Json) // serialization
     }

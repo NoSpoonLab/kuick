@@ -30,7 +30,13 @@ fun Binder.configure() {
                     MemoryCache(),
                     Todo::id
             )
-    bind<TodoRepository>(TodoRepositoryImpl())
+    bind<TodoRepository, TodoRepositoryImpl>()
 
     bind<TodoApi, TodoController>()
+
+    @Singleton
+    class UserRepositoryImpl : UserRepository, DbModelRepository<User.Id, User>(User::class, User::id)
+    bind<UserRepository, UserRepositoryImpl>()
+
+    bind<UserApi, UserController>()
 }

@@ -1,5 +1,6 @@
 package kuick.samples.todo2
 
+import com.google.gson.JsonParser
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
@@ -19,16 +20,17 @@ import org.junit.Test
 
 class Test {
 
-    private val injector = Guice {
-        bindPerCoroutineJob()
-        configure()
-    }
 
     private fun restTest(block: TestApplicationEngine.() -> Unit) {
+        val injector = Guice {
+            bindPerCoroutineJob()
+            configure()
+        }
         runBlocking {
             withTestApplication {
                 application.installContextPerRequest(injector, DbClientPool { JdbcDriver.connectMemoryH2() }) {
                     injector.getInstance(TodoRepository::class.java).init()
+                    injector.getInstance(UserRepository::class.java).init()
                 }
                 application.routing {
                     restRouting(injector)
@@ -45,12 +47,44 @@ class Test {
     }
 
     @Test
-    fun test2() = restTest {
-        val content = handleRequest(HttpMethod.Post, "/todos") {
+    fun field_test() = restTest {
+
+        val addedUserId = addUser()
+
+        handleRequest(HttpMethod.Post, "/todos") {
             addHeader(HttpHeaders.ContentType, ContentType.Application.Json.toString())
-            setBody("{\"text\":\"test\"}")
-        }.response
+            setBody("{\"text\":\"test\",\"owner\":\"$addedUserId\"}")
+        }
+
         assertEquals("[{\"text\":\"test\"}]", handleRequest(HttpMethod.Get, "/todos?\$fields=[text]").response.content)
+    }
+
+    private fun TestApplicationEngine.addUser(): String? {
+        val jsonParser = JsonParser()
+
+        val userAddResponse = handleRequest(HttpMethod.Post, "/users") {
+            addHeader(HttpHeaders.ContentType, ContentType.Application.Json.toString())
+            setBody("{\"name\":\"Marcin\"}")
+        }.response.content
+
+        val addedUserId = jsonParser.parse(userAddResponse).asJsonObject["id"].asString
+        return addedUserId
+    }
+
+    @Test
+    fun include_test() = restTest {
+
+        val addedUserId = addUser()
+
+        handleRequest(HttpMethod.Post, "/todos") {
+            addHeader(HttpHeaders.ContentType, ContentType.Application.Json.toString())
+            setBody("{\"text\":\"test\",\"owner\":\"$addedUserId\"}")
+        }
+
+        assertEquals(
+                "[{\"owner\":{\"id\":\"$addedUserId\",\"name\":\"Marcin\"}}]",
+                handleRequest(HttpMethod.Get, "/todos?\$fields=[owner]&\$include=[owner]").response.content
+        )
     }
 
 }
