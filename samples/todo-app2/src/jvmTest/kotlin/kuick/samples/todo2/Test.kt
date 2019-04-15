@@ -42,7 +42,6 @@ class Test {
                         restRouting<TodoApi>(injector, "todos") {
                             get(TodoApi::getAll) {
                                 withFieldsParameter()
-                                // TODO
                                 launch {
                                     withIncludeParameter(
                                             Todo::owner to UserApi::getOne

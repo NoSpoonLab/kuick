@@ -9,10 +9,7 @@ import kuick.di.Guice
 import kuick.di.bindPerCoroutineJob
 import kuick.ktor.installContextPerRequest
 import kuick.ktor.installHttpExceptionsSupport
-import kuick.samples.todo2.infrastructure.get
-import kuick.samples.todo2.infrastructure.kuickRouting
-import kuick.samples.todo2.infrastructure.restRouting
-import kuick.samples.todo2.infrastructure.rpcRouting
+import kuick.samples.todo2.infrastructure.*
 
 suspend fun main(args: Array<String>) {
     embeddedServer(Netty, port = 8080) { module() }.start(wait = true)
@@ -33,31 +30,23 @@ fun Application.module() {
 
     kuickRouting {
         rpcRouting<TodoApi>(injector)
+        rpcRouting<UserApi>(injector)
+
 
         restRouting<TodoApi>(injector, "todos") {
-            get(TodoApi::getAll)
+            get(TodoApi::getAll) {
+                withFieldsParameter()
+                withIncludeParameter(
+                        Todo::owner to UserApi::getOne
+                )
+            }
+            post(TodoApi::add)
+        }
+        restRouting<UserApi>(injector, "users") {
+            post(UserApi::add)
         }
 
-//        , listOf(
-//                RestEndpoint(HttpMethod.Get, TodoApi::getAll)
-//                // TODO better get(...)
-//                get {
-//                    httpMethod = TodoApi::getAll
-//                    fieldsParamConfig {
-//                        enabled = true
-//                    }
-//                    includeParamConfig {
-//                        enabled = true
-//                        mapping = mapOf(Todo::owner.name to userApi::getOne)
-//                    }
-//
-//                }
-//        ))
+//        graphQlRouting<TodoApi>(injector)
     }
-}
-
-enum class ParamPassingMode {
-    JSON_OBJECT,
-    JSONN_ARRAY
 }
 
