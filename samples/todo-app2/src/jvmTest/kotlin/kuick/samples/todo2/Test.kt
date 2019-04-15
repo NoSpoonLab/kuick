@@ -4,18 +4,22 @@ import com.google.gson.JsonParser
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
-import io.ktor.routing.routing
 import io.ktor.server.testing.TestApplicationEngine
 import io.ktor.server.testing.handleRequest
 import io.ktor.server.testing.setBody
 import io.ktor.server.testing.withTestApplication
 import junit.framework.Assert.assertEquals
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kuick.client.db.DbClientPool
 import kuick.client.jdbc.JdbcDriver
 import kuick.di.Guice
 import kuick.di.bindPerCoroutineJob
 import kuick.ktor.installContextPerRequest
+import kuick.samples.todo2.infrastructure.get
+import kuick.samples.todo2.infrastructure.kuickRouting
+import kuick.samples.todo2.infrastructure.post
+import kuick.samples.todo2.infrastructure.restRouting
 import org.junit.Test
 
 class Test {
@@ -32,8 +36,17 @@ class Test {
                     injector.getInstance(TodoRepository::class.java).init()
                     injector.getInstance(UserRepository::class.java).init()
                 }
-                application.routing {
-                    restRouting(injector)
+                application.kuickRouting {
+//                    // TODO WTF
+                    launch {
+                        restRouting<TodoApi>(injector, "todos") {
+                            get(TodoApi::getAll)
+                            post(TodoApi::add)
+                        }
+                        restRouting<UserApi>(injector, "users") {
+                            post(UserApi::add)
+                        }
+                    }
                 }
 
                 block()

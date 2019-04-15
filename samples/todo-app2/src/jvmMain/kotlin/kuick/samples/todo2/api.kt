@@ -18,7 +18,7 @@ data class TodoResult(
 
 interface UserApi {
     suspend fun getOne(id: String): UserResult
-    suspend fun add(text: String): UserResult
+    suspend fun add(name: String): UserResult
 }
 
 data class UserResult(

@@ -36,7 +36,7 @@ class UserController
     override suspend fun getOne(id: String): UserResult = userService.getOne(User.Id(id))?.fromModel()
             ?: throw RuntimeException("404")
 
-    override suspend fun add(text: String): UserResult = userService.add(text).fromModel()
+    override suspend fun add(name: String): UserResult = userService.add(name).fromModel()
 
     private fun User.fromModel(): UserResult =
             UserResult(

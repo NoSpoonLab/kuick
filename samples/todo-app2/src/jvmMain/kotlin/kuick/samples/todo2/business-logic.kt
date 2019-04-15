@@ -45,8 +45,8 @@ class UserService
 ) {
     suspend fun getOne(id: User.Id): User?  = userRepository.findById(id)
 
-    suspend fun add(text: String): User = userRepository.insert(
-            User(User.Id(), text)
+    suspend fun add(name: String): User = userRepository.insert(
+            User(User.Id(), name)
     )
 
 }

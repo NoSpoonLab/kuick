@@ -1,13 +1,34 @@
 package kuick.samples.todo2.infrastructure
 
-import com.google.gson.*
-import kuick.models.Id
+import com.google.gson.JsonArray
+import com.google.gson.JsonNull
+import com.google.gson.JsonParser
+import com.google.inject.Injector
+import io.ktor.application.call
+import io.ktor.http.ContentType
+import io.ktor.request.receiveText
+import io.ktor.response.respondText
+import io.ktor.routing.post
 import kuick.samples.todo2.infrastructure.reflection.invokeWithParams
 import java.lang.reflect.Method
 import java.lang.reflect.Parameter
-import java.lang.reflect.Type
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.suspendCoroutine
+
+inline fun <reified T> KuickRouting.rpcRouting(injector: Injector) {
+    val api = injector.getInstance(T::class.java)!!
+    api.visitRPC { srvName, method ->
+        val path = "/rpc/$srvName/${method.name}"
+        println("RPC: $path -> $method") // logging
+        routing.post(path) {
+            //            val parameters = call.receiveParameters()
+            val result = invokeRPC(call.receiveText(), method, api) // serialization
+            // pipeline & context
+            // Gson: ExclusionStrategy to implement `$fields`
+            call.respondText(gson.toJson(result), ContentType.Application.Json) // serialization
+        }
+    }
+}
 
 
 fun Any.visitRPC(opAction: (String, Method) -> Unit) {
@@ -21,7 +42,7 @@ fun Any.visitRPC(opAction: (String, Method) -> Unit) {
             try {
                 opAction(srvName, method)
             } catch (ieme: Throwable) {
-                println("WARN: invalid public method in controller: $method")
+                println("WARN: invalid public httpMethod in controller: $method")
                 ieme.printStackTrace()
             }
         }
@@ -90,18 +111,18 @@ private fun buildArgs(parameters: Array<Parameter>,
     }
 }
 
-private val gson: Gson = GsonBuilder().registerTypeHierarchyAdapter(Id::class.java, IdGsonAdapter()).create()
-
-class IdGsonAdapter : JsonDeserializer<Id>, JsonSerializer<Id> {
-
-    override fun deserialize(je: JsonElement, type: Type, ctx: JsonDeserializationContext): Id {
-        val constuctor = (type as Class<*>).declaredConstructors.first()
-        return constuctor.newInstance(je.asString) as Id
-    }
-
-    override fun serialize(id: Id?, type: Type, ctx: JsonSerializationContext): JsonElement {
-        return JsonPrimitive(id?.id)
-    }
-
-}
+//private val gson: Gson = GsonBuilder().registerTypeHierarchyAdapter(Id::class.java, IdGsonAdapter()).create()
+//
+//class IdGsonAdapter : JsonDeserializer<Id>, JsonSerializer<Id> {
+//
+//    override fun deserialize(je: JsonElement, type: Type, ctx: JsonDeserializationContext): Id {
+//        val constuctor = (type as Class<*>).declaredConstructors.first()
+//        return constuctor.newInstance(je.asString) as Id
+//    }
+//
+//    override fun serialize(id: Id?, type: Type, ctx: JsonSerializationContext): JsonElement {
+//        return JsonPrimitive(id?.id)
+//    }
+//
+//}
 
