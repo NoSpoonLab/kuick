@@ -37,11 +37,17 @@ class Test {
                     injector.getInstance(UserRepository::class.java).init()
                 }
                 application.kuickRouting {
-//                    // TODO WTF
+                    // TODO
                     launch {
                         restRouting<TodoApi>(injector, "todos") {
                             get(TodoApi::getAll) {
                                 withFieldsParameter()
+                                // TODO
+                                launch {
+                                    withIncludeParameter(
+                                            Todo::owner to UserApi::getOne
+                                    )
+                                }
                             }
                             post(TodoApi::add)
                         }

@@ -11,31 +11,35 @@ import io.ktor.response.respondText
 import io.ktor.routing.Route
 import io.ktor.routing.route
 import kuick.orm.clazz
+import kuick.samples.todo2.UserApi
 import kuick.samples.todo2.infrastructure.reflection.invokeWithParams
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.suspendCoroutine
 import kotlin.reflect.KFunction
 import kotlin.reflect.KParameter
+import kotlin.reflect.KProperty
+import kotlin.reflect.full.callSuspend
 import kotlin.reflect.jvm.javaMethod
 
 
 data class RestRouting(
         val kuickRouting: KuickRouting,
         val resourceName: String,
-        val api: Any
+        val api: Any,
+        val injector: Injector
 ) {
     var withFieldsParameter = false
 
     var withIncludeParameter = false
-    var includeParameterConfiguration: Map<String, suspend (String) -> Any>? = null
+    var includeParameterConfiguration: Map<String, KFunction<Any>> = emptyMap()
 
     fun withFieldsParameter() {
         withFieldsParameter = true
     }
 
-    fun withInlcudeParameter(configuration: Map<String, suspend (String) -> Any>) {
+    fun withIncludeParameter(vararg configuration: Pair<KProperty<Any>, KFunction<Any>>) {
         withIncludeParameter = true
-        includeParameterConfiguration = configuration
+        includeParameterConfiguration = configuration.map { it.first.name to it.second }.toMap()
     }
 }
 
@@ -55,43 +59,62 @@ fun <T> RestRouting.route(
                 val jsonParser = JsonParser()
 
                 jsonResult = handleFieldsParam(queryParameters, jsonParser, jsonResult)
+                jsonResult = handleIncludeParam(queryParameters, jsonParser, jsonResult)
 
 
 //        // Include
 //
-//        // for each property that supports include there has to be provided a resource getter in config
-//        val configuration: Map<String, suspend (String) -> Any> =
-//                mapOf(Todo::owner.name to userApi::getOne)
-//
-//        val includeParamJson = queryParameters["\$include"]
-//        if (includeParamJson != null) {
-//            val includeParam = (jsonParser.parse(includeParamJson) as JsonArray).map { it.asString }.toHashSet()
-//            val res = JsonArray()
-//            jsonResult.forEach { obj ->
-//                val jsonObject = JsonObject()
-//                obj.asJsonObject.entrySet().forEach {
-//                    if (includeParam.contains(it.key)) {
-//                        jsonObject.add(
-//                                it.key,
-//                                gson.toJsonTree(
-//                                        configuration[it.key]!!(it.value.asString)
-//                                )
-//                        )
-//                    } else {
-//                        jsonObject.add(it.key, it.value)
-//                    }
-//                    res.add(jsonObject)
-//                }
-//                jsonResult = res
-//            }
-//        }
 
                 call.respondText(jsonResult.toString(), ContentType.Application.Json) // serialization
             }
         }
 
+suspend private fun RestRouting.handleIncludeParam(queryParameters: Parameters, jsonParser: JsonParser, jsonResult: JsonElement): JsonElement {
+    var newJsonResult = jsonResult
+    if (withIncludeParameter) {
+        val includeParamJson = queryParameters["\$include"]
+        if (includeParamJson != null) {
+            val includeParam = (jsonParser.parse(includeParamJson) as JsonArray).map { it.asString }.toHashSet()
+
+            suspend fun handleInclude(jsonObject: JsonObject): JsonElement {
+                val newJsonObject = JsonObject()
+                jsonObject.entrySet().forEach {
+                    if (includeParam.contains(it.key)) {
+                        val method = includeParameterConfiguration.getValue(it.key)
+                        val owner = injector.getInstance(UserApi::class.java)
+                        newJsonObject.add(
+                                it.key,
+                                gson.toJsonTree(
+                                        method.callSuspend(owner, it.value.asString)
+                                )
+                        )
+                    } else {
+                        newJsonObject.add(it.key, it.value)
+                    }
+                }
+                return newJsonObject
+            }
+
+            when {
+                newJsonResult.isJsonObject ->
+                    newJsonResult = handleInclude(newJsonResult.asJsonObject)
+                newJsonResult.isJsonArray -> {
+                    val res = JsonArray()
+                    newJsonResult.asJsonArray.forEach { obj ->
+                        res.add(handleInclude(obj.asJsonObject))
+                    }
+                    newJsonResult = res
+                }
+                else -> {
+                }
+            }
+        }
+    }
+    return newJsonResult
+}
+
 private fun RestRouting.handleFieldsParam(queryParameters: Parameters, jsonParser: JsonParser, jsonResult: JsonElement): JsonElement {
-    var jsonResult1 = jsonResult
+    var newJsonResult = jsonResult
     if (withFieldsParameter) {
         val fieldsParamJson = queryParameters["\$fields"]
         if (fieldsParamJson != null) {
@@ -106,21 +129,21 @@ private fun RestRouting.handleFieldsParam(queryParameters: Parameters, jsonParse
             }
 
             when {
-                jsonResult1.isJsonObject ->
-                    jsonResult1 = handleFields(jsonResult1.asJsonObject, fieldsParam)
-                jsonResult1.isJsonArray -> {
+                newJsonResult.isJsonObject ->
+                    newJsonResult = handleFields(newJsonResult.asJsonObject, fieldsParam)
+                newJsonResult.isJsonArray -> {
                     val res = JsonArray()
-                    jsonResult1.asJsonArray.forEach { obj ->
+                    newJsonResult.asJsonArray.forEach { obj ->
                         res.add(handleFields(obj.asJsonObject, fieldsParam))
                     }
-                    jsonResult1 = res
+                    newJsonResult = res
                 }
                 else -> {
                 }
             }
         }
     }
-    return jsonResult1
+    return newJsonResult
 }
 
 fun <T> RestRouting.get(handler: KFunction<T>, configuration: RestRouting.() -> Unit = {}): Route = route(HttpMethod.Get, handler, configuration)
@@ -135,7 +158,7 @@ inline fun <reified T> KuickRouting.restRouting(
         configuration: RestRouting.() -> Unit
 ) {
     val api = injector.getInstance(T::class.java)!!
-    configuration.invoke(RestRouting(this, resourceName, api))
+    configuration.invoke(RestRouting(this, resourceName, api, injector))
 
 }
 
