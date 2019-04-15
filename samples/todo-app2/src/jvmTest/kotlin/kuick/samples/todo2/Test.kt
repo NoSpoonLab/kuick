@@ -40,7 +40,9 @@ class Test {
 //                    // TODO WTF
                     launch {
                         restRouting<TodoApi>(injector, "todos") {
-                            get(TodoApi::getAll)
+                            get(TodoApi::getAll) {
+                                withFieldsParameter()
+                            }
                             post(TodoApi::add)
                         }
                         restRouting<UserApi>(injector, "users") {

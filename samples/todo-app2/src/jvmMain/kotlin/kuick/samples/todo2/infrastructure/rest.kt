@@ -1,12 +1,11 @@
 package kuick.samples.todo2.infrastructure
 
-import com.google.gson.JsonNull
-import com.google.gson.JsonObject
-import com.google.gson.JsonParser
+import com.google.gson.*
 import com.google.inject.Injector
 import io.ktor.application.call
 import io.ktor.http.ContentType
 import io.ktor.http.HttpMethod
+import io.ktor.http.Parameters
 import io.ktor.request.receiveText
 import io.ktor.response.respondText
 import io.ktor.routing.Route
@@ -24,34 +23,39 @@ data class RestRouting(
         val kuickRouting: KuickRouting,
         val resourceName: String,
         val api: Any
-)
+) {
+    var withFieldsParameter = false
+
+    var withIncludeParameter = false
+    var includeParameterConfiguration: Map<String, suspend (String) -> Any>? = null
+
+    fun withFieldsParameter() {
+        withFieldsParameter = true
+    }
+
+    fun withInlcudeParameter(configuration: Map<String, suspend (String) -> Any>) {
+        withIncludeParameter = true
+        includeParameterConfiguration = configuration
+    }
+}
 
 
-fun <T> RestRouting.route(httpMethod: HttpMethod, handler: KFunction<T>): Route =
+fun <T> RestRouting.route(
+        httpMethod: HttpMethod,
+        handler: KFunction<T>,
+        configuration: RestRouting.() -> Unit = {})
+        : Route =
         kuickRouting.routing.route(resourceName, method = httpMethod) {
+            configuration()
             handle {
                 val result = invokeREST(call.receiveText(), handler, api) // serialization
-
-                val queryParameters = call.request.queryParameters
-
-                val jsonParser = JsonParser()
-
                 var jsonResult = gson.toJsonTree(result)
 
-//        // Fields
-//                val fieldsParamJson = queryParameters["\$fields"]
-//                if (fieldsParamJson != null) {
-//                    val fieldsParam = (jsonParser.parse(fieldsParamJson) as JsonArray).map { it.asString }.toHashSet()
-//                    val res = JsonArray()
-//                    jsonResult.forEach { obj ->
-//                        val jsonObject = JsonObject()
-//                        obj.asJsonObject.entrySet().forEach {
-//                            if (fieldsParam.contains(it.key)) jsonObject.add(it.key, it.value)
-//                        }
-//                        res.add(jsonObject)
-//                    }
-//                    jsonResult = res
-//                }
+                val queryParameters = call.request.queryParameters
+                val jsonParser = JsonParser()
+
+                jsonResult = handleFieldsParam(queryParameters, jsonParser, jsonResult)
+
 
 //        // Include
 //
@@ -86,11 +90,44 @@ fun <T> RestRouting.route(httpMethod: HttpMethod, handler: KFunction<T>): Route 
             }
         }
 
-fun <T> RestRouting.get(handler: KFunction<T>): Route = route(HttpMethod.Get, handler)
-fun <T> RestRouting.put(handler: KFunction<T>): Route = route(HttpMethod.Put, handler)
-fun <T> RestRouting.post(handler: KFunction<T>): Route = route(HttpMethod.Post, handler)
-fun <T> RestRouting.delete(handler: KFunction<T>): Route = route(HttpMethod.Delete, handler)
-fun <T> RestRouting.patch(handler: KFunction<T>): Route = route(HttpMethod.Patch, handler)
+private fun RestRouting.handleFieldsParam(queryParameters: Parameters, jsonParser: JsonParser, jsonResult: JsonElement): JsonElement {
+    var jsonResult1 = jsonResult
+    if (withFieldsParameter) {
+        val fieldsParamJson = queryParameters["\$fields"]
+        if (fieldsParamJson != null) {
+            val fieldsParam = (jsonParser.parse(fieldsParamJson) as JsonArray).map { it.asString }.toHashSet()
+
+            fun handleFields(jsonObject: JsonObject, fieldsParam: Set<String>): JsonElement {
+                val newJsonObject = JsonObject()
+                jsonObject.asJsonObject.entrySet().forEach {
+                    if (fieldsParam.contains(it.key)) newJsonObject.add(it.key, it.value)
+                }
+                return newJsonObject
+            }
+
+            when {
+                jsonResult1.isJsonObject ->
+                    jsonResult1 = handleFields(jsonResult1.asJsonObject, fieldsParam)
+                jsonResult1.isJsonArray -> {
+                    val res = JsonArray()
+                    jsonResult1.asJsonArray.forEach { obj ->
+                        res.add(handleFields(obj.asJsonObject, fieldsParam))
+                    }
+                    jsonResult1 = res
+                }
+                else -> {
+                }
+            }
+        }
+    }
+    return jsonResult1
+}
+
+fun <T> RestRouting.get(handler: KFunction<T>, configuration: RestRouting.() -> Unit = {}): Route = route(HttpMethod.Get, handler, configuration)
+fun <T> RestRouting.put(handler: KFunction<T>, configuration: RestRouting.() -> Unit = {}): Route = route(HttpMethod.Put, handler, configuration)
+fun <T> RestRouting.post(handler: KFunction<T>, configuration: RestRouting.() -> Unit = {}): Route = route(HttpMethod.Post, handler, configuration)
+fun <T> RestRouting.delete(handler: KFunction<T>, configuration: RestRouting.() -> Unit = {}): Route = route(HttpMethod.Delete, handler, configuration)
+fun <T> RestRouting.patch(handler: KFunction<T>, configuration: RestRouting.() -> Unit = {}): Route = route(HttpMethod.Patch, handler, configuration)
 
 inline fun <reified T> KuickRouting.restRouting(
         injector: Injector,
