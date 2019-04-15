@@ -50,6 +50,7 @@ fun <T> RestRouting.route(
         configuration: RestRouting.() -> Unit = {})
         : Route =
         kuickRouting.routing.route(resourceName, method = httpMethod) {
+            println("REST: ${httpMethod.value} /$resourceName -> $handler") // logging
             configuration()
             handle {
                 val result = invokeREST(call.receiveText(), handler, api) // serialization

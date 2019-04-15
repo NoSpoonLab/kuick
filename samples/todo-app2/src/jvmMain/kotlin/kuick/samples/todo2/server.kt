@@ -41,6 +41,10 @@ fun Application.module() {
                 )
             }
             post(TodoApi::add)
+
+//            route("/{id}") {
+//                get(TodoApi::getOne)
+//            }
         }
         restRouting<UserApi>(injector, "users") {
             post(UserApi::add)

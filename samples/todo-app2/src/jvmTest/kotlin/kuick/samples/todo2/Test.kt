@@ -79,18 +79,6 @@ class Test {
         assertEquals("[{\"text\":\"test\"}]", handleRequest(HttpMethod.Get, "/todos?\$fields=[text]").response.content)
     }
 
-    private fun TestApplicationEngine.addUser(): String? {
-        val jsonParser = JsonParser()
-
-        val userAddResponse = handleRequest(HttpMethod.Post, "/users") {
-            addHeader(HttpHeaders.ContentType, ContentType.Application.Json.toString())
-            setBody("{\"name\":\"Marcin\"}")
-        }.response.content
-
-        val addedUserId = jsonParser.parse(userAddResponse).asJsonObject["id"].asString
-        return addedUserId
-    }
-
     @Test
     fun include_test() = restTest {
 
@@ -105,6 +93,18 @@ class Test {
                 "[{\"owner\":{\"id\":\"$addedUserId\",\"name\":\"Marcin\"}}]",
                 handleRequest(HttpMethod.Get, "/todos?\$fields=[owner]&\$include=[owner]").response.content
         )
+    }
+
+    private fun TestApplicationEngine.addUser(): String? {
+        val jsonParser = JsonParser()
+
+        val userAddResponse = handleRequest(HttpMethod.Post, "/users") {
+            addHeader(HttpHeaders.ContentType, ContentType.Application.Json.toString())
+            setBody("{\"name\":\"Marcin\"}")
+        }.response.content
+
+        val addedUserId = jsonParser.parse(userAddResponse).asJsonObject["id"].asString
+        return addedUserId
     }
 
 }
