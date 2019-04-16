@@ -12,7 +12,6 @@ fun Binder.configure() {
     //        Version 1
 //        bind<TodoRepository>(DbModelRepository(Todo::id).cached(MemoryCache()))
 //
-//
 //        Version 2
 //        @Singleton
 //        class TodoRepositoryImpl : TodoRepository,
@@ -30,6 +29,7 @@ fun Binder.configure() {
                     MemoryCache(),
                     Todo::id
             )
+
     bind<TodoRepository, TodoRepositoryImpl>()
 
     bind<TodoApi, TodoController>()

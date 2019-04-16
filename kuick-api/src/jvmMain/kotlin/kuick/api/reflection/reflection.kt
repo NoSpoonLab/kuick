@@ -1,4 +1,4 @@
-package kuick.samples.todo2.infrastructure.reflection
+package kuick.api.reflection
 
 import java.lang.reflect.InvocationTargetException
 import java.lang.reflect.Method

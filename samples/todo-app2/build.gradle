@@ -4,7 +4,8 @@ repositories {
 
 dependencies {
     jvmMainApi project(":kuick-core")
-    jvmMainApi project(":kuick-http-ktor")
+    jvmMainApi project(":kuick-api-rest")
+    jvmMainApi project(":kuick-api-rpc")
     jvmMainApi project(":kuick-db")
     def korteVersion = "1.1.1"
     jvmMainApi "com.soywiz:korte-ktor-jvm:$korteVersion"

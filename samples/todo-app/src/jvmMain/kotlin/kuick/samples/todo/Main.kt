@@ -1,4 +1,4 @@
-package kuick.samples.todo2
+package kuick.samples.todo
 
 import com.google.inject.Injector
 import com.soywiz.korio.file.std.resourcesVfs
