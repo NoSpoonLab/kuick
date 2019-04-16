@@ -4,6 +4,7 @@ import kuick.json.*
 import kuick.models.*
 import kuick.repositories.squash.orm.*
 import org.jetbrains.squash.definition.*
+import java.math.*
 import java.time.*
 import java.util.*
 import kotlin.reflect.*
@@ -34,7 +35,7 @@ val dateSerializationAsLong = SerializationStrategy({ long(it.columnName) }, { i
 val stringSerialization = VarCharSerializationStrategy(String::class, LONG_TEXT_LEN, { it<String>() }, { it })
 val intSerialization = SerializationStrategy({ integer(it.columnName) }, { it<Int>() }, { it })
 val longSerialization = SerializationStrategy({ long(it.columnName) }, { it<Long>() }, { it })
-val doubleSerialization = SerializationStrategy({ decimal(it.columnName, 5, 4) }, { it<Double>() }, { it })
+val doubleSerialization = SerializationStrategy({ decimal(it.columnName, 5, 4) }, { it<BigDecimal>()?.toDouble() }, { it })
 val booleanSerialization = SerializationStrategy({ bool(it.columnName) }, { it<Boolean>() }, { value -> value })
 
 val localDateSerialization = VarCharSerializationStrategy(
