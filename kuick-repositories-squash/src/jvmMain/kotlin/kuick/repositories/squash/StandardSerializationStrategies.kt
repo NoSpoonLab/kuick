@@ -101,3 +101,5 @@ val defaultSerializationStrategies: SerializationStrategy = serializationStrateg
         emailSerialization,
         IdSerializationStrategy
 )
+
+val defaultFallbackSerializationStrategy = JsonSerializationStrategy
