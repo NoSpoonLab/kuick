@@ -41,7 +41,7 @@ open class ModelRepositorySquash<I : Any, T : Any>(
         PropertyInfo(prop)
     }
     val idProperty = properties.first { it.prop == idField }
-    val table = ORMTableDefinition(modelClass, serializationStrategies).also { table ->
+    val table = ORMTableDefinition(modelClass, serializationStrategies = serializationStrategies).also { table ->
         for (info in properties) {
             val prop = info.prop
             val columnDefinition = serializationStrategies.tryGetColumnDefinition(table, info) ?: error("Can't find columnDefinition")

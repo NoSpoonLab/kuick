@@ -67,8 +67,8 @@ class DomainTransactionSquash(val db: DatabaseConnection): DomainTransaction, Cl
 @KuickInternalWarning
 open class ORMTableDefinition<T : Any> constructor(
         val clazz: KClass<T>,
-        val serializationStrategies: SerializationStrategy = defaultSerializationStrategies,
-        val tableName: String = clazz.simpleName!!
+        val tableName: String = clazz.simpleName!!,
+        val serializationStrategies: SerializationStrategy = defaultSerializationStrategies
 ): TableDefinition(tableName) {
     private val _map: MutableMap<KProperty1<T, *>, ColumnDefinition<*>> = mutableMapOf()
 
