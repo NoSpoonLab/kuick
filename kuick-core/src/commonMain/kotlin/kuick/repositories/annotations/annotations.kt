@@ -14,5 +14,10 @@ annotation class MaxLength(val maxLength: Int)
 annotation class Unique
 
 @Retention(AnnotationRetention.RUNTIME)
+@Target(AnnotationTarget.FIELD)
+annotation class Index(val order: IndexOrder = IndexOrder.ASC)
+enum class IndexOrder { ASC, DESC }
+
+@Retention(AnnotationRetention.RUNTIME)
 @Target(AnnotationTarget.CLASS, AnnotationTarget.PROPERTY)
 annotation class DbName(val name: String)

@@ -2,6 +2,10 @@ package kuick.client.jdbc
 
 import kotlinx.coroutines.*
 import kuick.client.db.*
+import kuick.client.db.query
+import kuick.client.orm.*
+import kuick.orm.*
+import java.util.*
 import kotlin.test.*
 
 class JdbcDriverTest {

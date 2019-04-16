@@ -3,6 +3,7 @@ package kuick.caching.redis
 import io.lettuce.core.*
 import kotlinx.coroutines.*
 import kuick.caching.*
+import kuick.util.*
 import org.arquillian.cube.containerobject.*
 import org.arquillian.cube.docker.impl.client.containerobject.dsl.*
 import org.jboss.arquillian.junit.*

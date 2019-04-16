@@ -18,14 +18,16 @@ class OrmTest {
             }
         }
 
-        override suspend fun prepare(sql: String): DbPreparedStatement {
-            return object : DbPreparedStatement {
+        override suspend fun <T> prepare(sql: String, callback: suspend (DbPreparedStatement) -> T): T {
+            return callback(object : DbPreparedStatement {
+                override val sql: String = sql
+
                 override suspend fun exec(vararg args: Any?): DbRowSet {
                     logs += sql
                     return responses[sql] ?: DbRowSet(DbColumns("result"), listOf())
                 }
                 override fun close() = Unit
-            }
+            })
         }
     }
 

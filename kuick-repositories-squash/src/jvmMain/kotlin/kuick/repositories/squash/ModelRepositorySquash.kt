@@ -21,7 +21,7 @@ open class ModelRepositorySquash<I : Any, T : Any>(
         val modelClass: KClass<T>,
         override val idField: KProperty1<T, I>,
         baseSerializationStrategies: SerializationStrategy = defaultSerializationStrategies,
-        fallbackStrategy: SerializationStrategy = JsonSerializationStrategy
+        fallbackStrategy: SerializationStrategy = defaultFallbackSerializationStrategy
 ) : ModelRepository<I, T> {
 
     @Deprecated("Use the main constructor instead")
@@ -30,7 +30,7 @@ open class ModelRepositorySquash<I : Any, T : Any>(
             idField: KProperty1<T, I>,
             defaultMaxLength: Int = LONG_TEXT_LEN,
             serializationStrategies : Map<KType, TypedSerializationStrategy<out Any>>,
-            fallbackStrategy: SerializationStrategy = JsonSerializationStrategy
+            fallbackStrategy: SerializationStrategy = defaultFallbackSerializationStrategy
     ) : this(modelClass, idField, TypedSerializationStrategies(serializationStrategies.map { it.key.clazz!! to it.value }.toMap()), fallbackStrategy)
 
     val serializationStrategies = baseSerializationStrategies + fallbackStrategy
@@ -41,7 +41,7 @@ open class ModelRepositorySquash<I : Any, T : Any>(
         PropertyInfo(prop)
     }
     val idProperty = properties.first { it.prop == idField }
-    val table = ORMTableDefinition(serializationStrategies, modelClass).also { table ->
+    val table = ORMTableDefinition(modelClass, serializationStrategies = serializationStrategies).also { table ->
         for (info in properties) {
             val prop = info.prop
             val columnDefinition = serializationStrategies.tryGetColumnDefinition(table, info) ?: error("Can't find columnDefinition")
