@@ -11,6 +11,7 @@ import org.jetbrains.squash.connection.*
 import org.jetbrains.squash.definition.ColumnDefinition
 import org.jetbrains.squash.definition.Table
 import org.jetbrains.squash.definition.TableDefinition
+import org.jetbrains.squash.drivers.*
 import org.jetbrains.squash.expressions.*
 import org.jetbrains.squash.query.*
 import org.jetbrains.squash.results.*
@@ -55,7 +56,9 @@ class DomainTransactionSquash(val db: DatabaseConnection): DomainTransaction, Cl
     override fun close() {
         val tr = _tr.get()
         //println("Closing $this : $db : $tr")
-        tr?.commit()
+        if ((tr?.connection as? JDBCTransaction?)?.jdbcTransaction?.autoCommit == false) {
+            tr?.commit()
+        }
         tr?.close()
         closed = true
     }
