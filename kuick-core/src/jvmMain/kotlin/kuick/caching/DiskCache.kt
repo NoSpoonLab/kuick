@@ -8,7 +8,7 @@ import kuick.utils.*
 import java.io.*
 import kotlin.reflect.*
 
-class DiskCache<V : Any>(val clazz: KClass<V>, override val name: String, val cacheDir: File) : Cache<String, V>, Named {
+class DiskCache<V : Any>(val clazz: KClass<V>, override val name: String, val cacheDir: File) : Cache<String, V> {
     fun getFileForKey(key: String): File = File(cacheDir, "kuick-cache-$name-${key.toByteArray().sha1().hex}")
 
     private val asyncThread = NamedAsyncThreads()
