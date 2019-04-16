@@ -17,3 +17,10 @@ suspend fun File.writeTextSuspend(text: String, charset: Charset = Charsets.UTF_
         file.writeText(text, charset)
     }
 }
+
+suspend fun File.deleteSuspend() {
+    val file = this
+    withContext(Dispatchers.IO) {
+        file.delete()
+    }
+}

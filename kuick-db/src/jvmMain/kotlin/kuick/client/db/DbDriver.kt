@@ -16,6 +16,8 @@ interface DbPreparable {
     suspend fun prepare(sql: String): DbPreparedStatement
 }
 
+data class QueryAndParams(val sql: String, val params: List<Any?>)
+suspend fun DbPreparable.query(query: QueryAndParams): DbRowSet = query(query.sql, *query.params.toTypedArray())
 suspend fun DbPreparable.query(sql: String, vararg args: Any?): DbRowSet = prepare(sql).use { it.exec(*args) }
 suspend fun DbPreparable.delete(table: String, condition: String): DbRowSet = query(sql.sqlDelete(table, condition))
 suspend fun DbPreparable.deleteAll(table: String): DbRowSet = delete(table, "1=1")
@@ -56,7 +58,18 @@ interface DbConnectionProvider : CoroutineContext.Element {
     companion object : CoroutineContext.Key<DbConnectionProvider>
 }
 
-suspend fun dbConnectionProvider(): DbConnectionProvider = coroutineContext[DbConnectionProvider] ?: error("Not DbClientPool in the coroutineContext")
+fun DbConnectionProvider(autoClose: Boolean = false, provider: suspend () -> DbConnection) = object : DbConnectionProvider {
+    override suspend fun <T> get(callback: suspend (DbConnection) -> T): T {
+        val connection = provider()
+        try {
+            return callback(connection)
+        } finally {
+            if (autoClose) connection.close()
+        }
+    }
+}
+
+suspend fun dbConnectionProvider(): DbConnectionProvider = coroutineContext[DbConnectionProvider] ?: error("Not DbConnectionProvider in the coroutineContext")
 suspend fun <T> dbClient(callback: suspend (DbConnection) -> T) = dbConnectionProvider().get { callback(it) }
 
 suspend fun <T> DbConnectionProvider.getTransaction(callback: suspend (DbTransaction) -> T): T {
@@ -80,6 +93,7 @@ interface DbTransaction : DbPreparable {
 }
 
 interface DbPreparedStatement : Closeable {
+    val sql: String
     suspend fun exec(vararg args: Any?): DbRowSet
     override fun close()
 }

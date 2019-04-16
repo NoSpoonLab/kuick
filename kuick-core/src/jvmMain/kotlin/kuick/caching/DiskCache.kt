@@ -23,7 +23,7 @@ class DiskCache<V : Any>(val clazz: KClass<V>, override val name: String, val ca
     }
 
     override suspend fun invalidate(key: String) = asyncThread(key) {
-        getFileForKey(key).delete()
+        getFileForKey(key).deleteSuspend()
         Unit
     }
 }

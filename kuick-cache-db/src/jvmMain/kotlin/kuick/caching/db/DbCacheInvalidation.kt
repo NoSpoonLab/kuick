@@ -12,33 +12,45 @@ import java.util.*
 import kotlin.collections.*
 import kotlin.coroutines.*
 
-class DbCacheInvalidation(val coroutineContext: CoroutineContext, val delay: Long = 5_000L, val repo: ModelRepository<String, CacheInvalidationEntry> = CacheInvalidationEntry) : Closeable {
+class DbCacheInvalidation @PublishedApi internal constructor(val coroutineContext: CoroutineContext, val delay: Long = 5_000L, val repo: ModelRepository<String, CacheInvalidationEntry> = CacheInvalidationEntry) : Closeable {
     private val lock = Lock()
     private val handlers = LinkedHashMap<String, ArrayList<suspend (key: String) -> Unit>>()
-    private val process = CoroutineScope(coroutineContext).launch {
-        var lastTime = Date()
-        while (true) {
-            val entries = getUpdatedSince(lastTime)
-            for (entry in entries) {
-                val handlers = lock { handlers[entry.cacheName]?.toList() }
-                if (handlers != null) {
-                    for (handler in handlers) {
-                        handler(entry.key)
+    private lateinit var process: Job
+
+    suspend fun init() {
+        repo.init()
+        process = CoroutineScope(coroutineContext).launch {
+            var lastTime = Date()
+            while (true) {
+                val entries = getUpdatedSince(lastTime)
+                //println("" + repo.getAll().size + " :: " + entries.size)
+                for (entry in entries) {
+                    val handlers = lock { handlers[entry.cacheName]?.toList() }
+                    if (handlers != null) {
+                        for (handler in handlers) {
+                            handler(entry.key)
+                        }
                     }
                 }
+                lastTime = entries.lastOrNull()?.invalidationTime ?: lastTime
+                delay(delay)
             }
-            lastTime = entries.lastOrNull()?.invalidationTime ?: lastTime
-            delay(delay)
         }
     }
 
     companion object {
-        suspend inline fun <T> get(delay: Long = 5_000L, repo: ModelRepository<String, CacheInvalidationEntry> = CacheInvalidationEntry, callback: suspend (DbCacheInvalidation) -> T): T =
-                DbCacheInvalidation(coroutineContext, delay, repo).use { callback(it) }
+        suspend inline fun <T> get(delay: Long = 5_000L, repo: ModelRepository<String, CacheInvalidationEntry> = CacheInvalidationEntry, callback: (DbCacheInvalidation) -> T): T {
+            return DbCacheInvalidation(coroutineContext, delay, repo).apply { init() }.use { callback(it) }
+        }
     }
 
     suspend fun invalidate(cacheName: String, key: String) {
-        repo.upsert(CacheInvalidationEntry(cacheName, key, Date()))
+        repo.upsert(CacheInvalidationEntry("$cacheName:$key", cacheName, key, Date()))
+        //repo.insert(CacheInvalidationEntry(cacheName, key, Date()))
+    }
+
+    suspend fun invalidateAll(cacheName: String) {
+        repo.deleteBy(CacheInvalidationEntry::cacheNameKey like "$cacheName%")
     }
 
     fun register(cacheName: String, handler: suspend (key: String) -> Unit): Closeable {
@@ -57,6 +69,7 @@ class DbCacheInvalidation(val coroutineContext: CoroutineContext, val delay: Lon
 
     @DbName("CacheInvalidationEntry")
     data class CacheInvalidationEntry(
+            @Unique val cacheNameKey: String,
             val cacheName: String,
             val key: String,
             @Index val invalidationTime: Date

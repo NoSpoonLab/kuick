@@ -45,7 +45,7 @@ class JdbcTransaction(val connection: JdbcConnection) : DbTransaction {
     override suspend fun prepare(sql: String) = JdbcPreparedStatement(sql, connection.connection.prepareStatement(sql))
 }
 
-class JdbcPreparedStatement(val sql: String, val prepareStatement: PreparedStatement) : DbPreparedStatement {
+class JdbcPreparedStatement(override val sql: String, val prepareStatement: PreparedStatement) : DbPreparedStatement {
     val isSelection = sql.startsWith("SELECT", ignoreCase = true) || sql.startsWith("DESCRIBE", ignoreCase = true) || sql.startsWith("SHOW", ignoreCase = true)
     override suspend fun exec(vararg args: Any?): DbRowSet {
         for (n in 0 until args.size) prepareStatement.setObject(n + 1, args[n])

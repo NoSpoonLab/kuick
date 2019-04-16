@@ -52,7 +52,7 @@ class PostgressTransaction(val connection: PostgressConnection, val transaction:
     }
 }
 
-class PostgresPreparedStatement(val transaction: PostgressTransaction, val sql: String, val prepared: PgPreparedQuery) : DbPreparedStatement {
+class PostgresPreparedStatement(val transaction: PostgressTransaction, override val sql: String, val prepared: PgPreparedQuery) : DbPreparedStatement {
     override suspend fun exec(vararg args: Any?): DbRowSet {
         //println("PostgresPreparedStatement.exec: ${transaction}")
         val tuple = when (args.size) {

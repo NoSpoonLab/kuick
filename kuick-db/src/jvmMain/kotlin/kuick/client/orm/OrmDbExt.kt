@@ -39,6 +39,8 @@ suspend fun <T : Any> DbPreparable.insert(table: TableDefinition<T>, instance: T
     insert(table.name, table.untype(instance))
 }
 
+suspend fun <T : Any> DbPreparable.query(table: TableDefinition<T>, query: QueryAndParams): List<T> =
+        query(table, query.sql, *query.params.toTypedArray())
 suspend fun <T : Any> DbPreparable.query(table: TableDefinition<T>, sql: String, vararg args: Any?): List<T> =
         query(sql, *args).map { table.type(it.map) }
 
