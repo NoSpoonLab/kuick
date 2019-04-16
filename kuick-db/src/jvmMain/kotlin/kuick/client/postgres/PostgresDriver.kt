@@ -42,10 +42,9 @@ class PostgressConnection(val closeVertx: Vertx?, val connection: PgConnection) 
 
 class PostgressTransaction(val connection: PostgressConnection, val transaction: PgTransaction) : DbTransaction {
     override val sql: SqlBuilder get() = connection.sql
-    override suspend fun prepare(sql: String): DbPreparedStatement {
-        //println("PostgressTransaction.prepare: $sql, $transaction")
+    override suspend fun <T> prepare(sql: String, callback: suspend (DbPreparedStatement) -> T): T {
         try {
-            return PostgresPreparedStatement(this, sql, transaction.prepareAwait(sql))
+            return PostgresPreparedStatement(this, sql, transaction.prepareAwait(sql)).use { callback(it) }
         } catch (e: PgException) {
             throw DbException(e.message, sql, e)
         }

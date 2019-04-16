@@ -15,6 +15,8 @@ object JdbcDriver : DbDriver {
     suspend fun connectMemoryH2(index: Int = 0) = connect("jdbc:h2:mem:$index")
 }
 
+suspend fun DbDriver.connectJdbcMemoryH2(index: Int = 0) = connect("jdbc:h2:mem:$index")
+
 class JdbcConnection(val url: String, val connection: Connection) : DbConnection {
     override val sql = when {
         url.startsWith("jdbc:postgre", ignoreCase = true) -> PgSqlBuilder
@@ -42,7 +44,10 @@ class JdbcConnection(val url: String, val connection: Connection) : DbConnection
 
 class JdbcTransaction(val connection: JdbcConnection) : DbTransaction {
     override val sql: SqlBuilder get() = connection.sql
-    override suspend fun prepare(sql: String) = JdbcPreparedStatement(sql, connection.connection.prepareStatement(sql))
+
+    override suspend fun <T> prepare(sql: String, callback: suspend (DbPreparedStatement) -> T): T {
+        return JdbcPreparedStatement(sql, connection.connection.prepareStatement(sql)).use { callback(it) }
+    }
 }
 
 class JdbcPreparedStatement(override val sql: String, val prepareStatement: PreparedStatement) : DbPreparedStatement {

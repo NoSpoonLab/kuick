@@ -13,12 +13,12 @@ interface DbDriver {
 
 interface DbPreparable {
     val sql: SqlBuilder
-    suspend fun prepare(sql: String): DbPreparedStatement
+    suspend fun <T> prepare(sql: String, callback: suspend (DbPreparedStatement) -> T): T
 }
 
 data class QueryAndParams(val sql: String, val params: List<Any?>)
 suspend fun DbPreparable.query(query: QueryAndParams): DbRowSet = query(query.sql, *query.params.toTypedArray())
-suspend fun DbPreparable.query(sql: String, vararg args: Any?): DbRowSet = prepare(sql).use { it.exec(*args) }
+suspend fun DbPreparable.query(sql: String, vararg args: Any?): DbRowSet = prepare(sql) { it.exec(*args) }
 suspend fun DbPreparable.delete(table: String, condition: String): DbRowSet = query(sql.sqlDelete(table, condition))
 suspend fun DbPreparable.deleteAll(table: String): DbRowSet = delete(table, "1=1")
 
@@ -42,7 +42,7 @@ suspend fun DbPreparable.dropIndex(table: String, name: String) = query(sql.sqlD
 
 
 suspend fun DbPreparable.insert(tableName: String, columns: List<String>, vararg values: List<Any?>) {
-    prepare(sql.sqlInsert(tableName, columns)).use { stm ->
+    prepare(sql.sqlInsert(tableName, columns)) { stm ->
         for (value in values) {
             stm.exec(*value.toTypedArray())
         }
@@ -83,13 +83,13 @@ suspend fun <T> DbConnectionProvider.getTransaction(callback: suspend (DbTransac
 interface DbConnection : DbPreparable, Closeable {
     override val sql: SqlBuilder
     suspend fun <T> transaction(callback: suspend (DbTransaction) -> T): T
-    override suspend fun prepare(sql: String): DbPreparedStatement = transaction { tr -> tr.prepare(sql) }
+    override suspend fun <T> prepare(sql: String, callback: suspend (DbPreparedStatement) -> T): T = transaction { tr -> tr.prepare(sql, callback) }
+    //override suspend fun prepare(sql: String): DbPreparedStatement = transaction { tr -> tr.prepare(sql) }
     override fun close()
 }
 
 interface DbTransaction : DbPreparable {
     override val sql: SqlBuilder
-    override suspend fun prepare(sql: String): DbPreparedStatement
 }
 
 interface DbPreparedStatement : Closeable {
