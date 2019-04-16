@@ -193,23 +193,6 @@ open class ORMTableDefinition<T : Any> constructor(
 
     private fun <R:Any> Statement<R>.monitorAndExecuteOn(tr: Transaction) =   executeOn(tr)
 
-    //=================================
-    infix fun <T:Any> ResultRow.toDAO(ormDef: ORMTableDefinition<T>): T {
-        val fields = ormDef.clazz.toDAOFields()
-        val fieldValues = fields.map { f ->
-            try {
-                val property = ormDef.clazz.memberProperties.first { it.name == f.name }
-                val columnDef = ormDef[property]
-                val columnName = columnDef.name.id
-                val tableName = ormDef.compoundName.id
-                serializationStrategies.tryDecodeValueLazy(f.kotlinProperty!!.returnType) { clazz -> columnValue(clazz, columnName, tableName) }
-            } catch (t: Throwable) {
-                throw IllegalStateException("Had a problem reading field $f", t)
-            }
-        }
-        return ormDef.clazz.constructors.first().call(*fieldValues.toTypedArray())
-    }
-
     infix fun <D:Any, T : Table> InsertValuesStatement<T, Unit>.from(data: D) {
         val clazz = data::class.java
         clazz.nonStaticFields().withIndex().forEach { (i, f) ->
@@ -237,6 +220,24 @@ open class ORMTableDefinition<T : Any> constructor(
     //=================================
 
 }
+
+//=================================
+infix fun <T:Any> ResultRow.toDAO(ormDef: ORMTableDefinition<T>): T {
+    val fields = ormDef.clazz.toDAOFields()
+    val fieldValues = fields.map { f ->
+        try {
+            val property = ormDef.clazz.memberProperties.first { it.name == f.name }
+            val columnDef = ormDef[property]
+            val columnName = columnDef.name.id
+            val tableName = ormDef.compoundName.id
+            ormDef.serializationStrategies.tryDecodeValueLazy(f.kotlinProperty!!.returnType) { clazz -> columnValue(clazz, columnName, tableName) }
+        } catch (t: Throwable) {
+            throw IllegalStateException("Had a problem reading field $f", t)
+        }
+    }
+    return ormDef.clazz.constructors.first().call(*fieldValues.toTypedArray())
+}
+
 
 private fun <T:Any> KClass<T>.toDAOFields() = java.nonStaticFields()
 
