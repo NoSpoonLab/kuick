@@ -65,7 +65,7 @@ class DbCacheInvalidation(val coroutineContext: CoroutineContext, val delay: Lon
     }
 }
 
-fun <T : Any> Cache<String, T>.invalidatedBy(cacheName: String = (this as Named).name, dbCacheInvalidation: DbCacheInvalidation): Cache<String, T> {
+fun <T : Any> Cache<String, T>.invalidatedBy(dbCacheInvalidation: DbCacheInvalidation, cacheName: String = (this as Named).name): Cache<String, T> {
     val parent = this
 
     val closeable = dbCacheInvalidation.register(cacheName) {
