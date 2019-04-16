@@ -10,12 +10,12 @@ class DbCacheInvalidationTest {
 
     @Test
     fun test() {
-        //runBlocking {
-        //    DbCacheInvalidation.get { invalidation ->
-        //        DiskCache<Demo>("MyCacheName").invalidatedBy("MyCacheName", invalidation).use { cache ->
-        //            cache.invalidate("test")
-        //        }
-        //    }
-        //}
+        runBlocking {
+            DbCacheInvalidation.get { invalidation ->
+                DiskCache<Demo>("MyCacheName").invalidatedBy("MyCacheName", invalidation).use { cache ->
+                    cache.invalidate("test")
+                }
+            }
+        }
     }
 }
