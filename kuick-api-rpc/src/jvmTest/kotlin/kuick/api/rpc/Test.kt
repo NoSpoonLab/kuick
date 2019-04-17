@@ -1,4 +1,4 @@
-package kuick.api.rest
+package kuick.api.rpc
 
 import io.ktor.http.HttpMethod
 import io.ktor.server.testing.TestApplicationEngine
@@ -19,13 +19,6 @@ class Test {
             val field2: Int,
             val otherResource: String
     )
-
-    data class OtherResource(
-            val id: String,
-            val field1: String,
-            val field2: Int
-    )
-
 
     @Singleton
     class ResourceApi {
@@ -49,34 +42,14 @@ class Test {
         fun getAll(): List<Resource> = map.values.toList()
     }
 
-    @Singleton
-    class OtherResourceApi {
-        private val map = mapOf(
-                "other-resource-id-2" to OtherResource(
-                        id = "other-resource-id-2",
-                        field1 = "test1",
-                        field2 = 10
-                )
-        )
 
-        fun getOne(id: String): OtherResource = map[id] ?: throw RuntimeException("404")
-    }
-
-
-    private fun restTest(block: TestApplicationEngine.() -> Unit) {
+    private fun rpcTest(block: TestApplicationEngine.() -> Unit) {
         val injector = Guice {
             bindPerCoroutineJob()
         }
         withTestApplication {
             application.kuickRouting {
-                restRouting<ResourceApi>(injector, "resources") {
-                    get(ResourceApi::getAll) {
-                        withFieldsParameter()
-                        withIncludeParameter(
-                                Resource::otherResource to OtherResourceApi::getOne
-                        )
-                    }
-                }
+                rpcRouting<ResourceApi>(injector) {}
             }
 
             block()
@@ -84,21 +57,9 @@ class Test {
     }
 
     @Test
-    fun test() = restTest {
+    fun test() = rpcTest {
         assertEquals("[{\"id\":\"resource-id-1\",\"field1\":\"test1\",\"field2\":10,\"otherResource\":\"example-id-2\"},{\"id\":\"resource-id-2\",\"field1\":\"test2\",\"field2\":11,\"otherResource\":\"example-id-2\"}]",
-                handleRequest(HttpMethod.Get, "/resources").response.content)
+                handleRequest(HttpMethod.Post, "/rpc/ResourceApi/getAll").response.content)
     }
 
-    @Test
-    fun field_test() = restTest {
-        assertEquals("[{\"field1\":\"test1\"},{\"field1\":\"test2\"}]", handleRequest(HttpMethod.Get, "/resources?\$fields=[field1]").response.content)
-    }
-
-    @Test
-    fun include_test() = restTest {
-        assertEquals(
-                "[{\"otherResource\":{\"id\":\"other-resource-id-1\",\"field1\":\"test1\",\"field2\":\"10\"}}]",
-                handleRequest(HttpMethod.Get, "/resources?\$fields=[otherResource]&\$include=[otherResource]").response.content
-        )
-    }
 }

@@ -2,9 +2,9 @@ package kuick.api
 
 import com.google.gson.JsonElement
 import com.google.gson.JsonNull
-import kuick.api.reflection.invokeWithParams
 import kuick.json.Json.gson
 import kuick.orm.clazz
+import kuick.reflection.invokeWithParams
 import kotlin.coroutines.suspendCoroutine
 import kotlin.reflect.KFunction
 import kotlin.reflect.jvm.javaMethod
