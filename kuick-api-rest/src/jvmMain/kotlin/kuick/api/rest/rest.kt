@@ -9,7 +9,6 @@ import com.google.inject.Injector
 import io.ktor.application.call
 import io.ktor.http.ContentType
 import io.ktor.http.HttpMethod
-import io.ktor.http.Parameters
 import io.ktor.request.receiveText
 import io.ktor.response.respondText
 import io.ktor.routing.Route
@@ -20,7 +19,6 @@ import kuick.json.Json.gson
 import kuick.ktor.KuickRouting
 import kotlin.reflect.KFunction
 import kotlin.reflect.KProperty
-import kotlin.reflect.full.callSuspend
 
 
 data class RestRouting(
@@ -45,94 +43,73 @@ data class RestRouting(
 
                     val result = invokeHandler(api, route.handler, args)
 
-                    // TODO make it better
-                    var jsonResult = gson.toJsonTree(result)
-                    val queryParameters = call.request.queryParameters
-                    jsonResult = handleFieldsParam(queryParameters, jsonParser, jsonResult, route)
-                    jsonResult = handleIncludeParam(queryParameters, jsonParser, jsonResult, route)
+                    val jsonResult = gson.toJsonTree(result)
 
+                    //TODO is it a right place to handle these parameters?
+                    val queryParameters = call.request.queryParameters
+                    if (route.withFieldsParameter && queryParameters.contains("\$fields")) {
+                        handleFieldsParam(jsonResult, queryParameters["\$fields"]!!)
+                    }
+                    if (route.withFieldsParameter && queryParameters.contains("\$include")) {
+                        handleIncludeParam(jsonResult, queryParameters["\$include"]!!, route.includeParameterConfiguration)
+                    }
 
                     call.respondText(jsonResult.toString(), ContentType.Application.Json) // serialization
                 }
             }
 
-    private fun handleFieldsParam(queryParameters: Parameters, jsonParser: JsonParser, jsonResult: JsonElement, route: RestRoute<*>): JsonElement {
-        var newJsonResult = jsonResult
-        if (route.withFieldsParameter) {
-            val fieldsParamJson = queryParameters["\$fields"]
-            if (fieldsParamJson != null) {
-                val fieldsParam = (jsonParser.parse(fieldsParamJson) as JsonArray).map { it.asString }.toHashSet()
+    private fun handleFieldsParam(jsonResult: JsonElement, fieldsParam: String) {
+        val fieldsParam = (JsonParser().parse(fieldsParam) as JsonArray).map { it.asString }.toHashSet()
 
-                fun handleFields(jsonObject: JsonObject, fieldsParam: Set<String>): JsonElement {
-                    val newJsonObject = JsonObject()
-                    jsonObject.asJsonObject.entrySet().forEach {
-                        if (fieldsParam.contains(it.key)) newJsonObject.add(it.key, it.value)
-                    }
-                    return newJsonObject
-                }
-
-                when {
-                    newJsonResult.isJsonObject ->
-                        newJsonResult = handleFields(newJsonResult.asJsonObject, fieldsParam)
-                    newJsonResult.isJsonArray -> {
-                        val res = JsonArray()
-                        newJsonResult.asJsonArray.forEach { obj ->
-                            res.add(handleFields(obj.asJsonObject, fieldsParam))
-                        }
-                        newJsonResult = res
-                    }
-                    else -> {
-                    }
+        fun handleFields(jsonObject: JsonObject) {
+            jsonObject.entrySet().toList().forEach {
+                if (!fieldsParam.contains(it.key)) {
+                    jsonObject.remove(it.key)
                 }
             }
         }
-        return newJsonResult
+
+        when {
+            jsonResult.isJsonObject -> handleFields(jsonResult.asJsonObject)
+            jsonResult.isJsonArray -> {
+                jsonResult.asJsonArray.forEach { obj ->
+                    handleFields(obj.asJsonObject)
+                }
+            }
+            else -> {
+            }
+        }
     }
 
-    private suspend fun handleIncludeParam(queryParameters: Parameters, jsonParser: JsonParser, jsonResult: JsonElement, route: RestRoute<*>): JsonElement {
-        var newJsonResult = jsonResult
-        if (route.withIncludeParameter) {
-            val includeParamJson = queryParameters["\$include"]
-            if (includeParamJson != null) {
-                val includeParam = (jsonParser.parse(includeParamJson) as JsonArray).map { it.asString }.toHashSet()
+    private fun handleIncludeParam(jsonResult: JsonElement, includeParam: String, configuration: Map<String, (id: String) -> Any>) {
+        val includeParam = (JsonParser().parse(includeParam) as JsonArray).map { it.asString }.toHashSet()
 
-                suspend fun handleInclude(jsonObject: JsonObject): JsonElement {
-                    val newJsonObject = JsonObject()
-                    jsonObject.entrySet().forEach {
-                        if (includeParam.contains(it.key)) {
-                            val method = route.includeParameterConfiguration.getValue(it.key)
-//                        val owner = injector.getInstance(UserApi::class.java)
-                            newJsonObject.add(
-                                    it.key,
-                                    gson.toJsonTree(
-                                            method.callSuspend(it.value.asString)
-                                    )
+        fun handleInclude(jsonObject: JsonObject) {
+            jsonObject.entrySet().toList().forEach {
+                if (includeParam.contains(it.key)) {
+                    val method = configuration.getValue(it.key)
+                    jsonObject.remove(it.key)
+                    jsonObject.add(
+                            it.key,
+                            gson.toJsonTree(
+                                    method(it.value.asString)
                             )
-                        } else {
-                            newJsonObject.add(it.key, it.value)
-                        }
-                    }
-                    return newJsonObject
-                }
-
-                when {
-                    newJsonResult.isJsonObject ->
-                        newJsonResult = handleInclude(newJsonResult.asJsonObject)
-                    newJsonResult.isJsonArray -> {
-                        val res = JsonArray()
-                        newJsonResult.asJsonArray.forEach { obj ->
-                            res.add(handleInclude(obj.asJsonObject))
-                        }
-                        newJsonResult = res
-                    }
-                    else -> {
-                    }
+                    )
                 }
             }
         }
-        return newJsonResult
-    }
 
+        when {
+            jsonResult.isJsonObject -> handleInclude(jsonResult.asJsonObject)
+            jsonResult.isJsonArray -> {
+                jsonResult.asJsonArray.forEach { obj ->
+                    handleInclude(obj.asJsonObject)
+                }
+            }
+            else -> {
+            }
+        }
+    }
 }
 
 class RestRoute<T>(
@@ -146,14 +123,14 @@ class RestRoute<T>(
     var withIncludeParameter = false
         private set
 
-    var includeParameterConfiguration: Map<String, KFunction<Any>> = emptyMap()
+    var includeParameterConfiguration: Map<String, (id: String) -> Any> = emptyMap()
         private set
 
     fun withFieldsParameter() {
         withFieldsParameter = true
     }
 
-    fun withIncludeParameter(vararg configuration: Pair<KProperty<Any>, KFunction<Any>>) {
+    fun withIncludeParameter(vararg configuration: Pair<KProperty<Any?>, (id: String) -> Any>) {
         withIncludeParameter = true
         includeParameterConfiguration = configuration.map { it.first.name to it.second }.toMap()
     }

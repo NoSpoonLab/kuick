@@ -17,7 +17,7 @@ class Test {
             val id: String,
             val field1: String,
             val field2: Int,
-            val otherResource: String
+            val otherResource: String? = null
     )
 
     data class OtherResource(
@@ -33,14 +33,13 @@ class Test {
                 "resource-id-1" to Resource(
                         id = "resource-id-1",
                         field1 = "test1",
-                        field2 = 10,
-                        otherResource = "example-id-2"
+                        field2 = 10
                 ),
                 "resource-id-2" to Resource(
                         id = "resource-id-2",
                         field1 = "test2",
                         field2 = 11,
-                        otherResource = "example-id-2"
+                        otherResource = "other-resource-id-2"
                 )
         )
 
@@ -73,7 +72,7 @@ class Test {
                     get(ResourceApi::getAll) {
                         withFieldsParameter()
                         withIncludeParameter(
-                                Resource::otherResource to OtherResourceApi::getOne
+                                Resource::otherResource to { id -> injector.getInstance(OtherResourceApi::class.java).getOne(id) }
                         )
                     }
                 }
@@ -85,7 +84,7 @@ class Test {
 
     @Test
     fun test() = restTest {
-        assertEquals("[{\"id\":\"resource-id-1\",\"field1\":\"test1\",\"field2\":10,\"otherResource\":\"example-id-2\"},{\"id\":\"resource-id-2\",\"field1\":\"test2\",\"field2\":11,\"otherResource\":\"example-id-2\"}]",
+        assertEquals("[{\"id\":\"resource-id-1\",\"field1\":\"test1\",\"field2\":10},{\"id\":\"resource-id-2\",\"field1\":\"test2\",\"field2\":11,\"otherResource\":\"other-resource-id-2\"}]",
                 handleRequest(HttpMethod.Get, "/resources").response.content)
     }
 
@@ -97,8 +96,8 @@ class Test {
     @Test
     fun include_test() = restTest {
         assertEquals(
-                "[{\"otherResource\":{\"id\":\"other-resource-id-1\",\"field1\":\"test1\",\"field2\":\"10\"}}]",
-                handleRequest(HttpMethod.Get, "/resources?\$fields=[otherResource]&\$include=[otherResource]").response.content
+                "[{\"id\":\"resource-id-1\"},{\"id\":\"resource-id-2\",\"otherResource\":{\"id\":\"other-resource-id-2\",\"field1\":\"test1\",\"field2\":10}}]",
+                handleRequest(HttpMethod.Get, "/resources?\$fields=[id,otherResource]&\$include=[otherResource]").response.content
         )
     }
 }
