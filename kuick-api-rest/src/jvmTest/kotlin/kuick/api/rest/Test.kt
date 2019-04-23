@@ -1,13 +1,20 @@
 package kuick.api.rest
 
+import io.ktor.application.ApplicationCallPipeline
+import io.ktor.application.call
 import io.ktor.http.HttpMethod
+import io.ktor.http.HttpStatusCode
+import io.ktor.response.respond
+import io.ktor.routing.Route
+import io.ktor.routing.route
+import io.ktor.routing.routing
 import io.ktor.server.testing.TestApplicationEngine
 import io.ktor.server.testing.handleRequest
 import io.ktor.server.testing.withTestApplication
+import io.ktor.util.AttributeKey
 import junit.framework.Assert.assertEquals
 import kuick.di.Guice
 import kuick.di.bindPerCoroutineJob
-import kuick.ktor.kuickRouting
 import org.junit.Test
 import javax.inject.Singleton
 
@@ -46,6 +53,7 @@ class Test {
         fun getOne(id: String): Resource = map[id] ?: throw RuntimeException("404")
 
         fun getAll(): List<Resource> = map.values.toList()
+        fun test(): String = "TEST"
     }
 
     @Singleton
@@ -62,25 +70,54 @@ class Test {
     }
 
 
+    //TODO Pipeline : discuss
+    private fun Route.withSomeCheck(path: String = "", build: Route.() -> Unit) = route(path) {
+        intercept(ApplicationCallPipeline.Call) {
+            if (false) {// e.g. if (!ADMIN_USERS.contains(session.userId)) {
+                call.respond(HttpStatusCode.Forbidden)
+                finish()
+            }
+        }
+        build()
+    }
+
+    //TODO Providing additional parameters (later passed to handler method) discuss
+    private fun Route.withSomeAdditionalParameter(path: String = "", build: Route.() -> Unit) = route(path) {
+        intercept(ApplicationCallPipeline.Call) {
+            call.attributes.put(AttributeKey("test"), "test")
+        }
+        build()
+    }
+
     private fun restTest(block: TestApplicationEngine.() -> Unit) {
         val injector = Guice {
             bindPerCoroutineJob()
         }
         withTestApplication {
-            application.kuickRouting {
-                restRouting<ResourceApi>(injector, "resources") {
-                    get(ResourceApi::getAll) {
-                        withFieldsParameter()
-                        withIncludeParameter(
-                                Resource::otherResource to { id -> injector.getInstance(OtherResourceApi::class.java).getOne(id) }
-                        )
+
+            application.routing {
+
+                restRoute<ResourceApi>(injector, "resources") {
+
+                    withSomeCheck {
+                        withSomeAdditionalParameter {
+                            get(ResourceApi::getAll) {
+                                withFieldsParameter()
+                                withIncludeParameter(
+                                        // TODO before I tried to provide here: Resource::otherResource to OtherResourceApi::getOne -> discuss
+                                        Resource::otherResource to { id -> injector.getInstance(OtherResourceApi::class.java).getOne(id) }
+                                )
+                            }
+                        }
                     }
                 }
+
             }
 
             block()
         }
     }
+
 
     @Test
     fun test() = restTest {

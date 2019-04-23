@@ -13,23 +13,23 @@ import io.ktor.request.receiveText
 import io.ktor.response.respondText
 import io.ktor.routing.Route
 import io.ktor.routing.route
+import io.ktor.util.AttributeKey
 import kuick.api.buildArgsFromObject
 import kuick.api.invokeHandler
 import kuick.json.Json.gson
-import kuick.ktor.KuickRouting
 import kotlin.reflect.KFunction
 import kotlin.reflect.KProperty
 
 
 data class RestRouting(
-        val kuickRouting: KuickRouting,
+        val parent: Route,
         val resourceName: String,
         val api: Any,
         val injector: Injector
 ) {
 
     fun <T> registerRoute(route: RestRoute<T>): Route =
-            kuickRouting.routing.route(resourceName, method = route.httpMethod) {
+            parent.route(resourceName, method = route.httpMethod) {
                 println("REST: ${route.httpMethod.value} /$resourceName -> ${route.handler}") // logging
 
                 handle {
@@ -38,7 +38,7 @@ data class RestRouting(
                     val args = buildArgsFromObject(
                             route.handler,
                             jsonParser.parse(call.receiveText()),
-                            emptyMap() // TODO accept additional arguments + provide pipeline mechanism
+                            call.attributes.allKeys.map { it.name to call.attributes[it as AttributeKey<Any>] }.toMap()
                     )
 
                     val result = invokeHandler(api, route.handler, args)

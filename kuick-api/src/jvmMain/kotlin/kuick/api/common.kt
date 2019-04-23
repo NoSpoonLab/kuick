@@ -27,7 +27,7 @@ suspend fun invokeHandler(api: Any, handler: KFunction<*>, args: Collection<Any?
 
 fun <T> buildArgsFromObject(handler: KFunction<T>,
                             requestParameters: JsonElement,
-                            extraArgs: Map<Class<out Any>, Any>): Collection<Any?> {
+                            extraArgs: Map<String, Any>): Collection<Any?> {
     val requestParameters = when (requestParameters) {
         is JsonNull -> JsonObject()
         is JsonPrimitive -> if (requestParameters.asString.isEmpty()) JsonObject() else throw IllegalRequestBody()
@@ -39,7 +39,7 @@ fun <T> buildArgsFromObject(handler: KFunction<T>,
 
 fun <T> buildArgsFromArray(handler: KFunction<T>,
                            requestParameters: JsonElement,
-                           extraArgs: Map<Class<out Any>, Any>): Collection<Any?> {
+                           extraArgs: Map<String, Any>): Collection<Any?> {
     val requestParameters = when (requestParameters) {
         is JsonNull -> JsonArray()
         is JsonPrimitive -> if (requestParameters.asString.isEmpty()) JsonArray() else throw IllegalRequestBody()
@@ -52,7 +52,7 @@ fun <T> buildArgsFromArray(handler: KFunction<T>,
 
 private fun <T> buildArgs(handler: KFunction<T>,
                           requestParameters: JsonElement,
-                          extraArgs: Map<Class<out Any>, Any>): Collection<Any?> {
+                          extraArgs: Map<String, Any>): Collection<Any?> {
     val parameters = handler.parameters
             .subList(1, handler.parameters.size)
     return parameters
@@ -68,7 +68,7 @@ private fun <T> buildArgs(handler: KFunction<T>,
                 val type = parameter.type.clazz.java
                 when {
                     // If there's an extra parameter, overload it to whatever is sent by client argument
-                    extraArgs.get(type) != null -> extraArgs.get(type)
+                    extraArgs[parameter.name] != null -> { extraArgs[parameter.name] }
 
                     type.isAssignableFrom(String::class.java) -> {
                         val jsonParam = getParameter()
@@ -88,7 +88,7 @@ private fun <T> buildArgs(handler: KFunction<T>,
                             }
                             value
                         } catch (t: Throwable) {
-                            extraArgs.get(type) ?: throw IllegalArgumentException("Missing expected field $type", t)
+                            extraArgs[parameter.name] ?: throw IllegalArgumentException("Missing expected field $type", t)
                         }
                     }
                 }

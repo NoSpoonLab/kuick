@@ -2,11 +2,11 @@ package kuick.api.rest
 
 import com.google.inject.Injector
 import io.ktor.http.HttpMethod
-import kuick.ktor.KuickRouting
+import io.ktor.routing.Route
 import kotlin.reflect.KFunction
 
 
-inline fun <reified T> KuickRouting.restRouting(
+inline fun <reified T> Route.restRoute(
         injector: Injector,
         resourceName: String,
         configuration: RestRouting.() -> Unit
@@ -18,7 +18,8 @@ inline fun <reified T> KuickRouting.restRouting(
 fun <T> RestRouting.route(
         httpMethod: HttpMethod,
         handler: KFunction<T>,
-        configuration: RestRoute<T>.() -> Unit = {})
+        configuration: RestRoute<T>.() -> Unit = {}
+)
         : RestRoute<T> =
         RestRoute(httpMethod, handler)
                 .apply(configuration)

@@ -5,7 +5,7 @@ import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import kuick.api.rest.get
 import kuick.api.rest.post
-import kuick.api.rest.restRouting
+import kuick.api.rest.restRoute
 import kuick.api.rpc.rpcRouting
 import kuick.client.db.DbClientPool
 import kuick.client.jdbc.JdbcDriver
@@ -36,7 +36,7 @@ fun Application.module() {
         rpcRouting<UserApi>(injector)
 
 
-        restRouting<TodoApi>(injector, "todos") {
+        restRoute<TodoApi>(injector, "todos") {
             get(TodoApi::getAll) {
                 withFieldsParameter()
                 withIncludeParameter(
@@ -49,7 +49,7 @@ fun Application.module() {
 //                get(TodoApi::getOne)
 //            }
         }
-        restRouting<UserApi>(injector, "users") {
+        restRoute<UserApi>(injector, "users") {
             post(UserApi::add)
         }
 
