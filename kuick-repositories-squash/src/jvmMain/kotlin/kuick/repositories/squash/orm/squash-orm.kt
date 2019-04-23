@@ -11,6 +11,7 @@ import org.jetbrains.squash.connection.*
 import org.jetbrains.squash.definition.ColumnDefinition
 import org.jetbrains.squash.definition.Table
 import org.jetbrains.squash.definition.TableDefinition
+import org.jetbrains.squash.drivers.*
 import org.jetbrains.squash.expressions.*
 import org.jetbrains.squash.query.*
 import org.jetbrains.squash.results.*
@@ -55,17 +56,19 @@ class DomainTransactionSquash(val db: DatabaseConnection): DomainTransaction, Cl
     override fun close() {
         val tr = _tr.get()
         //println("Closing $this : $db : $tr")
-        tr?.commit()
+        if ((tr?.connection as? JDBCTransaction?)?.jdbcTransaction?.autoCommit == false) {
+            tr?.commit()
+        }
         tr?.close()
         closed = true
     }
 }
 
 @KuickInternalWarning
-open class ORMTableDefinition<T : Any> (
-        val serializationStrategies : SerializationStrategy,
+open class ORMTableDefinition<T : Any> constructor(
         val clazz: KClass<T>,
-        val tableName: String = clazz.simpleName!!
+        val tableName: String = clazz.simpleName!!,
+        val serializationStrategies: SerializationStrategy = defaultSerializationStrategies + defaultFallbackSerializationStrategy
 ): TableDefinition(tableName) {
     private val _map: MutableMap<KProperty1<T, *>, ColumnDefinition<*>> = mutableMapOf()
 
@@ -190,23 +193,6 @@ open class ORMTableDefinition<T : Any> (
 
     private fun <R:Any> Statement<R>.monitorAndExecuteOn(tr: Transaction) =   executeOn(tr)
 
-    //=================================
-    infix fun <T:Any> ResultRow.toDAO(ormDef: ORMTableDefinition<T>): T {
-        val fields = ormDef.clazz.toDAOFields()
-        val fieldValues = fields.map { f ->
-            try {
-                val property = ormDef.clazz.memberProperties.first { it.name == f.name }
-                val columnDef = ormDef[property]
-                val columnName = columnDef.name.id
-                val tableName = ormDef.compoundName.id
-                serializationStrategies.tryDecodeValueLazy(f.kotlinProperty!!.returnType) { clazz -> columnValue(clazz, columnName, tableName) }
-            } catch (t: Throwable) {
-                throw IllegalStateException("Had a problem reading field $f", t)
-            }
-        }
-        return ormDef.clazz.constructors.first().call(*fieldValues.toTypedArray())
-    }
-
     infix fun <D:Any, T : Table> InsertValuesStatement<T, Unit>.from(data: D) {
         val clazz = data::class.java
         clazz.nonStaticFields().withIndex().forEach { (i, f) ->
@@ -234,6 +220,24 @@ open class ORMTableDefinition<T : Any> (
     //=================================
 
 }
+
+//=================================
+infix fun <T:Any> ResultRow.toDAO(ormDef: ORMTableDefinition<T>): T {
+    val fields = ormDef.clazz.toDAOFields()
+    val fieldValues = fields.map { f ->
+        try {
+            val property = ormDef.clazz.memberProperties.first { it.name == f.name }
+            val columnDef = ormDef[property]
+            val columnName = columnDef.name.id
+            val tableName = ormDef.compoundName.id
+            ormDef.serializationStrategies.tryDecodeValueLazy(f.kotlinProperty!!.returnType) { clazz -> columnValue(clazz, columnName, tableName) }
+        } catch (t: Throwable) {
+            throw IllegalStateException("Had a problem reading field $f", t)
+        }
+    }
+    return ormDef.clazz.constructors.first().call(*fieldValues.toTypedArray())
+}
+
 
 private fun <T:Any> KClass<T>.toDAOFields() = java.nonStaticFields()
 

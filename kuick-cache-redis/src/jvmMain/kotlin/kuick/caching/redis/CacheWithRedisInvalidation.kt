@@ -7,7 +7,9 @@ class CacheWithRedisInvalidation<V : Any> @PublishedApi internal constructor(
         val parentCache: Cache<String, V>,
         val cacheName: String,
         val invalidationRedisClient: InvalidationRedisClient
-) : Cache<String, V>, Closeable {
+) : Cache<String, V> {
+    override val name: String get() = cacheName
+
     private val register = invalidationRedisClient.register(cacheName) {
         parentCache.invalidate(it)
     }
@@ -20,7 +22,7 @@ class CacheWithRedisInvalidation<V : Any> @PublishedApi internal constructor(
         invalidationRedisClient.invalidate(cacheName, key)
     }
 
-    override fun close() {
+    override suspend fun close() {
         register.close()
     }
 }

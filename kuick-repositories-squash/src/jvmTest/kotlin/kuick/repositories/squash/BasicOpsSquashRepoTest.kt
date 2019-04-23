@@ -25,6 +25,9 @@ class BasicOpsSquashRepoTest: AbstractITTest() {
                     val updatedAt: Date? = null
     )
 
+    data class ResultDetails(val demo: Double = 1.0)
+    data class UserResult(val userId: UserId, val score: Double, val details: ResultDetails)
+
 
     @Test
     fun `test basic insert and search ops`() = testInTransaction {
@@ -83,6 +86,14 @@ class BasicOpsSquashRepoTest: AbstractITTest() {
         assertEquals(mike2, repo.findById(mike.userId))
     }
 
+    @Test
+    fun `test double`() = testInTransaction {
+        val repo = ModelRepositorySquash(UserResult::class, UserResult::userId)
+        repo.init()
+        val result = UserResult(UserId("test"), 1.0, ResultDetails(2.0))
+        repo.insert(result)
+        assertEquals(listOf(result), repo.getAll())
+    }
 
 
     private fun user(id: String, fullName: String, age: Int, married: Boolean) =

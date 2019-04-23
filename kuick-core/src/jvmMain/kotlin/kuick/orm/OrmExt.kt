@@ -4,7 +4,11 @@ import kuick.json.*
 import kuick.models.*
 import kuick.repositories.annotations.*
 import kuick.util.*
+import java.sql.*
+import java.text.*
+import java.time.*
 import java.util.*
+import java.util.Date
 import kotlin.collections.LinkedHashMap
 import kotlin.reflect.*
 import kotlin.reflect.full.*
@@ -48,7 +52,7 @@ class TableDefinition<T : Any>(val clazz: KClass<T>, val serialization: TableSer
     val columnsByName = columns.associateBy { it.name }
     val columnsByProp = columns.associateBy { it.prop }
 
-    operator fun get(prop: KProperty1<T, *>) = columnsByProp[prop] ?: error("Can't find $prop in $this")
+    operator fun get(prop: KProperty1<*, *>): ColumnDefinition<T> = columnsByProp[prop as KProperty1<T, *>] ?: error("Can't find $prop in $this")
 
     fun untype(instance: T): Map<String, Any?> {
         val out = LinkedHashMap<String, Any?>()
@@ -125,9 +129,17 @@ object LongDateSerializationStrategy : TypedTableSerializationStrategy(Date::cla
 }
 
 object DateSerializationStrategy : TypedTableSerializationStrategy(Date::class) {
+    //yyyy-MM-dd hh:mm:ss[.nnnnnnnnn]
+    val DATE_FORMAT = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.000000SSS")
     override fun columnType(column: ColumnDefinition<*>): ColumnType? = ColumnType.TIMESTAMP
-    override fun serialize(column: ColumnDefinition<*>, value: Any?): Any? = value
-    override fun deserialize(column: ColumnDefinition<*>, value: Any?): Any? = value
+    override fun serialize(column: ColumnDefinition<*>, value: Any?): Any? {
+        //return DATE_FORMAT.format(value as Date)
+        return Timestamp.from((value as Date).toInstant())
+    }
+    override fun deserialize(column: ColumnDefinition<*>, value: Any?): Any? {
+        if (value is Timestamp) return Date.from(value.toLocalDateTime().toInstant(ZoneOffset.UTC))
+        return DATE_FORMAT.parse(value.toString())
+    }
 }
 
 object IdSerializationStrategy : TableSerializationStrategy {
@@ -163,3 +175,5 @@ private fun constructStandardTableSerializationStrategy(date: TypedTableSerializ
 
 val oldTableSerializationStrategy: TableSerializationStrategy = constructStandardTableSerializationStrategy(LongDateSerializationStrategy)
 val defaultTableSerializationStrategy: TableSerializationStrategy = constructStandardTableSerializationStrategy(DateSerializationStrategy)
+//val defaultTableSerializationStrategy: TableSerializationStrategy = constructStandardTableSerializationStrategy(LongDateSerializationStrategy)
+//val dateTableSerializationStrategy = constructStandardTableSerializationStrategy(DateSerializationStrategy)

@@ -10,6 +10,14 @@ interface ModelRepository<I : Any, T : Any> : ViewRepository<I, T> {
     // Default implementations
     suspend fun delete(i: I) = deleteBy((idField eq i))
     suspend fun update(t: T): T = updateBy(t, idField eq idField.get(t))
+    suspend fun upsert(t: T): T {
+        try {
+            insert(t)
+        } catch (e: Throwable) {
+            update(t)
+        }
+        return t
+    }
     suspend fun insertMany(collection: Collection<T>) = collection.forEach { insert(it) }
     suspend fun updateMany(collection: Collection<T>) = collection.forEach { update(it) }
 }

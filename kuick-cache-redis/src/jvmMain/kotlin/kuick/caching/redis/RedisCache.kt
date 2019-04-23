@@ -11,6 +11,8 @@ class RedisCache<V : Any> @PublishedApi internal constructor(
         private val cacheName: String,
         private val clazz: KClass<V>
 ) : Cache<String, V> {
+    override val name: String get() = cacheName
+
     companion object {
         suspend inline operator fun <reified V : Any> invoke(cacheName: String, uri: RedisURI = RedisURI.create("redis://localhost/"), client: RedisClient = RedisClient.create()): RedisCache<V> {
             return RedisCache(client.connectSuspend(uri).suspending(), cacheName, V::class)

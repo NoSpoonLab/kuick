@@ -2,9 +2,10 @@ package kuick.caching
 
 import kotlinx.coroutines.*
 import kuick.concurrent.*
+import kuick.util.*
 import kotlin.coroutines.*
 
-class InmemoryCache<K : Any, V : Any> : Cache<K, V> {
+class InmemoryCache<K : Any, V : Any>(override val name: String = "InmemoryCache") : Cache<K, V>, Named {
     private val lock = Lock()
     private val map = LinkedHashMap<K, Deferred<V>>()
 

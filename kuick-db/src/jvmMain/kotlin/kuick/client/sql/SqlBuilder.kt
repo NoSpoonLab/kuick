@@ -1,7 +1,9 @@
 package kuick.client.sql
 
+import kuick.client.db.*
 import kuick.orm.*
 import kuick.repositories.*
+import kotlin.reflect.*
 
 abstract class SqlBuilder {
     companion object {
@@ -80,23 +82,41 @@ abstract class SqlBuilder {
         else -> this.toString().quoteStringLiteral()
     }
 
-    open fun where(q: ModelQuery<*>, table: TableDefinition<*>): String = when (q) {
-        is SimpleFieldBinop<*, *> -> "${table.columnsByProp[q.field]!!.name.quoteIdentifier()} ${q.op} ${q.value.quote()}"
-        is FilterExpBinopLogic<*> -> "(${where(q.left, table)} ${q.op} ${where(q.right, table)})"
-        is FilterExpUnopLogic<*> -> "${q.op} ${where(q.exp, table)}"
-        is DecoratedModelQuery<*> -> where(q.base, table)
+    inner class OutParams(val start: Int = 1, val params: ArrayList<Any?> = arrayListOf()) {
+        fun add(value: Any?): String {
+            val placeholder = sqlPlaceholders(1, start + params.size)
+            params.add(value)
+            return placeholder
+        }
+    }
+
+    fun outParams() = OutParams()
+
+    open fun operator(op: String) = op
+
+    @Suppress("UNCHECKED_CAST")
+    open fun where(q: ModelQuery<*>, table: TableDefinition<*>, out: OutParams): String = when (q) {
+        is SimpleFieldBinop<*, *> -> {
+            //val vv = table.serialization.serialize((table as TableDefinition<Any>)[q.field as KProperty1<Any, *>], q.value)
+            val placeholder = out.add(table.serialization.serialize((table as TableDefinition<Any>)[q.field as KProperty1<Any?, *>], q.value))
+            //"${table.columnsByProp[q.field]!!.name.quoteIdentifier()} ${q.op} ${table.serialization.serialize((table as TableDefinition<Any>)[q.field as KProperty1<Any, *>], q.value).quote()}"
+            "${table.columnsByProp[q.field]!!.name.quoteIdentifier()} ${operator(q.op)} $placeholder"
+        }
+        is FilterExpBinopLogic<*> -> "(${where(q.left, table, out)} ${operator(q.op)} ${where(q.right, table, out)})"
+        is FilterExpUnopLogic<*> -> "${q.op} ${where(q.exp, table, out)}"
+        is DecoratedModelQuery<*> -> where(q.base, table, out)
         else -> TODO("$q, $table")
     }
 
-    open fun <T : Any> sqlSelect(q: ModelQuery<T>, table: TableDefinition<T>): String {
+    open fun <T : Any> sqlSelect(q: ModelQuery<T>, table: TableDefinition<T>, out: OutParams = outParams()): QueryAndParams {
         val a = q.tryGetAttributed()
         val limit = a?.limit
         val offset = a?.skip
         val orderBy = a?.orderBy?.list
-        return buildString {
+        return QueryAndParams(buildString {
             append("SELECT * FROM ${table.name.quoteTableName()}")
             append(" WHERE ")
-            append(where(q, table))
+            append(where(q, table, out))
             if (orderBy != null && orderBy.isNotEmpty()) {
                 append(" ORDER BY")
                 for (v in orderBy) {
@@ -106,20 +126,20 @@ abstract class SqlBuilder {
             if (limit != null) append(" LIMIT $limit")
             if (offset != null) append(" OFFSET $offset")
             append(";")
-        }
+        }, out.params)
     }
 
-    open fun <T : Any> sqlDelete(q: ModelQuery<T>, table: TableDefinition<T>): String {
-        return buildString {
+    open fun <T : Any> sqlDelete(q: ModelQuery<T>, table: TableDefinition<T>, out: OutParams = outParams()): QueryAndParams {
+        return QueryAndParams(buildString {
             append("DELETE FROM ${table.name.quoteTableName()}")
             append(" WHERE ")
-            append(where(q, table))
+            append(where(q, table, out))
             append(";")
-        }
+        }, out.params)
     }
 
-    open fun <T : Any> sqlUpdate(keys: List<String>, q: ModelQuery<T>, table: TableDefinition<T>): String =
-            buildString {
+    open fun <T : Any> sqlUpdate(keys: List<String>, q: ModelQuery<T>, table: TableDefinition<T>, out: OutParams = outParams()): QueryAndParams =
+            QueryAndParams(buildString {
                 append("UPDATE ${table.name.quoteTableName()}")
                 append(" SET ")
                 for ((index, key) in keys.withIndex()) {
@@ -127,9 +147,9 @@ abstract class SqlBuilder {
                     append("${key.quoteIdentifier()} = ${sqlPlaceholders(1, index + 1)}")
                 }
                 append(" WHERE ")
-                append(where(q, table))
+                append(where(q, table, out))
                 append(";")
-            }
+            }, out.params)
 }
 
 object PgSqlBuilder : SqlBuilder() {
@@ -141,5 +161,9 @@ val SqlBuilder.Companion.Postgres get() = PgSqlBuilder
 
 object H2SqlBuilder : SqlBuilder() {
     override fun sqlListTables(): String = "SELECT TABLE_NAME AS tablename FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA != 'INFORMATION_SCHEMA';"
+    override fun operator(op: String) = when (op) {
+        "~=" -> "LIKE"
+        else -> op
+    }
 }
 val SqlBuilder.Companion.H2 get() = H2SqlBuilder
