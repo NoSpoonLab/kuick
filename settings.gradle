@@ -13,9 +13,6 @@ include ':kuick-api'
 include ':kuick-api-rest'
 include ':kuick-api-rpc'
 
-//include ':kuick-postgres'
-include ':kuick-db'
-
 include ':vendor:squash-core'
 include ':vendor:squash-graph'
 include ':vendor:squash-h2'

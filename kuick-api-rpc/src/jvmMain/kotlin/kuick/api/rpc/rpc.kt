@@ -39,7 +39,7 @@ data class RpcRouting(
     }
 
     private fun Any.visitRPC(opAction: (String, KFunction<*>) -> Unit) {
-        //TODO previous version on visitRPC did iterate over interfaces, not sure if it's necessarry
+        //TODO previous version of visitRPC did iterate over interfaces, i'm not sure if it's necessary
         val srvName = javaClass.simpleName
         javaClass.kotlin.memberFunctions.forEach { function ->
             try {
@@ -52,19 +52,4 @@ data class RpcRouting(
     }
 }
 
-
-//private val gson: Gson = GsonBuilder().registerTypeHierarchyAdapter(Id::class.java, IdGsonAdapter()).create()
-//
-//class IdGsonAdapter : JsonDeserializer<Id>, JsonSerializer<Id> {
-//
-//    override fun deserialize(je: JsonElement, type: Type, ctx: JsonDeserializationContext): Id {
-//        val constuctor = (type as Class<*>).declaredConstructors.first()
-//        return constuctor.newInstance(je.asString) as Id
-//    }
-//
-//    override fun serialize(id: Id?, type: Type, ctx: JsonSerializationContext): JsonElement {
-//        return JsonPrimitive(id?.id)
-//    }
-//
-//}
 
