@@ -6,7 +6,7 @@ import io.ktor.http.ContentType
 import io.ktor.request.receiveText
 import io.ktor.response.respondText
 import io.ktor.routing.post
-import kuick.api.buildArgs
+import kuick.api.buildArgsFromArray
 import kuick.api.invokeHandler
 import kuick.json.Json.gson
 import kuick.ktor.KuickRouting
@@ -24,10 +24,10 @@ data class RpcRouting(
             val path = "/rpc/$srvName/${method.name}"
             println("RPC: $path -> $method") // logging
             kuickRouting.routing.post(path) {
-                val args = buildArgs(
+                val args = buildArgsFromArray(
                         method,
                         gson.toJsonTree(call.receiveText()),
-                        emptyMap() // TODO
+                        emptyMap() // TODO accept additional arguments + provide pipeline mechanism
                 )
                 val result = invokeHandler(api, method, args)
                 call.respondText(gson.toJson(result), ContentType.Application.Json)
@@ -36,7 +36,7 @@ data class RpcRouting(
     }
 
     private fun Any.visitRPC(opAction: (String, KFunction<*>) -> Unit) {
-        //TODO previous version on visitRPC did iterated over interfaces, not sure if it's necessarry
+        //TODO previous version on visitRPC did iterat over interfaces, not sure if it's necessarry
         val srvName = javaClass.simpleName
         javaClass.kotlin.memberFunctions.forEach { function ->
             try {

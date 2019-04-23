@@ -14,7 +14,7 @@ import io.ktor.request.receiveText
 import io.ktor.response.respondText
 import io.ktor.routing.Route
 import io.ktor.routing.route
-import kuick.api.buildArgs
+import kuick.api.buildArgsFromObject
 import kuick.api.invokeHandler
 import kuick.json.Json.gson
 import kuick.ktor.KuickRouting
@@ -35,10 +35,12 @@ data class RestRouting(
                 println("REST: ${route.httpMethod.value} /$resourceName -> ${route.handler}") // logging
 
                 handle {
-                    val args = buildArgs(
+                    val jsonParser = JsonParser()
+
+                    val args = buildArgsFromObject(
                             route.handler,
-                            gson.toJsonTree(call.receiveText()),
-                            emptyMap() // TODO Pipes
+                            jsonParser.parse(call.receiveText()),
+                            emptyMap() // TODO accept additional arguments + provide pipeline mechanism
                     )
 
                     val result = invokeHandler(api, route.handler, args)
@@ -46,7 +48,6 @@ data class RestRouting(
                     // TODO make it better
                     var jsonResult = gson.toJsonTree(result)
                     val queryParameters = call.request.queryParameters
-                    val jsonParser = JsonParser()
                     jsonResult = handleFieldsParam(queryParameters, jsonParser, jsonResult, route)
                     jsonResult = handleIncludeParam(queryParameters, jsonParser, jsonResult, route)
 
@@ -138,6 +139,7 @@ class RestRoute<T>(
         val httpMethod: HttpMethod,
         val handler: KFunction<T>
 ) {
+    // TODO create subclass "Configuration" (?)
     var withFieldsParameter = false
         private set
 
