@@ -8,10 +8,10 @@ import io.ktor.response.respondText
 import io.ktor.routing.post
 import io.ktor.util.AttributeKey
 import kuick.api.buildArgsFromArray
-import kuick.api.invokeHandler
 import kuick.json.Json.gson
 import kuick.ktor.KuickRouting
 import kotlin.reflect.KFunction
+import kotlin.reflect.full.callSuspend
 import kotlin.reflect.full.memberFunctions
 
 
@@ -32,7 +32,9 @@ data class RpcRouting(
                         gson.toJsonTree(call.receiveText()),
                         call.attributes.allKeys.map { it.name to call.attributes[it as AttributeKey<Any>] }.toMap()
                 )
-                val result = invokeHandler(api, method, args)
+                val result = method.callSuspend(api, *args.toTypedArray())
+
+
                 call.respondText(gson.toJson(result), ContentType.Application.Json)
             }
         }

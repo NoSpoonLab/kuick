@@ -15,10 +15,10 @@ import io.ktor.routing.Route
 import io.ktor.routing.route
 import io.ktor.util.AttributeKey
 import kuick.api.buildArgsFromObject
-import kuick.api.invokeHandler
 import kuick.json.Json.gson
 import kotlin.reflect.KFunction
 import kotlin.reflect.KProperty
+import kotlin.reflect.full.callSuspend
 
 
 data class RestRouting(
@@ -31,9 +31,9 @@ data class RestRouting(
     fun <T> registerRoute(route: RestRoute<T>): Route =
             parent.route(resourceName, method = route.httpMethod) {
                 println("REST: ${route.httpMethod.value} /$resourceName -> ${route.handler}") // logging
+                val jsonParser = JsonParser()
 
                 handle {
-                    val jsonParser = JsonParser()
 
                     val args = buildArgsFromObject(
                             route.handler,
@@ -41,17 +41,16 @@ data class RestRouting(
                             call.attributes.allKeys.map { it.name to call.attributes[it as AttributeKey<Any>] }.toMap()
                     )
 
-                    val result = invokeHandler(api, route.handler, args)
+                    val result = route.handler.callSuspend(api, *args.toTypedArray())
 
                     val jsonResult = gson.toJsonTree(result)
 
-                    //TODO is it a right place to handle these parameters?
                     val queryParameters = call.request.queryParameters
-                    if (route.withFieldsParameter && queryParameters.contains("\$fields")) {
+                    if (route.config.withFieldsParameter && "\$fields" in queryParameters) {
                         handleFieldsParam(jsonResult, queryParameters["\$fields"]!!)
                     }
-                    if (route.withFieldsParameter && queryParameters.contains("\$include")) {
-                        handleIncludeParam(jsonResult, queryParameters["\$include"]!!, route.includeParameterConfiguration)
+                    if (route.config.includeParameterConfiguration != null && "\$include" in queryParameters) {
+                        handleIncludeParam(jsonResult, queryParameters["\$include"]!!, route.config.includeParameterConfiguration!!)
                     }
 
                     call.respondText(jsonResult.toString(), ContentType.Application.Json) // serialization
@@ -59,34 +58,17 @@ data class RestRouting(
             }
 
     private fun handleFieldsParam(jsonResult: JsonElement, fieldsParam: String) {
-        val fieldsParam = (JsonParser().parse(fieldsParam) as JsonArray).map { it.asString }.toHashSet()
-
-        fun handleFields(jsonObject: JsonObject) {
-            jsonObject.entrySet().toList().forEach {
-                if (!fieldsParam.contains(it.key)) {
-                    jsonObject.remove(it.key)
-                }
-            }
-        }
-
-        when {
-            jsonResult.isJsonObject -> handleFields(jsonResult.asJsonObject)
-            jsonResult.isJsonArray -> {
-                jsonResult.asJsonArray.forEach { obj ->
-                    handleFields(obj.asJsonObject)
-                }
-            }
-            else -> {
-            }
+        val fieldsParam = (JsonParser().parse(fieldsParam) as JsonArray).map { it.asString }.toSet()
+        jsonResult.applyToEachObject { jsonObject ->
+            jsonObject.entrySet().removeIf { it.key !in fieldsParam }
         }
     }
 
     private fun handleIncludeParam(jsonResult: JsonElement, includeParam: String, configuration: Map<String, (id: String) -> Any>) {
-        val includeParam = (JsonParser().parse(includeParam) as JsonArray).map { it.asString }.toHashSet()
-
-        fun handleInclude(jsonObject: JsonObject) {
+        val includeParam = (JsonParser().parse(includeParam) as JsonArray).map { it.asString }.toSet()
+        jsonResult.applyToEachObject { jsonObject ->
             jsonObject.entrySet().toList().forEach {
-                if (includeParam.contains(it.key)) {
+                if (it.key in includeParam) {
                     val method = configuration.getValue(it.key)
                     jsonObject.remove(it.key)
                     jsonObject.add(
@@ -98,12 +80,14 @@ data class RestRouting(
                 }
             }
         }
+    }
 
+    private fun JsonElement.applyToEachObject(handler: (JsonObject) -> Unit) {
         when {
-            jsonResult.isJsonObject -> handleInclude(jsonResult.asJsonObject)
-            jsonResult.isJsonArray -> {
-                jsonResult.asJsonArray.forEach { obj ->
-                    handleInclude(obj.asJsonObject)
+            isJsonObject -> handler(asJsonObject)
+            isJsonArray -> {
+                asJsonArray.forEach {
+                    handler(it.asJsonObject)
                 }
             }
             else -> {
@@ -114,28 +98,26 @@ data class RestRouting(
 
 class RestRoute<T>(
         val httpMethod: HttpMethod,
-        val handler: KFunction<T>
+        val handler: KFunction<T>,
+        val config: Configuration = Configuration()
 ) {
-    // TODO create subclass "Configuration" (?)
-    var withFieldsParameter = false
-        private set
 
-    var withIncludeParameter = false
-        private set
+    class Configuration {
+        var withFieldsParameter: Boolean = false
+            private set
+        var includeParameterConfiguration: Map<String, (id: String) -> Any>? = null
+            private set
 
-    var includeParameterConfiguration: Map<String, (id: String) -> Any> = emptyMap()
-        private set
+        fun withFieldsParameter() {
+            withFieldsParameter = true
+        }
 
-    fun withFieldsParameter() {
-        withFieldsParameter = true
+        fun withIncludeParameter(vararg configuration: Pair<KProperty<Any?>, (id: String) -> Any>) {
+            includeParameterConfiguration = configuration
+                    .map { it.first.name to it.second }.toMap()
+        }
     }
 
-    fun withIncludeParameter(vararg configuration: Pair<KProperty<Any?>, (id: String) -> Any>) {
-        withIncludeParameter = true
-        includeParameterConfiguration = configuration.map { it.first.name to it.second }.toMap()
-    }
 }
-
-
 
 

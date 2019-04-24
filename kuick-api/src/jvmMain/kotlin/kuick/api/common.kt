@@ -3,27 +3,10 @@ package kuick.api
 import com.google.gson.*
 import kuick.json.Json.gson
 import kuick.orm.clazz
-import kuick.reflection.invokeWithParams
-import kotlin.coroutines.suspendCoroutine
 import kotlin.reflect.KFunction
-import kotlin.reflect.jvm.javaMethod
 
 
 class IllegalRequestBody : Exception()
-
-suspend fun invokeHandler(api: Any, handler: KFunction<*>, args: Collection<Any?>): Any? =
-        if (handler.isSuspend) {
-            suspendCoroutine { c ->
-                try {
-                    val result = api.invokeWithParams(handler.javaMethod!!, args + c)
-                    c.resumeWith(Result.success(result))
-                } catch (t: Throwable) {
-                    c.resumeWith(Result.failure(t))
-                }
-            }
-        } else {
-            api.invokeWithParams(handler.javaMethod!!, args)
-        }
 
 fun <T> buildArgsFromObject(handler: KFunction<T>,
                             requestParameters: JsonElement,
@@ -53,8 +36,7 @@ fun <T> buildArgsFromArray(handler: KFunction<T>,
 private fun <T> buildArgs(handler: KFunction<T>,
                           requestParameters: JsonElement,
                           extraArgs: Map<String, Any>): Collection<Any?> {
-    val parameters = handler.parameters
-            .subList(1, handler.parameters.size)
+    val parameters = handler.parameters.drop(1)
     return parameters
             .withIndex()
             .map { (i, parameter) ->
