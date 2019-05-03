@@ -9,7 +9,7 @@ import kotlin.reflect.KFunction
 inline fun <reified T> Route.restRoute(
         injector: Injector,
         resourceName: String,
-        config: RestRouting.() -> Unit
+        config: RestRouting.() -> Unit = {}
 ): RestRouting {
     val api = injector.getInstance(T::class.java)!!
     return RestRouting(this, resourceName, api, injector).apply(config)

@@ -1,13 +1,13 @@
 package kuick.api.rpc
 
 import io.ktor.http.HttpMethod
+import io.ktor.routing.routing
 import io.ktor.server.testing.TestApplicationEngine
 import io.ktor.server.testing.handleRequest
 import io.ktor.server.testing.withTestApplication
 import junit.framework.Assert.assertEquals
 import kuick.di.Guice
 import kuick.di.bindPerCoroutineJob
-import kuick.ktor.kuickRouting
 import org.junit.Test
 import javax.inject.Singleton
 
@@ -48,8 +48,8 @@ class Test {
             bindPerCoroutineJob()
         }
         withTestApplication {
-            application.kuickRouting {
-                rpcRouting<ResourceApi>(injector) {}
+            application.routing {
+                rpcRoute<ResourceApi>(injector)
             }
 
             block()

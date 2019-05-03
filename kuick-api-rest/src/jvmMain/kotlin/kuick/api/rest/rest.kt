@@ -9,6 +9,7 @@ import com.google.inject.Injector
 import io.ktor.application.call
 import io.ktor.http.ContentType
 import io.ktor.http.HttpMethod
+import io.ktor.http.Parameters
 import io.ktor.request.receiveText
 import io.ktor.response.respondText
 import io.ktor.routing.Route
@@ -47,42 +48,44 @@ data class RestRouting(
 
                     val queryParameters = call.request.queryParameters
                     if (route.config.withFieldsParameter && "\$fields" in queryParameters) {
-                        handleFieldsParam(jsonResult, queryParameters["\$fields"]!!)
+                        val fieldsParam = queryParameters.getAsSet("\$fields")
+                        jsonResult.preserveFields(fieldsParam)
                     }
                     if (route.config.includeParameterConfiguration != null && "\$include" in queryParameters) {
-                        handleIncludeParam(jsonResult, queryParameters["\$include"]!!, route.config.includeParameterConfiguration!!)
+                        val includeParam = queryParameters.getAsSet("\$include")
+                        jsonResult.includeRelatedResources(includeParam, route.config.includeParameterConfiguration!!)
                     }
 
                     call.respondText(jsonResult.toString(), ContentType.Application.Json) // serialization
                 }
             }
 
-    private fun handleFieldsParam(jsonResult: JsonElement, fieldsParam: String) {
-        val fieldsParam = (JsonParser().parse(fieldsParam) as JsonArray).map { it.asString }.toSet()
-        jsonResult.applyToEachObject { jsonObject ->
-            jsonObject.entrySet().removeIf { it.key !in fieldsParam }
-        }
-    }
+    private fun String.toJsonArray() = (JsonParser().parse(this) as JsonArray)
+    private fun JsonArray.asStringList() = this.map { it.asString }
+    private fun Parameters.getAsSet(name: String) = this[name]?.toJsonArray()?.asStringList()?.toSet() ?: emptySet()
 
-    private fun handleIncludeParam(jsonResult: JsonElement, includeParam: String, configuration: Map<String, (id: String) -> Any>) {
-        val includeParam = (JsonParser().parse(includeParam) as JsonArray).map { it.asString }.toSet()
-        jsonResult.applyToEachObject { jsonObject ->
-            jsonObject.entrySet().toList().forEach {
-                if (it.key in includeParam) {
-                    val method = configuration.getValue(it.key)
-                    jsonObject.remove(it.key)
-                    jsonObject.add(
-                            it.key,
-                            gson.toJsonTree(
-                                    method(it.value.asString)
-                            )
-                    )
+    private suspend fun JsonElement.preserveFields(fieldsParam: Set<String>) =
+            this.applyToEachObject { jsonObject ->
+                jsonObject.entrySet().removeIf { it.key !in fieldsParam }
+            }
+
+    private suspend fun JsonElement.includeRelatedResources(includeParam: Set<String>, configuration: Map<String, suspend (id: String) -> Any>) =
+            this.applyToEachObject { jsonObject ->
+                jsonObject.entrySet().toList().forEach {
+                    if (it.key in includeParam) {
+                        val method = configuration.getValue(it.key)
+                        jsonObject.remove(it.key)
+                        jsonObject.add(
+                                it.key,
+                                gson.toJsonTree(
+                                        method(it.value.asString)
+                                )
+                        )
+                    }
                 }
             }
-        }
-    }
 
-    private fun JsonElement.applyToEachObject(handler: (JsonObject) -> Unit) {
+    private suspend fun JsonElement.applyToEachObject(handler: suspend (JsonObject) -> Unit) {
         when {
             isJsonObject -> handler(asJsonObject)
             isJsonArray -> {
@@ -105,14 +108,14 @@ class RestRoute<T>(
     class Configuration {
         var withFieldsParameter: Boolean = false
             private set
-        var includeParameterConfiguration: Map<String, (id: String) -> Any>? = null
+        var includeParameterConfiguration: Map<String, suspend (id: String) -> Any>? = null
             private set
 
         fun withFieldsParameter() {
             withFieldsParameter = true
         }
 
-        fun withIncludeParameter(vararg configuration: Pair<KProperty<Any?>, (id: String) -> Any>) {
+        fun withIncludeParameter(vararg configuration: Pair<KProperty<Any?>, suspend (id: String) -> Any>) {
             includeParameterConfiguration = configuration
                     .map { it.first.name to it.second }.toMap()
         }

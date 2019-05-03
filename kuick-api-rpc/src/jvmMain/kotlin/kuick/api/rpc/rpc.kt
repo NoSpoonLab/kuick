@@ -5,11 +5,11 @@ import io.ktor.application.call
 import io.ktor.http.ContentType
 import io.ktor.request.receiveText
 import io.ktor.response.respondText
+import io.ktor.routing.Route
 import io.ktor.routing.post
 import io.ktor.util.AttributeKey
 import kuick.api.buildArgsFromArray
 import kuick.json.Json.gson
-import kuick.ktor.KuickRouting
 import kotlin.reflect.KFunction
 import kotlin.reflect.full.callSuspend
 import kotlin.reflect.full.memberFunctions
@@ -18,7 +18,7 @@ import kotlin.reflect.full.memberFunctions
 // TODO in gokoan rpc handles also downloading and uploading files (see: gokoan/backend/server/src/jvmMain/kotlin/koan/controllers/rpc-controller.kt)
 // TODO discuss: should provide similar functionality here or make solution flexible enough so that user can provide it
 data class RpcRouting(
-        val kuickRouting: KuickRouting,
+        val parent: Route,
         val api: Any,
         val injector: Injector
 ) {
@@ -26,7 +26,7 @@ data class RpcRouting(
         api.visitRPC { srvName, method ->
             val path = "/rpc/$srvName/${method.name}"
             println("RPC: $path -> $method") // logging
-            kuickRouting.routing.post(path) {
+            parent.post(path) {
                 val args = buildArgsFromArray(
                         method,
                         gson.toJsonTree(call.receiveText()),

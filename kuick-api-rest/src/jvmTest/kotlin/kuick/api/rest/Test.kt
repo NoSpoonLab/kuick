@@ -81,6 +81,7 @@ class Test {
         build()
     }
 
+
     //TODO Providing additional parameters (later passed to handler method) discuss
     private fun Route.withSomeAdditionalParameter(path: String = "", build: Route.() -> Unit) = route(path) {
         intercept(ApplicationCallPipeline.Call) {
@@ -96,7 +97,6 @@ class Test {
         withTestApplication {
 
             application.routing {
-
                 restRoute<ResourceApi>(injector, "resources") {
 
                     withSomeCheck {
