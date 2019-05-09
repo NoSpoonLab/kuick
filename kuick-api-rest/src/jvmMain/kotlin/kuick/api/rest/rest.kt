@@ -4,7 +4,6 @@ package kuick.api.rest
 import com.google.gson.JsonArray
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
-import com.google.gson.JsonParser
 import com.google.inject.Injector
 import io.ktor.application.call
 import io.ktor.http.ContentType
@@ -17,6 +16,7 @@ import io.ktor.routing.route
 import io.ktor.util.AttributeKey
 import kuick.api.buildArgsFromObject
 import kuick.json.Json.gson
+import kuick.json.Json.jsonParser
 import kotlin.reflect.KFunction
 import kotlin.reflect.KProperty
 import kotlin.reflect.full.callSuspend
@@ -32,7 +32,6 @@ data class RestRouting(
     fun <T> registerRoute(route: RestRoute<T>): Route =
             parent.route(resourceName, method = route.httpMethod) {
                 println("REST: ${route.httpMethod.value} /$resourceName -> ${route.handler}") // logging
-                val jsonParser = JsonParser()
 
                 handle {
 
@@ -60,7 +59,7 @@ data class RestRouting(
                 }
             }
 
-    private fun String.toJsonArray() = (JsonParser().parse(this) as JsonArray)
+    private fun String.toJsonArray() = (jsonParser.parse(this) as JsonArray)
     private fun JsonArray.asStringList() = this.map { it.asString }
     private fun Parameters.getAsSet(name: String) = this[name]?.toJsonArray()?.asStringList()?.toSet() ?: emptySet()
 

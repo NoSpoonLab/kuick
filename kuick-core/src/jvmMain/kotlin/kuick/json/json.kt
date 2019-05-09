@@ -88,6 +88,7 @@ class LocalTimeAdapter : JsonDeserializer<LocalTime>, JsonSerializer<LocalTime> 
 
 object Json {
 
+    val jsonParser: JsonParser = JsonParser()
 
     val gson: Gson = GsonBuilder()
             //.registerTypeHierarchyAdapter(Id::class.java, IdGsonAdapter())
