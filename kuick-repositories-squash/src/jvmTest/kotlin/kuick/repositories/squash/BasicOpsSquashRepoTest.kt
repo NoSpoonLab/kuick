@@ -17,6 +17,7 @@ class BasicOpsSquashRepoTest: AbstractITTest() {
     data class UserId(override val id: String): Id
 
     data class User(val userId: UserId,
+                    val uuid: UUID,
                     val firstName: String,
                     val lastName: String,
                     val ageOfUser: Int,
@@ -52,6 +53,7 @@ class BasicOpsSquashRepoTest: AbstractITTest() {
         assertEquals(2, repo.findBy(User::ageOfUser gt 12).size)
         assertEquals(3, repo.findBy(User::ageOfUser gte 12).size)
         assertEquals(2, repo.findBy(User::married eq true).size)
+        assertEquals(mike.uuid, repo.findBy(User::uuid eq mike.uuid).first().uuid)
 
         assertEquals(4,
                 repo.findBy(User::lastName within setOf("Ballesteros")).size,
@@ -98,6 +100,7 @@ class BasicOpsSquashRepoTest: AbstractITTest() {
 
     private fun user(id: String, fullName: String, age: Int, married: Boolean) =
             User(UserId(id),
+                    UUID.randomUUID(),
                     fullName.substringBefore(' '),
                     fullName.substringAfter(' '),
                     age,

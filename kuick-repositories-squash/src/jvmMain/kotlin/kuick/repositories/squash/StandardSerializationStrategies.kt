@@ -37,6 +37,7 @@ val intSerialization = SerializationStrategy({ integer(it.columnName) }, { it<In
 val longSerialization = SerializationStrategy({ long(it.columnName) }, { it<Long>() }, { it })
 val doubleSerialization = SerializationStrategy({ decimal(it.columnName, 5, 4) }, { it<BigDecimal>()?.toDouble() }, { it })
 val booleanSerialization = SerializationStrategy({ bool(it.columnName) }, { it<Boolean>() }, { value -> value })
+val uuidSerialization = SerializationStrategy({ uuid(it.columnName) }, { it<UUID>() }, { value -> value })
 
 val localDateSerialization = VarCharSerializationStrategy(
         LocalDate::class,
@@ -100,6 +101,7 @@ val defaultSerializationStrategies: SerializationStrategy = serializationStrateg
         localDateSerialization,
         localDateTimeSerialization,
         emailSerialization,
+        uuidSerialization,
         IdSerializationStrategy
 )
 
