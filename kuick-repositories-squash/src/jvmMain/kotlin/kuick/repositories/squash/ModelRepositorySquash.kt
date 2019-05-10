@@ -28,7 +28,6 @@ open class ModelRepositorySquash<I : Any, T : Any>(
     constructor(
             modelClass: KClass<T>,
             idField: KProperty1<T, I>,
-            defaultMaxLength: Int = LONG_TEXT_LEN,
             serializationStrategies : Map<KType, TypedSerializationStrategy<out Any>>,
             fallbackStrategy: SerializationStrategy = defaultFallbackSerializationStrategy
     ) : this(modelClass, idField, TypedSerializationStrategies(serializationStrategies.map { it.key.clazz!! to it.value }.toMap()), fallbackStrategy)
