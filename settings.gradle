@@ -9,6 +9,10 @@ include ':kuick-redis'
 include ':kuick-cache-redis'
 include ':kuick-cache-db'
 
+include ':kuick-api'
+include ':kuick-api-rest'
+include ':kuick-api-rpc'
+
 include ':vendor:squash-core'
 include ':vendor:squash-graph'
 include ':vendor:squash-h2'
@@ -16,3 +20,4 @@ include ':vendor:squash-jdbc'
 include ':vendor:squash-postgres'
 
 include ':samples:todo-app'
+include ':samples:todo-app2'

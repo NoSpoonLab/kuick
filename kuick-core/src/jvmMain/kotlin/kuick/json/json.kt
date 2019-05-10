@@ -7,8 +7,9 @@ import java.text.SimpleDateFormat
 import java.time.*
 import java.time.format.DateTimeFormatter
 import java.util.*
-import kotlin.reflect.*
-import kotlin.reflect.jvm.*
+import kotlin.reflect.KClass
+import kotlin.reflect.KType
+import kotlin.reflect.jvm.javaType
 
 
 class DateAdapter : JsonDeserializer<Date>, JsonSerializer<Date> {
@@ -87,6 +88,7 @@ class LocalTimeAdapter : JsonDeserializer<LocalTime>, JsonSerializer<LocalTime> 
 
 object Json {
 
+    val jsonParser: JsonParser = JsonParser()
 
     val gson: Gson = GsonBuilder()
             //.registerTypeHierarchyAdapter(Id::class.java, IdGsonAdapter())

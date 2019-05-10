@@ -1,0 +1,4 @@
+dependencies {
+    jvmApi project(":kuick-http")
+    jvmApi project(":kuick-http-ktor")
+}
