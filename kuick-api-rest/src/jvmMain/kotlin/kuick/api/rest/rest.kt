@@ -1,20 +1,19 @@
 package kuick.api.rest
 
 
-import com.google.gson.JsonArray
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import com.google.inject.Injector
 import io.ktor.application.call
 import io.ktor.http.ContentType
 import io.ktor.http.HttpMethod
-import io.ktor.http.Parameters
 import io.ktor.request.receiveText
 import io.ktor.response.respondText
 import io.ktor.routing.Route
 import io.ktor.routing.route
 import io.ktor.util.AttributeKey
 import kuick.api.buildArgsFromObject
+import kuick.api.getAsSet
 import kuick.json.Json.gson
 import kuick.json.Json.jsonParser
 import kotlin.reflect.KFunction
@@ -59,9 +58,6 @@ data class RestRouting(
                 }
             }
 
-    private fun String.toJsonArray() = (jsonParser.parse(this) as JsonArray)
-    private fun JsonArray.asStringList() = this.map { it.asString }
-    private fun Parameters.getAsSet(name: String) = this[name]?.toJsonArray()?.asStringList()?.toSet() ?: emptySet()
 
     private suspend fun JsonElement.preserveFields(fieldsParam: Set<String>) =
             this.applyToEachObject { jsonObject ->
