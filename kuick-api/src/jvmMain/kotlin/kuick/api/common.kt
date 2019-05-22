@@ -88,8 +88,13 @@ fun Parameters.getAsSet(name: String) = this[name]?.toJsonArray()?.asStringList(
 
 data class Node<T>(
         val value: T?,
-        val children: List<Node<T>>?
-)
+        val children: List<Node<T>>
+) {
+    companion object
+}
+
+
+fun  Node.Companion.emptyNode() : Node<String> = Node("", emptyList())
 
 fun <T> emptyTree() = Node<T>(null, emptyList())
 
@@ -109,7 +114,7 @@ private fun List<String>.toNodeList(): List<Node<String>> =
                     val values = it.value // a, a.a, a.b
 
                     val equealToKey = values.groupBy { it == key }
-                    val children = (equealToKey[true] ?: emptyList()).map { Node("", emptyList()) } +
+                    val children = (equealToKey[true] ?: emptyList()).map { Node.emptyNode() } +
                             (equealToKey[false] ?: emptyList()).map { it.substringAfter(".") }.toNodeList()
 
                     Node(value = key, children = children)
