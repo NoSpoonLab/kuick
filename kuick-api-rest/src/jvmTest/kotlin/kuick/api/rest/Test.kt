@@ -13,6 +13,8 @@ import io.ktor.server.testing.handleRequest
 import io.ktor.server.testing.withTestApplication
 import io.ktor.util.AttributeKey
 import junit.framework.Assert.assertEquals
+import kuick.api.rest.parameters.include.InvalidIncludeParamException
+import kuick.api.rest.parameters.preserve.InvalidFieldParamException
 import kuick.di.Guice
 import kuick.di.bindPerCoroutineJob
 import kuick.json.Json
@@ -121,8 +123,9 @@ class Test {
 
                     withSomeCheck {
                         withSomeAdditionalParameter {
-                            get(ResourceApi::getAll) {
+                            getMany(ResourceApi::getAll) {
                                 withFieldsParameter()
+                                //TODO provide better way of configuration to support correctly nested resources and don't have to repeat config fot the same model in different endpoints
                                 withIncludeParameter(
                                         // TODO before I tried to provide here: Resource::otherResource to OtherResourceApi::getOne -> discuss
                                         Resource::otherResource to { id -> injector.getInstance(OtherResourceApi::class.java).getOne(id) },
@@ -196,14 +199,29 @@ class Test {
         )
     }
 
-    @Test(expected = Exception::class)
-    fun `should throw exception on wrongly defined fields parameter`() = restTest {
+    @Test(expected = InvalidFieldParamException::class)
+    fun `should throw exception on wrongly defined fields parameter - when trying to preserve field of nested resource without preserving field itself`() = restTest {
         handleRequest(HttpMethod.Get, "/resources?\$fields=[id,otherResource.id]").response.content
     }
 
-    @Test(expected = Exception::class)
-    fun `should throw exception on wrongly defined include parameter - when include is not supported fot specified field`() = restTest {
+    @Test(expected = InvalidFieldParamException::class)
+    fun `should throw exception on wrongly defined fields parameter - when trying to preserve field that don't exist in a model`() = restTest {
+        handleRequest(HttpMethod.Get, "/resources?\$fields=[id,someField]").response.content
+    }
+
+    @Test(expected = InvalidIncludeParamException::class)
+    fun `should throw exception on wrongly defined include parameter - when include is not supported for specified field`() = restTest {
         handleRequest(HttpMethod.Get, "/resources?\$include=[id]").response.content
+    }
+
+    @Test(expected = InvalidIncludeParamException::class)
+    fun `should throw exception on wrongly defined include parameter - when trying to include field of nested resource without including resource itself`() = restTest {
+        handleRequest(HttpMethod.Get, "/resources?\$include=[otherResource.id]").response.content
+    }
+
+    @Test(expected = InvalidIncludeParamException::class)
+    fun `should throw exception on wrongly defined include parameter - when trying to include field that don't exist in a model`() = restTest {
+        handleRequest(HttpMethod.Get, "/resources?\$include=[id,someField]").response.content
     }
 
     @Test

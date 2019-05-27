@@ -94,7 +94,7 @@ data class Node<T>(
 }
 
 
-fun  Node.Companion.emptyNode() : Node<String> = Node("", emptyList())
+fun Node.Companion.emptyNode(): Node<String> = Node("", emptyList())
 
 fun <T> emptyTree() = Node<T>(null, emptyList())
 
@@ -119,3 +119,22 @@ private fun List<String>.toNodeList(): List<Node<String>> =
 
                     Node(value = key, children = children)
                 }
+
+
+inline fun <T> Iterable<T>.splitBy(keySelector: (T) -> Boolean): Pair<List<T>, List<T>> {
+    val grouped = groupBy(keySelector)
+    return Pair((grouped[true] ?: emptyList()), grouped[false] ?: emptyList())
+}
+
+suspend fun JsonElement.applyToEachObject(handler: suspend (JsonObject) -> Unit) {
+    when {
+        isJsonObject -> handler(asJsonObject)
+        isJsonArray -> {
+            asJsonArray.forEach {
+                handler(it.asJsonObject)
+            }
+        }
+        else -> {
+        }
+    }
+}
