@@ -19,8 +19,8 @@ class RedisCache<V : Any> @PublishedApi internal constructor(
         }
     }
 
-    override suspend fun get(key: String, builder: suspend () -> V): V {
-        val value = redis.hget(cacheName, key) ?: return builder().also { redis.hset(cacheName, key, Json.toJson(it)) }
+    override suspend fun get(key: String, builder: suspend (key: String) -> V): V {
+        val value = redis.hget(cacheName, key) ?: return builder(key).also { redis.hset(cacheName, key, Json.toJson(it)) }
         return Json.fromJson(value, clazz)
     }
 

@@ -13,12 +13,12 @@ class DiskCache<V : Any>(val clazz: KClass<V>, override val name: String, val ca
 
     private val asyncThread = NamedAsyncThreads()
 
-    override suspend fun get(key: String, builder: suspend () -> V): V = asyncThread(key) {
+    override suspend fun get(key: String, builder: suspend (key: String) -> V): V = asyncThread(key) {
         val file = getFileForKey(key)
         //println("File: $file")
         when {
             file.exists() -> Json.fromJson(file.readTextSuspend(), clazz)
-            else -> builder().also { file.writeTextSuspend(Json.toJson(it)) }
+            else -> builder(key).also { file.writeTextSuspend(Json.toJson(it)) }
         }
     }
 

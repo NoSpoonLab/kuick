@@ -11,15 +11,23 @@ class CacheWithRedisInvalidation<V : Any> @PublishedApi internal constructor(
     override val name: String get() = cacheName
 
     private val register = invalidationRedisClient.register(cacheName) {
-        parentCache.invalidate(it)
+        if (it == InvalidationRedisClient.INVALIDATE_ALL_KEY) {
+            parentCache.invalidateAll()
+        } else {
+            parentCache.invalidate(it)
+        }
     }
 
-    override suspend fun get(key: String, builder: suspend () -> V): V {
+    override suspend fun get(key: String, builder: suspend (key: String) -> V): V {
         return parentCache.get(key, builder)
     }
 
     override suspend fun invalidate(key: String) {
         invalidationRedisClient.invalidate(cacheName, key)
+    }
+
+    override suspend fun invalidateAll() {
+        invalidationRedisClient.invalidateAll(cacheName)
     }
 
     override suspend fun close() {

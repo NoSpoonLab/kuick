@@ -87,7 +87,7 @@ fun <T : Any> Cache<String, T>.invalidatedBy(dbCacheInvalidation: DbCacheInvalid
     }
 
     return object : Cache<String, T> {
-        override suspend fun get(key: String, builder: suspend () -> T): T = parent.get(key, builder)
+        override suspend fun get(key: String, builder: suspend (key: String) -> T): T = parent.get(key, builder)
         override suspend fun invalidate(key: String) = run { dbCacheInvalidation.invalidate(cacheName, key) }
         override suspend fun close() {
             parent.close()

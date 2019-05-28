@@ -1,32 +1,26 @@
 package kuick.repositories.patterns
 
+import kuick.concurrent.Lock
 import kuick.repositories.*
 import kuick.repositories.memory.*
 import kotlin.reflect.*
 
+@Deprecated("Use kuick.caching.Cache")
 interface Cache {
     suspend fun <T : Any> get(key: String): T?
     suspend fun <T : Any> put(key: String, cached: T)
     suspend fun remove(key: String)
+    suspend fun removeAll(): Unit = TODO("Not implemented Cache.removeAll")
 }
 
 class MemoryCache: Cache {
-
+    private val lock = Lock()
     private val map: MutableMap<String, Any> = mutableMapOf()
 
-    override suspend fun <T : Any> get(key: String): T? {
-        val cached = map.get(key)
-        return cached?.let { it as T? }
-    }
-
-    override suspend fun <T : Any> put(key: String, cached: T) {
-        map.put(key, cached)
-    }
-
-    override suspend fun remove(key: String) {
-        map.remove(key)
-    }
-
+    override suspend fun <T : Any> get(key: String): T? = lock { map[key]?.let { it as T? } }
+    override suspend fun <T : Any> put(key: String, cached: T) = lock { map[key] = cached }
+    override suspend fun remove(key: String): Unit = lock { map.remove(key) }
+    override suspend fun removeAll() = lock { map.clear() }
 }
 
 /**

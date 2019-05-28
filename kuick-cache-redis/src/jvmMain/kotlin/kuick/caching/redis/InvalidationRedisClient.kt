@@ -31,12 +31,18 @@ class InvalidationRedisClient internal constructor(
         sredis.publish(getChannelForKey(name), key)
     }
 
+    suspend fun invalidateAll(name: String) {
+        sredis.publish(getChannelForKey(name), InvalidationRedisClient.INVALIDATE_ALL_KEY)
+    }
+
     override fun close() {
         redisSub.closeAsync()
         redisPub.closeAsync()
     }
 
     companion object {
+        val INVALIDATE_ALL_KEY = "*"
+
         private fun getChannelForKey(name: String) = "cache-invalidate-$name"
 
         suspend operator fun invoke(uri: String = "redis://localhost"): InvalidationRedisClient {
