@@ -10,7 +10,7 @@ class LazyCacheTest {
         var log = ""
         val cache = LazyCache {
             log += "a"
-            GoogleMemoryCache<String, String>()
+            GoogleMemoryCache<String, String>("mycache")
         }
         assertEquals("", log)
         cache.name

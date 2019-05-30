@@ -1,11 +1,14 @@
-package kuick.caching.db
+package kuick.caching
 
-import kotlinx.coroutines.*
-import kuick.caching.*
-import kuick.client.db.*
-import kuick.client.jdbc.*
-import kuick.util.*
-import kotlin.test.*
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
+import kuick.client.db.DbConnectionProvider
+import kuick.client.jdbc.JdbcDriver
+import kuick.client.repositories.DbModelRepository
+import kuick.util.use
+import kotlin.test.Test
+import kotlin.test.assertEquals
 
 class DbCacheInvalidationTest {
     data class Demo(val value: Int)
@@ -17,11 +20,15 @@ class DbCacheInvalidationTest {
             JdbcDriver.connectMemoryH2().use { connection ->
                 withContext(DbConnectionProvider { connection }) {
                     val cc = coroutineContext
-                    DbCacheInvalidation.get(delay = 100L, setCoroutineContext = { withContext(cc) { it() } })  { invalidation ->
+                    DbCacheInvalidation.get(
+                        delay = 100L,
+                        repo = DbModelRepository(DbCacheInvalidation.CacheInvalidationEntry::cacheNameKey),
+                        setCoroutineContext = { withContext(cc) { it() } }) { invalidation ->
                         //invalidation.invalidateAll("MyCacheName")
                         val invalidated = CompletableDeferred<Unit>()
                         val invalidationLog = arrayListOf<String>()
-                        InmemoryCache<String, Demo>().interceptInvalidation { invalidationLog += it }.interceptInvalidation { invalidated.complete(Unit) }.withInvalidation(invalidation).use { cache ->
+                        InmemoryCache<String, Demo>().interceptInvalidation { invalidationLog += it }.interceptInvalidation { invalidated.complete(Unit) }
+                            .withInvalidation(invalidation).use { cache ->
                             val instance1 = cache.get("test") { Demo(1) }
                             val instance2 = cache.get("test") { Demo(2) }
                             assertEquals(1, instance1.value)

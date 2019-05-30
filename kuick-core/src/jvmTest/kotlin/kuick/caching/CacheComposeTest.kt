@@ -8,8 +8,8 @@ class CacheComposeTest {
     @Test
     fun test() = runBlocking {
         val log = arrayListOf<String>()
-        val first = GoogleMemoryCache<String, String>(maxSize = 1L).interceptGet { log += "1[$it]" }
-        val second = GoogleMemoryCache<String, String>(maxSize = 1L).interceptGet { log += "2[$it]" }
+        val first = GoogleMemoryCache<String, String>("first", maxSize = 1L).interceptGet { log += "1[$it]" }
+        val second = GoogleMemoryCache<String, String>("second", maxSize = 1L).interceptGet { log += "2[$it]" }
         val cache = first.withFallback(second).withBuilder { it }
 
         cache.get("a")

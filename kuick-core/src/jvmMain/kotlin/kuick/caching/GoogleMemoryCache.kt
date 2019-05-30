@@ -7,7 +7,7 @@ import java.time.Duration
 import java.util.concurrent.TimeUnit
 import kotlin.coroutines.*
 
-class GoogleMemoryCache<K: Any, V>(maxSize: Long? = null, duration: Duration? = null) : Cache<K, V> {
+class GoogleMemoryCache<K: Any, V>(override val name: String, maxSize: Long? = null, duration: Duration? = null) : Cache<K, V> {
     private val cache = CacheBuilder.newBuilder()
         .apply { if (maxSize != null) maximumSize(maxSize) }
         .apply { if (duration != null) expireAfterWrite(duration.toMillis(), TimeUnit.MILLISECONDS) }
@@ -25,5 +25,5 @@ class GoogleMemoryCache<K: Any, V>(maxSize: Long? = null, duration: Duration? = 
 }
 
 fun <K : Any, V> Cache<K, V>.withLRUInmemoryCache(maxSize: Long?): Cache<K, V> {
-    return GoogleMemoryCache<K, V>(maxSize = maxSize).withFallback(this)
+    return GoogleMemoryCache<K, V>(this.name, maxSize = maxSize).withFallback(this)
 }
