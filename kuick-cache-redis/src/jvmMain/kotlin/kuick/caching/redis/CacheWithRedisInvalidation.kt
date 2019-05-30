@@ -3,7 +3,7 @@ package kuick.caching.redis
 import kuick.caching.*
 import java.io.*
 
-class CacheWithRedisInvalidation<V : Any> @PublishedApi internal constructor(
+class CacheWithRedisInvalidation<V> @PublishedApi internal constructor(
         val parentCache: Cache<String, V>,
         val cacheName: String,
         val invalidationRedisClient: InvalidationRedisClient

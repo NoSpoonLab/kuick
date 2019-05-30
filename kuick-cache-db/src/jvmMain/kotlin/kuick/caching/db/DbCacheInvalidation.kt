@@ -78,7 +78,7 @@ class DbCacheInvalidation @PublishedApi internal constructor(val coroutineContex
     }
 }
 
-fun <T : Any> Cache<String, T>.invalidatedBy(dbCacheInvalidation: DbCacheInvalidation): Cache<String, T> {
+fun <T> Cache<String, T>.invalidatedBy(dbCacheInvalidation: DbCacheInvalidation): Cache<String, T> {
     val parent = this
     val cacheName = this.name
 
@@ -89,6 +89,8 @@ fun <T : Any> Cache<String, T>.invalidatedBy(dbCacheInvalidation: DbCacheInvalid
     return object : Cache<String, T> {
         override suspend fun get(key: String, builder: suspend (key: String) -> T): T = parent.get(key, builder)
         override suspend fun invalidate(key: String) = run { dbCacheInvalidation.invalidate(cacheName, key) }
+        override suspend fun invalidateAll() = run { dbCacheInvalidation.invalidateAll(cacheName) }
+
         override suspend fun close() {
             parent.close()
             @Suppress("BlockingMethodInNonBlockingContext")

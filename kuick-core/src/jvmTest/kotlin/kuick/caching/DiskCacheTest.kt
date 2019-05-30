@@ -11,11 +11,11 @@ class DiskCacheTest {
             val dir = File(System.getProperty("java.io.tmpdir"))
             val key = "test"
             val instance = Demo(10)
-            val cache = DiskCache(Demo::class, "demo", dir)
+            val cache = DiskCache("demo", dir).typeWithJsonNullable<Demo>()
             cache.invalidate(key)
             val test1 = cache.get(key) { instance }
             val test2 = cache.get(key) { instance }
-            assertSame(instance, test1)
+            assertNotSame(instance, test2, "typeWithJsonNullable serialize always")
             assertNotSame(test1, test2)
             assertEquals(test1, test2)
         }

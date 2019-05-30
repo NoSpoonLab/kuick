@@ -24,3 +24,10 @@ suspend fun File.deleteSuspend() {
         file.delete()
     }
 }
+
+suspend fun File.listFilesSuspend(): Array<File> {
+    val file = this
+    return withContext(Dispatchers.IO) {
+        file.listFiles()
+    }
+}
