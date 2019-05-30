@@ -50,12 +50,22 @@ class DbCacheInvalidation @PublishedApi internal constructor(
     }
 
     companion object {
+        /**
+         * You must call the .close method whenever this is not required aymore.
+         */
+        suspend fun getUnsafe(
+            delay: Long = 5_000L,
+            repo: ModelRepository<String, CacheInvalidationEntry> = CacheInvalidationEntry
+        ): DbCacheInvalidation{
+            return DbCacheInvalidation(coroutineContext, delay, repo).apply { init() }
+        }
+
         suspend inline fun <T> get(
             delay: Long = 5_000L,
             repo: ModelRepository<String, CacheInvalidationEntry> = CacheInvalidationEntry,
             callback: (DbCacheInvalidation) -> T
         ): T {
-            return DbCacheInvalidation(coroutineContext, delay, repo).apply { init() }.use { callback(it) }
+            return getUnsafe(delay, repo).use { callback(it) }
         }
     }
 
