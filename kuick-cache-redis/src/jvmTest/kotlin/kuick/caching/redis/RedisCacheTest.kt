@@ -25,13 +25,14 @@ class RedisCacheTest {
 
     @Test
     fun test() = runBlocking {
-        val cache = RedisCache<MyClass>("mycache", RedisURI.create("redis://${container.ipAddress}"))
+        val cache = RedisCache("mycache", RedisURI.create("redis://${container.ipAddress}")).typeWithJson<MyClass>()
         val instance = MyClass(10)
         val result1 = cache.get("test") { instance }
         val result2 = cache.get("test") { instance }
         assertEquals(10, result1.v)
         assertEquals(10, result2.v)
-        assertSame(result1, instance, "First call should return the same object")
+        //assertSame(result1, instance, "First call should return the same object")
+        assertNotSame(result1, instance, "First call does not return the same object since it uses typeWithJson")
         assertNotSame(result1, result2, "If deserialized, should be a different instance")
     }
 

@@ -6,7 +6,7 @@ import kuick.time.Clock
 import kuick.time.SimpleClock
 import kuick.time.now
 
-class CacheTtl<K : Any, V : Any>(
+class CacheTtl<K : Any, V>(
         val parent: Cache<K, V>,
         val maxEntries: Int = CacheTtl.UNLIMITED,
         val maxMilliseconds: Int = CacheTtl.UNLIMITED,

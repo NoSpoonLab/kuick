@@ -9,11 +9,11 @@ import java.time.Duration
 import java.util.concurrent.TimeUnit
 import kotlin.coroutines.*
 
-class GoogleMemoryCache<K: Any, T:Any>(maxSize: Long, duration: Duration) : Cache<K, T> {
+class GoogleMemoryCache<K: Any, T>(maxSize: Long?, duration: Duration?) : Cache<K, T> {
     private val cache = CacheBuilder.newBuilder()
-            .maximumSize(maxSize)
-            .expireAfterWrite(duration.toMillis(), TimeUnit.MILLISECONDS)
-            .build<String, Deferred<T>>()
+        .apply { if (maxSize != null) maximumSize(maxSize) }
+        .apply { if (duration != null) expireAfterWrite(duration.toMillis(), TimeUnit.MILLISECONDS) }
+        .build<String, Deferred<T>>()
 
     @UseExperimental(KuickInternal::class)
     override suspend fun get(key: K, builder: suspend (key: K) -> T): T {

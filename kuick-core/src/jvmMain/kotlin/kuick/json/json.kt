@@ -98,11 +98,20 @@ object Json {
             .registerTypeAdapter(LocalTime::class.java, LocalTimeAdapter())
             .create()
 
-    fun <T : Any> toJson(any: T): String = gson.toJson(any)
+    fun <T : Any> toJson(any: T?): String = if (any == null) "null" else gson.toJson(any)
 
     fun <T : Any> fromJson(@Language("JSON") json: String, clazz: Type): T {
         try {
             return gson.fromJson(json, clazz)
+        } catch (t: Throwable) {
+            println("ERROR parsing JSON: $clazz <-- $json")
+            throw t
+        }
+    }
+
+    fun <T : Any> fromJsonNullable(json: String, clazz: KClass<T>): T? {
+        try {
+            return gson.fromJson(json, clazz.java)
         } catch (t: Throwable) {
             println("ERROR parsing JSON: $clazz <-- $json")
             throw t
