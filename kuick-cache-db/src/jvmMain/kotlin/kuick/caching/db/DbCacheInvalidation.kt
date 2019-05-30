@@ -1,18 +1,29 @@
 package kuick.caching.db
 
-import kotlinx.coroutines.*
-import kuick.caching.*
-import kuick.client.repositories.*
-import kuick.concurrent.*
-import kuick.repositories.*
-import kuick.repositories.annotations.*
-import kuick.util.*
-import java.io.*
-import java.util.*
-import kotlin.collections.*
-import kotlin.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kuick.caching.Cache
+import kuick.client.repositories.DbModelRepository
+import kuick.concurrent.Lock
+import kuick.repositories.ModelRepository
+import kuick.repositories.annotations.DbName
+import kuick.repositories.annotations.Index
+import kuick.repositories.annotations.Unique
+import kuick.repositories.gt
+import kuick.repositories.like
+import kuick.repositories.lt
+import java.io.Closeable
+import java.util.Date
+import kotlin.coroutines.CoroutineContext
+import kotlin.coroutines.coroutineContext
 
-class DbCacheInvalidation @PublishedApi internal constructor(val coroutineContext: CoroutineContext, val delay: Long = 5_000L, val repo: ModelRepository<String, CacheInvalidationEntry> = CacheInvalidationEntry) : Closeable {
+class DbCacheInvalidation @PublishedApi internal constructor(
+    val coroutineContext: CoroutineContext,
+    val delay: Long = 5_000L,
+    val repo: ModelRepository<String, CacheInvalidationEntry> = CacheInvalidationEntry
+) : Closeable {
     private val lock = Lock()
     private val handlers = LinkedHashMap<String, ArrayList<suspend (key: String) -> Unit>>()
     private lateinit var process: Job
@@ -39,7 +50,11 @@ class DbCacheInvalidation @PublishedApi internal constructor(val coroutineContex
     }
 
     companion object {
-        suspend inline fun <T> get(delay: Long = 5_000L, repo: ModelRepository<String, CacheInvalidationEntry> = CacheInvalidationEntry, callback: (DbCacheInvalidation) -> T): T {
+        suspend inline fun <T> get(
+            delay: Long = 5_000L,
+            repo: ModelRepository<String, CacheInvalidationEntry> = CacheInvalidationEntry,
+            callback: (DbCacheInvalidation) -> T
+        ): T {
             return DbCacheInvalidation(coroutineContext, delay, repo).apply { init() }.use { callback(it) }
         }
     }
@@ -69,16 +84,21 @@ class DbCacheInvalidation @PublishedApi internal constructor(val coroutineContex
 
     @DbName("CacheInvalidationEntry")
     data class CacheInvalidationEntry(
-            @Unique val cacheNameKey: String,
-            val cacheName: String,
-            val key: String,
-            @Index val invalidationTime: Date
+        @Unique val cacheNameKey: String,
+        val cacheName: String,
+        val key: String,
+        @Index val invalidationTime: Date
     ) {
         companion object : ModelRepository<String, CacheInvalidationEntry> by DbModelRepository(CacheInvalidationEntry::key)
     }
 }
 
-fun <T> Cache<String, T>.invalidatedBy(dbCacheInvalidation: DbCacheInvalidation): Cache<String, T> {
+suspend fun <T> Cache<String, T>.withInvalidationDb(
+    delay: Long = 5_000L,
+    repo: ModelRepository<String, DbCacheInvalidation.CacheInvalidationEntry> = DbCacheInvalidation.CacheInvalidationEntry
+): Cache<String, T> = withInvalidation(DbCacheInvalidation(coroutineContext, delay, repo))
+
+fun <T> Cache<String, T>.withInvalidation(dbCacheInvalidation: DbCacheInvalidation): Cache<String, T> {
     val parent = this
     val cacheName = this.name
 

@@ -4,7 +4,6 @@ import kotlinx.coroutines.*
 import kuick.caching.*
 import kuick.client.db.*
 import kuick.client.jdbc.*
-import kuick.client.log.*
 import kuick.util.*
 import kotlin.test.*
 
@@ -21,7 +20,7 @@ class DbCacheInvalidationTest {
                         //invalidation.invalidateAll("MyCacheName")
                         val invalidated = CompletableDeferred<Unit>()
                         val invalidationLog = arrayListOf<String>()
-                        InmemoryCache<String, Demo>().interceptInvalidation { invalidationLog += it }.interceptInvalidation { invalidated.complete(Unit) }.invalidatedBy(invalidation).use { cache ->
+                        InmemoryCache<String, Demo>().interceptInvalidation { invalidationLog += it }.interceptInvalidation { invalidated.complete(Unit) }.withInvalidation(invalidation).use { cache ->
                             val instance1 = cache.get("test") { Demo(1) }
                             val instance2 = cache.get("test") { Demo(2) }
                             assertEquals(1, instance1.value)

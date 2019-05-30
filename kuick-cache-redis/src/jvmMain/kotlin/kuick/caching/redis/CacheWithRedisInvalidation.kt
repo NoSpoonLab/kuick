@@ -35,5 +35,5 @@ class CacheWithRedisInvalidation<V> @PublishedApi internal constructor(
     }
 }
 
-fun <V : Any> Cache<String, V>.withRedisInvalidation(cacheName: String, invalidationRedisClient: InvalidationRedisClient) =
+fun <V> Cache<String, V>.withInvalidation(cacheName: String, invalidationRedisClient: InvalidationRedisClient) =
         CacheWithRedisInvalidation(this, cacheName, invalidationRedisClient)
