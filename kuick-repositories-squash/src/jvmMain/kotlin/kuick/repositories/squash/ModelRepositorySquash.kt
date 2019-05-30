@@ -63,6 +63,8 @@ open class ModelRepositorySquash<I : Any, T : Any>(
         }
     }
 
+    override suspend fun <T> transaction(callback: suspend (ViewRepository.Transaction) -> T): T = domainTransaction { callback(it) }
+
     override suspend fun insert(t: T): T = domainTransaction { tr -> table.insert(tr, t) }
 
     override suspend fun update(t: T): T = domainTransaction { tr ->

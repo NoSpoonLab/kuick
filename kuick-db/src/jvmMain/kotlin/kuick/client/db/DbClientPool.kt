@@ -1,5 +1,6 @@
 package kuick.client.db
 
+import kuick.concurrent.Lock
 import java.io.*
 
 class DbClientPool(val maxConnections: Int = 30, val generator: suspend () -> DbConnection) : DbConnectionProvider, Closeable {
@@ -9,6 +10,7 @@ class DbClientPool(val maxConnections: Int = 30, val generator: suspend () -> Db
         }
     }
 
+    private val lock = Lock()
     private val connections = arrayListOf<DbConnection>()
 
     override suspend fun <T> get(callback: suspend (DbConnection) -> T): T {

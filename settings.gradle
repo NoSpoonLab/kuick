@@ -8,6 +8,7 @@ include ':kuick-db'
 include ':kuick-redis'
 include ':kuick-cache-redis'
 include ':kuick-cache-db'
+//include ':kuick-cache-repositories-squash'
 
 include ':kuick-api'
 include ':kuick-api-rest'

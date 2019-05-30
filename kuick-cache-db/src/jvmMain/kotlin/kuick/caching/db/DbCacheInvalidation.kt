@@ -1,50 +1,69 @@
 package kuick.caching.db
 
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kuick.caching.Cache
 import kuick.client.repositories.DbModelRepository
 import kuick.concurrent.Lock
+import kuick.models.Id
 import kuick.repositories.ModelRepository
 import kuick.repositories.annotations.DbName
 import kuick.repositories.annotations.Index
+import kuick.repositories.annotations.MaxLength
 import kuick.repositories.annotations.Unique
+import kuick.repositories.eq
 import kuick.repositories.gt
-import kuick.repositories.like
 import kuick.repositories.lt
 import java.io.Closeable
 import java.util.Date
-import kotlin.coroutines.CoroutineContext
+import kotlin.concurrent.thread
 import kotlin.coroutines.coroutineContext
 
 class DbCacheInvalidation @PublishedApi internal constructor(
-    val coroutineContext: CoroutineContext,
     val delay: Long = 5_000L,
-    val repo: ModelRepository<String, CacheInvalidationEntry> = CacheInvalidationEntry
+    val repo: ModelRepository<CacheInvalidationEntry.CacheId, CacheInvalidationEntry> = CacheInvalidationEntry,
+    val debug: Boolean = false,
+    val setCoroutineContext: suspend (block: suspend () -> Unit) -> Unit = { it() }
 ) : Closeable {
     private val lock = Lock()
     private val handlers = LinkedHashMap<String, ArrayList<suspend (key: String) -> Unit>>()
-    private lateinit var process: Job
+    private var running = true
+    private lateinit var process: Thread
 
     suspend fun init() {
         repo.init()
-        process = CoroutineScope(coroutineContext).launch {
-            var lastTime = Date()
-            while (true) {
-                val entries = getUpdatedSince(lastTime)
-                //println("" + repo.getAll().size + " :: " + entries.size)
-                for (entry in entries) {
-                    val handlers = lock { handlers[entry.cacheName]?.toList() }
-                    if (handlers != null) {
-                        for (handler in handlers) {
-                            handler(entry.key)
+        process = thread(isDaemon = true, name = "DbCacheInvalidationThread") {
+            try {
+                runBlocking {
+                    setCoroutineContext {
+                        var lastTime = now()
+                        while (running) {
+                            try {
+                                //println("getUpdatedSince: $lastTime")
+                                val entries = getUpdatedSince(lastTime)
+                                if (debug) {
+                                    println("getUpdatedSince: $lastTime : ${entries.size} : ${lock { handlers.keys }}")
+                                }
+                                //println("" + repo.getAll().size + " :: " + entries.size)
+                                for (entry in entries) {
+                                    val handlers = lock { handlers[entry.cacheName]?.toList() }
+                                    if (handlers != null) {
+                                        for (handler in handlers) {
+                                            handler(entry.key)
+                                        }
+                                    }
+                                }
+                                lastTime = entries.lastOrNull()?.invalidationTime ?: lastTime
+                            } catch (e: Throwable) {
+                                e.printStackTrace()
+                            }
+                            delay(delay)
                         }
                     }
                 }
-                lastTime = entries.lastOrNull()?.invalidationTime ?: lastTime
-                delay(delay)
+            } catch (e: Throwable) {
+                System.err.println("DbCacheInvalidation.init exception")
+                e.printStackTrace()
             }
         }
     }
@@ -55,27 +74,37 @@ class DbCacheInvalidation @PublishedApi internal constructor(
          */
         suspend fun getUnsafe(
             delay: Long = 5_000L,
-            repo: ModelRepository<String, CacheInvalidationEntry> = CacheInvalidationEntry
+            repo: ModelRepository<CacheInvalidationEntry.CacheId, CacheInvalidationEntry> = CacheInvalidationEntry,
+            debug: Boolean = false,
+            setCoroutineContext: suspend (block: suspend () -> Unit) -> Unit = { it() }
         ): DbCacheInvalidation{
-            return DbCacheInvalidation(coroutineContext, delay, repo).apply { init() }
+            return DbCacheInvalidation(delay, repo, debug, setCoroutineContext).apply { init() }
         }
 
         suspend inline fun <T> get(
             delay: Long = 5_000L,
-            repo: ModelRepository<String, CacheInvalidationEntry> = CacheInvalidationEntry,
+            repo: ModelRepository<CacheInvalidationEntry.CacheId, CacheInvalidationEntry> = CacheInvalidationEntry,
+            debug: Boolean = false,
+            noinline setCoroutineContext: suspend (block: suspend () -> Unit) -> Unit = { it() },
             callback: (DbCacheInvalidation) -> T
         ): T {
-            return getUnsafe(delay, repo).use { callback(it) }
+            return getUnsafe(delay, repo, debug, setCoroutineContext).use { callback(it) }
         }
+
+        private fun now() = System.currentTimeMillis()
     }
 
     suspend fun invalidate(cacheName: String, key: String) {
-        repo.upsert(CacheInvalidationEntry("$cacheName:$key", cacheName, key, Date()))
+        repo.transaction {
+            repo.upsert(CacheInvalidationEntry(CacheInvalidationEntry.CacheId("$cacheName:$key"), cacheName, key, now()))
+        }
         //repo.insert(CacheInvalidationEntry(cacheName, key, Date()))
     }
 
     suspend fun invalidateAll(cacheName: String) {
-        repo.deleteBy(CacheInvalidationEntry::cacheNameKey like "$cacheName%")
+        repo.transaction {
+            repo.deleteBy(CacheInvalidationEntry::cacheName eq cacheName)
+        }
     }
 
     fun register(cacheName: String, handler: suspend (key: String) -> Unit): Closeable {
@@ -85,28 +114,33 @@ class DbCacheInvalidation @PublishedApi internal constructor(
         }
     }
 
-    suspend fun getUpdatedSince(time: Date) = repo.findBy(CacheInvalidationEntry::invalidationTime gt time).sortedBy { it.invalidationTime }
-    suspend fun pruneBefore(time: Date) = repo.deleteBy(CacheInvalidationEntry::invalidationTime lt time)
+    suspend fun getUpdatedSince(time: Long) = repo.transaction { repo.findBy(CacheInvalidationEntry::invalidationTime gt time).sortedBy { it.invalidationTime } }
+    suspend fun pruneBefore(time: Long) = repo.transaction { repo.deleteBy(CacheInvalidationEntry::invalidationTime lt time) }
 
     override fun close() {
-        process.cancel()
+        running = false
+        //process.stop()
     }
 
     @DbName("CacheInvalidationEntry")
     data class CacheInvalidationEntry(
-        @Unique val cacheNameKey: String,
-        val cacheName: String,
-        val key: String,
-        @Index val invalidationTime: Date
+        @Unique @MaxLength(128) val cacheNameKey: CacheId,
+        @MaxLength(64) val cacheName: String,
+        @MaxLength(64) val key: String,
+        @Index val invalidationTime: Long
     ) {
-        companion object : ModelRepository<String, CacheInvalidationEntry> by DbModelRepository(CacheInvalidationEntry::key)
+        data class CacheId(override val id: String) : Id
+
+        companion object : ModelRepository<CacheId, CacheInvalidationEntry> by DbModelRepository(CacheInvalidationEntry::cacheNameKey)
     }
 }
 
 suspend fun <T> Cache<String, T>.withInvalidationDb(
     delay: Long = 5_000L,
-    repo: ModelRepository<String, DbCacheInvalidation.CacheInvalidationEntry> = DbCacheInvalidation.CacheInvalidationEntry
-): Cache<String, T> = withInvalidation(DbCacheInvalidation(coroutineContext, delay, repo))
+    repo: ModelRepository<DbCacheInvalidation.CacheInvalidationEntry.CacheId, DbCacheInvalidation.CacheInvalidationEntry> = DbCacheInvalidation.CacheInvalidationEntry,
+    debug: Boolean = false,
+    setCoroutineContext: suspend (block: suspend () -> Unit) -> Unit = { it() }
+): Cache<String, T> = withInvalidation(DbCacheInvalidation(delay, repo, debug, setCoroutineContext))
 
 fun <T> Cache<String, T>.withInvalidation(dbCacheInvalidation: DbCacheInvalidation): Cache<String, T> {
     val parent = this

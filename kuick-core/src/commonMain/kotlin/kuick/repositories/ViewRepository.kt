@@ -4,6 +4,10 @@ import kotlin.reflect.*
 
 
 interface ViewRepository<I : Any, T : Any> {
+    interface Transaction {
+        object Dummy : Transaction
+    }
+
     // Interface
     val idField: KProperty1<T, I>
     suspend fun init()
@@ -14,6 +18,8 @@ interface ViewRepository<I : Any, T : Any> {
     suspend fun findById(i: I): T? = findOneBy(idField eq i)
     suspend fun findBy(q: ModelQuery<T>, skip: Long = 0L, limit: Int? = null, orderBy: OrderByDescriptor<T>? = null): List<T> = findBy(AttributedModelQuery(base = q, skip = skip, limit = limit, orderBy = orderBy))
     suspend fun findOneBy(q: ModelQuery<T>): T? = findBy(q, skip = 0L, limit = 1).firstOrNull()
+
+    suspend fun <T> transaction(callback: suspend (Transaction) -> T): T = callback(Transaction.Dummy)
 }
 
 data class ScoredModel<T : Any>(

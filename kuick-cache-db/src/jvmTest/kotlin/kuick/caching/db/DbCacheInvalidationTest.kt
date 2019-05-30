@@ -16,7 +16,8 @@ class DbCacheInvalidationTest {
             //JdbcDriver.connectMemoryH2().log().use { connection ->
             JdbcDriver.connectMemoryH2().use { connection ->
                 withContext(DbConnectionProvider { connection }) {
-                    DbCacheInvalidation.get(delay = 100L) { invalidation ->
+                    val cc = coroutineContext
+                    DbCacheInvalidation.get(delay = 100L, setCoroutineContext = { withContext(cc) { it() } })  { invalidation ->
                         //invalidation.invalidateAll("MyCacheName")
                         val invalidated = CompletableDeferred<Unit>()
                         val invalidationLog = arrayListOf<String>()

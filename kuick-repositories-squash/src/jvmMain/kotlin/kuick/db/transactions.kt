@@ -3,11 +3,12 @@ package kuick.db
 import kotlinx.coroutines.*
 import kuick.core.*
 import kuick.di.*
+import kuick.repositories.ViewRepository
 import kotlin.coroutines.*
 
 
 @Deprecated("")
-interface DomainTransaction
+interface DomainTransaction : ViewRepository.Transaction
 
 @Deprecated("")
 interface DomainTransactionService {
