@@ -2,6 +2,7 @@ package kuick.api
 
 import com.google.gson.*
 import io.ktor.http.Parameters
+import kuick.json.Json
 import kuick.json.Json.gson
 import kuick.json.Json.jsonParser
 import kuick.orm.clazz
@@ -138,3 +139,6 @@ suspend fun JsonElement.applyToEachObject(handler: suspend (JsonObject) -> Unit)
         }
     }
 }
+
+fun List<Any>.toJson() = Json.toJson(this)
+fun Map<String, Any>.toJson() = Json.toJson(this)

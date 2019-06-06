@@ -12,25 +12,15 @@ import io.ktor.routing.route
 import io.ktor.util.AttributeKey
 import kuick.api.buildArgsFromObject
 import kuick.api.getAsTree
-import kuick.api.rest.parameters.include.IncludeParam
-import kuick.api.rest.parameters.include.includeRelatedResources
-import kuick.api.rest.parameters.preserve.FieldsParam
-import kuick.api.rest.parameters.preserve.preserveFields
+import kuick.api.parameters.include.IncludeParam
+import kuick.api.parameters.include.includeRelatedResources
+import kuick.api.parameters.preserve.FieldsParam
+import kuick.api.parameters.preserve.preserveFields
 import kuick.json.Json.gson
 import kuick.json.Json.jsonParser
-import java.lang.reflect.ParameterizedType
-import java.lang.reflect.Type
 import kotlin.reflect.KFunction
 import kotlin.reflect.KProperty
 import kotlin.reflect.full.callSuspend
-
-abstract class TypeReference<T> : Comparable<TypeReference<T>> {
-    val type: Type =
-            (javaClass.genericSuperclass as ParameterizedType).actualTypeArguments[0]
-
-    override fun compareTo(other: TypeReference<T>) = 0
-}
-
 
 data class RestRouting(
         val parent: Route,
@@ -39,6 +29,7 @@ data class RestRouting(
         val injector: Injector
 ) {
 
+    //TODO try to delete the need of passing R type
     inline fun <reified T : Any?, R : Any?> registerRoute(route: RestRoute<R>): Route =
             parent.route(resourceName, method = route.httpMethod) {
                 println("REST: ${route.httpMethod.value} /$resourceName -> ${route.handler}") // logging
@@ -95,7 +86,6 @@ class RestRoute<T>(
                     .map { it.first.name to it.second }.toMap()
         }
     }
-
 }
 
 

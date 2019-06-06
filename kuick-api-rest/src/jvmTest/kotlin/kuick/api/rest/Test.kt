@@ -13,11 +13,11 @@ import io.ktor.server.testing.handleRequest
 import io.ktor.server.testing.withTestApplication
 import io.ktor.util.AttributeKey
 import junit.framework.Assert.assertEquals
-import kuick.api.rest.parameters.include.InvalidIncludeParamException
-import kuick.api.rest.parameters.preserve.InvalidFieldParamException
+import kuick.api.parameters.include.InvalidIncludeParamException
+import kuick.api.parameters.preserve.InvalidFieldParamException
+import kuick.api.toJson
 import kuick.di.Guice
 import kuick.di.bindPerCoroutineJob
-import kuick.json.Json
 import org.junit.Test
 import javax.inject.Singleton
 
@@ -268,5 +268,3 @@ class Test {
 }
 
 
-private fun List<Any>.toJson() = Json.toJson(this)
-private fun Map<String, Any>.toJson() = Json.toJson(this)

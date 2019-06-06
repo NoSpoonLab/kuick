@@ -1,6 +1,6 @@
-package kuick.api.rest.parameters.preserve
+package kuick.api.parameters.preserve
 
-import kuick.api.rest.parameters.InvalidParamException
+import kuick.api.parameters.InvalidParamException
 
 
 open class InvalidFieldParamException(msg: String) : InvalidParamException("Invalid fields param definition. $msg") {

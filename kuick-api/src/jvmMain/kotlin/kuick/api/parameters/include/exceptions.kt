@@ -1,6 +1,6 @@
-package kuick.api.rest.parameters.include
+package kuick.api.parameters.include
 
-import kuick.api.rest.parameters.InvalidParamException
+import kuick.api.parameters.InvalidParamException
 
 
 open class InvalidIncludeParamException(msg: String) : InvalidParamException("Invalid include param definition. $msg") {

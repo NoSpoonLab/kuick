@@ -1,4 +1,4 @@
-package kuick.api.rest.parameters.include
+package kuick.api.parameters.include
 
 import com.google.gson.JsonElement
 import kuick.api.Node
