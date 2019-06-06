@@ -4,7 +4,7 @@ import io.ktor.application.Application
 import io.ktor.routing.routing
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
-import kuick.api.rest.getMany
+import kuick.api.rest.get
 import kuick.api.rest.post
 import kuick.api.rest.restRoute
 import kuick.api.rpc.rpcRoute
@@ -36,7 +36,7 @@ fun Application.module() {
         rpcRoute<UserApi>(injector)
 
         restRoute<TodoApi>(injector, "todos") {
-            getMany(TodoApi::getAll) {
+            get<Todo>(TodoApi::getAll) {
                 withFieldsParameter()
                 withIncludeParameter(
                         Todo::owner to { id -> injector.getInstance(UserApi::class.java).getOne(id) }

@@ -24,8 +24,6 @@ import kotlin.reflect.full.memberFunctions
 import kotlin.reflect.full.starProjectedType
 
 
-// TODO in gokoan rpc handles also downloading and uploading files (see: gokoan/backend/server/src/jvmMain/kotlin/koan/controllers/rpc-controller.kt)
-// discuss: should provide similar functionality here or make solution flexible enough so that user can provide it
 data class RpcRouting(
         val parent: Route,
         val api: Any,
@@ -42,6 +40,7 @@ data class RpcRouting(
                         gson.toJsonTree(call.receiveText()),
                         call.attributes.allKeys.map { it.name to call.attributes[it as AttributeKey<Any>] }.toMap()
                 )
+
                 val responseClass = method.returnType.run {
                     return@run if (isSubtypeOf(List::class.starProjectedType)) {
                         this.arguments[0].type!!.clazz
@@ -49,6 +48,7 @@ data class RpcRouting(
                         this.clazz
                     }
                 }.java
+
                 val result = method.callSuspend(api, *args.toTypedArray())
                 val jsonResult = gson.toJsonTree(result)
 
@@ -72,14 +72,13 @@ data class RpcRouting(
     }
 
     fun Any.visitRPC(opAction: (String, KFunction<*>) -> Unit) {
-        //TODO previous version of visitRPC did iterate over interfaces, i'm not sure if it's necessary
         val srvName = javaClass.simpleName
         javaClass.kotlin.memberFunctions.forEach { function ->
             try {
                 opAction(srvName, function)
-            } catch (ieme: Throwable) {
+            } catch (exception: Throwable) {
                 println("WARN: invalid public method in controller: $function")
-                ieme.printStackTrace()
+                exception.printStackTrace()
             }
         }
     }

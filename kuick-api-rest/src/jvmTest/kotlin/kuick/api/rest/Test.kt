@@ -123,7 +123,7 @@ class Test {
 
                     withSomeCheck {
                         withSomeAdditionalParameter {
-                            getMany(ResourceApi::getAll) {
+                            get(ResourceApi::getAll) {
                                 withFieldsParameter()
                                 //TODO provide better way of configuration to support correctly nested resources and don't have to repeat config fot the same model in different endpoints
                                 withIncludeParameter(

@@ -18,9 +18,12 @@ import kuick.api.parameters.preserve.FieldsParam
 import kuick.api.parameters.preserve.preserveFields
 import kuick.json.Json.gson
 import kuick.json.Json.jsonParser
+import kuick.orm.clazz
 import kotlin.reflect.KFunction
 import kotlin.reflect.KProperty
 import kotlin.reflect.full.callSuspend
+import kotlin.reflect.full.isSubtypeOf
+import kotlin.reflect.full.starProjectedType
 
 data class RestRouting(
         val parent: Route,
@@ -30,9 +33,17 @@ data class RestRouting(
 ) {
 
     //TODO try to delete the need of passing R type
-    inline fun <reified T : Any?, R : Any?> registerRoute(route: RestRoute<R>): Route =
+    fun registerRoute(route: RestRoute): Route =
             parent.route(resourceName, method = route.httpMethod) {
                 println("REST: ${route.httpMethod.value} /$resourceName -> ${route.handler}") // logging
+
+                val responseClass = route.handler.returnType.run {
+                    return@run if (isSubtypeOf(List::class.starProjectedType)) {
+                        this.arguments[0].type!!.clazz
+                    } else {
+                        this.clazz
+                    }
+                }.java
 
                 handle {
 
@@ -51,12 +62,12 @@ data class RestRouting(
                     //TODO handle case when we include smth just to cut it out when filtering
                     if (route.config.includeParameterConfiguration != null && "\$include" in queryParameters) {
                         val configuration = route.config.includeParameterConfiguration!!
-                        val includeParam = IncludeParam.create(queryParameters.getAsTree("\$include"), T::class.java, configuration)
+                        val includeParam = IncludeParam.create(queryParameters.getAsTree("\$include"), responseClass, configuration)
                         jsonResult.includeRelatedResources(includeParam, configuration)
                     }
 
                     if (route.config.withFieldsParameter && "\$fields" in queryParameters) {
-                        val fieldsParam = FieldsParam.create(queryParameters.getAsTree("\$fields"), T::class.java)
+                        val fieldsParam = FieldsParam.create(queryParameters.getAsTree("\$fields"), responseClass)
                         jsonResult.preserveFields(fieldsParam)
                     }
 
@@ -65,9 +76,9 @@ data class RestRouting(
             }
 }
 
-class RestRoute<T>(
+class RestRoute(
         val httpMethod: HttpMethod,
-        val handler: KFunction<T>,
+        val handler: KFunction<*>,
         val config: Configuration = Configuration()
 ) {
 
