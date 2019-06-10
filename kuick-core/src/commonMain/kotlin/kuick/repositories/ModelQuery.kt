@@ -1,6 +1,7 @@
 package kuick.repositories
 
 import kotlin.internal.Exact
+import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
 
 
@@ -118,10 +119,10 @@ class FieldWithin<T : Any, V : Any>(field: KProperty1<T, V?>, value: Set<V>) : F
 class FieldWithinComplex<T : Any, V : Any>(field: KProperty1<T, V?>, value: Set<V>) : FieldBinopOnSet<T, V>(field, value)
 
 inline infix fun <T : Any, reified V : Any> KProperty1<T, V?>.within(value: @Exact Set<V>) =
-        if (isBasicType<V>())
+        if (isBasicType(V::class))
             FieldWithin(this, value)
         else
             FieldWithinComplex(this, value)
 
-inline fun <reified V : Any> isBasicType() = setOf(Boolean::class, Number::class, String::class, Char::class).any { it == V::class }
 
+expect fun <V : Any> isBasicType(clazz: KClass<V>) : Boolean
