@@ -19,6 +19,7 @@ class DbCacheInvalidation @PublishedApi internal constructor(
     val delay: Long = 5_000L,
     val repo: ModelRepository<CacheInvalidationEntry.CacheId, CacheInvalidationEntry>,
     val debug: Boolean = false,
+    var pruneSteps: Int = 100,
     val setCoroutineContext: suspend (block: suspend () -> Unit) -> Unit = { it() }
 ) : CacheInvalidation {
     private val lock = Lock()
@@ -33,7 +34,16 @@ class DbCacheInvalidation @PublishedApi internal constructor(
                 runBlocking {
                     setCoroutineContext {
                         var lastTime = now()
+                        var pruneStep = pruneSteps
                         while (running) {
+                            try {
+                                if (pruneStep++ >= pruneSteps) {
+                                    pruneStep = 0
+                                    pruneBefore(now() - delay * pruneSteps)
+                                }
+                            } catch (e: Throwable) {
+                                e.printStackTrace()
+                            }
                             try {
                                 //println("getUpdatedSince: $lastTime")
                                 val entries = getUpdatedSince(lastTime)
@@ -50,6 +60,7 @@ class DbCacheInvalidation @PublishedApi internal constructor(
                                     }
                                 }
                                 lastTime = entries.lastOrNull()?.invalidationTime ?: lastTime
+
                             } catch (e: Throwable) {
                                 e.printStackTrace()
                             }
@@ -72,19 +83,21 @@ class DbCacheInvalidation @PublishedApi internal constructor(
             delay: Long = 5_000L,
             repo: ModelRepository<CacheInvalidationEntry.CacheId, CacheInvalidationEntry>,
             debug: Boolean = false,
+            pruneSteps: Int = 100,
             setCoroutineContext: suspend (block: suspend () -> Unit) -> Unit = { it() }
         ): DbCacheInvalidation {
-            return DbCacheInvalidation(delay, repo, debug, setCoroutineContext).apply { init() }
+            return DbCacheInvalidation(delay, repo, debug, pruneSteps, setCoroutineContext).apply { init() }
         }
 
         suspend inline fun <T> get(
             delay: Long = 5_000L,
             repo: ModelRepository<CacheInvalidationEntry.CacheId, CacheInvalidationEntry>,
             debug: Boolean = false,
+            pruneSteps: Int = 100,
             noinline setCoroutineContext: suspend (block: suspend () -> Unit) -> Unit = { it() },
             callback: (DbCacheInvalidation) -> T
         ): T {
-            return getUnsafe(delay, repo, debug, setCoroutineContext).use { callback(it) }
+            return getUnsafe(delay, repo, debug, pruneSteps, setCoroutineContext).use { callback(it) }
         }
 
         private fun now() = System.currentTimeMillis()
@@ -135,5 +148,6 @@ suspend fun <T> Cache<String, T>.withInvalidationDb(
     delay: Long = 5_000L,
     repo: ModelRepository<DbCacheInvalidation.CacheInvalidationEntry.CacheId, DbCacheInvalidation.CacheInvalidationEntry>,
     debug: Boolean = false,
+    pruneSteps: Int = 100,
     setCoroutineContext: suspend (block: suspend () -> Unit) -> Unit = { it() }
-): Cache<String, T> = withInvalidation(DbCacheInvalidation(delay, repo, debug, setCoroutineContext))
+): Cache<String, T> = withInvalidation(DbCacheInvalidation(delay, repo, debug, pruneSteps, setCoroutineContext))
