@@ -57,7 +57,7 @@ open class ModelRepositorySquash<I : Any, T : Any>(
             //squashTr.executeStatement("ALTER TABLE tableNameQuoted ADD PRIMARY KEY (${idProperty.columnName});")
             for (info in properties) {
                 if (info.unique) {
-                    squashTr.executeStatement("CREATE UNIQUE INDEX unique_${info.columnName} ON $tableNameQuoted (${info.columnName});")
+                    squashTr.executeStatement("CREATE UNIQUE INDEX IF NOT EXISTS unique_${info.columnName} ON $tableNameQuoted (${info.columnName});")
                 }
             }
         }
