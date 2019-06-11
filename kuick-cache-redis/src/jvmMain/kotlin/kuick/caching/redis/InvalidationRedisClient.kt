@@ -18,22 +18,22 @@ class InvalidationRedisClient internal constructor(
 
     private val map = LinkedHashMap<String, ArrayList<suspend (String) -> Unit>>()
 
-    override fun register(name: String, callback: suspend (String) -> Unit): Closeable {
-        val channel = getChannelForKey(name)
+    override fun register(cacheName: String, handler: suspend (String) -> Unit): Closeable {
+        val channel = getChannelForKey(cacheName)
         val arrayList = synchronized(map) {
             map.getOrPut(channel) { arrayListOf() }.also {
-                it += callback
+                it += handler
             }
         }
-        return Closeable { synchronized(map) { arrayList -= callback } }
+        return Closeable { synchronized(map) { arrayList -= handler } }
     }
 
-    override suspend fun invalidate(name: String, key: String) {
-        sredis.publish(getChannelForKey(name), key)
+    override suspend fun invalidate(cacheName: String, key: String) {
+        sredis.publish(getChannelForKey(cacheName), key)
     }
 
-    override suspend fun invalidateAll(name: String) {
-        sredis.publish(getChannelForKey(name), CacheInvalidation.INVALIDATE_ALL_KEY)
+    override suspend fun invalidateAll(cacheName: String) {
+        sredis.publish(getChannelForKey(cacheName), CacheInvalidation.INVALIDATE_ALL_KEY)
     }
 
     override fun close() {
