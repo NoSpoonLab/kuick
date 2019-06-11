@@ -5,7 +5,9 @@ import java.io.Closeable
 
 interface CacheInvalidation : Closeable {
     companion object {
+        //val INVALIDATE_ALL_KEY = ""
         val INVALIDATE_ALL_KEY = "*"
+        //val INVALIDATE_ALL_KEY = "\u0000"
     }
 
     fun register(cacheName: String, handler: suspend (key: String) -> Unit): Closeable
@@ -34,7 +36,11 @@ fun <T> Cache<String, T>.withInvalidation(dbCacheInvalidation: CacheInvalidation
     val cacheName = this.name
 
     val closeable = dbCacheInvalidation.register(cacheName) {
-        parent.invalidate(it)
+        if (it == CacheInvalidation.INVALIDATE_ALL_KEY) {
+            parent.invalidateAll()
+        } else {
+            parent.invalidate(it)
+        }
     }
 
     return object : Cache<String, T> {
