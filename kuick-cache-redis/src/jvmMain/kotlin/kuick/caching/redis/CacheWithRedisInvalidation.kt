@@ -3,6 +3,7 @@ package kuick.caching.redis
 import kuick.caching.*
 import java.io.*
 
+@Deprecated("Review CacheInvalidation and Cache<String, T>.withInvalidation")
 class CacheWithRedisInvalidation<V> @PublishedApi internal constructor(
         val parentCache: Cache<String, V>,
         val cacheName: String,
@@ -11,7 +12,7 @@ class CacheWithRedisInvalidation<V> @PublishedApi internal constructor(
     override val name: String get() = cacheName
 
     private val register = invalidationRedisClient.register(cacheName) {
-        if (it == InvalidationRedisClient.INVALIDATE_ALL_KEY) {
+        if (it == CacheInvalidation.INVALIDATE_ALL_KEY) {
             parentCache.invalidateAll()
         } else {
             parentCache.invalidate(it)
@@ -35,5 +36,6 @@ class CacheWithRedisInvalidation<V> @PublishedApi internal constructor(
     }
 }
 
+@Deprecated("Review CacheInvalidation and Cache<String, T>.withInvalidation")
 fun <V> Cache<String, V>.withInvalidation(cacheName: String, invalidationRedisClient: InvalidationRedisClient) =
         CacheWithRedisInvalidation(this, cacheName, invalidationRedisClient)

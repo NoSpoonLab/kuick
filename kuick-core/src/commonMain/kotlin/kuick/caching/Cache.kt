@@ -14,6 +14,12 @@ fun <K : Any, V> Cache<K, V>.interceptInvalidation(invalidation: (key: K) -> Uni
         return this@interceptInvalidation.invalidate(key)
     }
 }
+fun <K : Any, V> Cache<K, V>.interceptInvalidationAll(invalidation: () -> Unit): Cache<K, V> = object : Cache<K, V> by this {
+    override suspend fun invalidateAll() {
+        invalidation()
+        return this@interceptInvalidationAll.invalidateAll()
+    }
+}
 fun <K : Any, V> Cache<K, V>.interceptGetBuilder(get: (key: K, value: V) -> V): Cache<K, V> = object : Cache<K, V> by this {
     override suspend fun get(key: K, builder: suspend (key: K) -> V): V = this@interceptGetBuilder.get(key) { get(it, builder(it)) }
 }

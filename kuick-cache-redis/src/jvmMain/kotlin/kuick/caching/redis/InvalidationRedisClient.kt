@@ -4,6 +4,7 @@ import io.lettuce.core.*
 import io.lettuce.core.api.*
 import io.lettuce.core.pubsub.*
 import kotlinx.coroutines.*
+import kuick.caching.CacheInvalidation
 import kuick.client.redis.*
 import java.io.*
 import kotlin.coroutines.*
@@ -12,27 +13,27 @@ class InvalidationRedisClient internal constructor(
         private val coroutineContext: CoroutineContext,
         private val redisSub: StatefulRedisPubSubConnection<String, String>,
         private val redisPub: StatefulRedisConnection<String, String>
-) : Closeable {
+) : CacheInvalidation {
     private val sredis = redisPub.suspending()
 
     private val map = LinkedHashMap<String, ArrayList<suspend (String) -> Unit>>()
 
-    fun register(name: String, callback: suspend (String) -> Unit): Closeable {
-        val channel = getChannelForKey(name)
+    override fun register(cacheName: String, handler: suspend (String) -> Unit): Closeable {
+        val channel = getChannelForKey(cacheName)
         val arrayList = synchronized(map) {
             map.getOrPut(channel) { arrayListOf() }.also {
-                it += callback
+                it += handler
             }
         }
-        return Closeable { synchronized(map) { arrayList -= callback } }
+        return Closeable { synchronized(map) { arrayList -= handler } }
     }
 
-    suspend fun invalidate(name: String, key: String) {
-        sredis.publish(getChannelForKey(name), key)
+    override suspend fun invalidate(cacheName: String, key: String) {
+        sredis.publish(getChannelForKey(cacheName), key)
     }
 
-    suspend fun invalidateAll(name: String) {
-        sredis.publish(getChannelForKey(name), InvalidationRedisClient.INVALIDATE_ALL_KEY)
+    override suspend fun invalidateAll(cacheName: String) {
+        sredis.publish(getChannelForKey(cacheName), CacheInvalidation.INVALIDATE_ALL_KEY)
     }
 
     override fun close() {
@@ -41,8 +42,6 @@ class InvalidationRedisClient internal constructor(
     }
 
     companion object {
-        val INVALIDATE_ALL_KEY = "*"
-
         private fun getChannelForKey(name: String) = "cache-invalidate-$name"
 
         suspend operator fun invoke(uri: String = "redis://localhost"): InvalidationRedisClient {

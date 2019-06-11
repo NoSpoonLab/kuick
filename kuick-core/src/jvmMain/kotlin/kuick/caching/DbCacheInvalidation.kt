@@ -20,7 +20,7 @@ class DbCacheInvalidation @PublishedApi internal constructor(
     val repo: ModelRepository<CacheInvalidationEntry.CacheId, CacheInvalidationEntry>,
     val debug: Boolean = false,
     val setCoroutineContext: suspend (block: suspend () -> Unit) -> Unit = { it() }
-) : Closeable {
+) : CacheInvalidation {
     private val lock = Lock()
     private val handlers = LinkedHashMap<String, ArrayList<suspend (key: String) -> Unit>>()
     private var running = true
@@ -90,20 +90,20 @@ class DbCacheInvalidation @PublishedApi internal constructor(
         private fun now() = System.currentTimeMillis()
     }
 
-    suspend fun invalidate(cacheName: String, key: String) {
+    override suspend fun invalidate(cacheName: String, key: String) {
         repo.transaction {
             repo.upsert(CacheInvalidationEntry(CacheInvalidationEntry.CacheId("$cacheName:$key"), cacheName, key, now()))
         }
         //repo.insert(CacheInvalidationEntry(cacheName, key, Date()))
     }
 
-    suspend fun invalidateAll(cacheName: String) {
+    override suspend fun invalidateAll(cacheName: String) {
         repo.transaction {
             repo.deleteBy(CacheInvalidationEntry::cacheName eq cacheName)
         }
     }
 
-    fun register(cacheName: String, handler: suspend (key: String) -> Unit): Closeable {
+    override fun register(cacheName: String, handler: suspend (key: String) -> Unit): Closeable {
         lock { handlers.getOrPut(cacheName) { arrayListOf() }.add(handler) }
         return Closeable {
             lock { handlers.getOrPut(cacheName) { arrayListOf() }.remove(handler) }
@@ -137,24 +137,3 @@ suspend fun <T> Cache<String, T>.withInvalidationDb(
     debug: Boolean = false,
     setCoroutineContext: suspend (block: suspend () -> Unit) -> Unit = { it() }
 ): Cache<String, T> = withInvalidation(DbCacheInvalidation(delay, repo, debug, setCoroutineContext))
-
-fun <T> Cache<String, T>.withInvalidation(dbCacheInvalidation: DbCacheInvalidation): Cache<String, T> {
-    val parent = this
-    val cacheName = this.name
-
-    val closeable = dbCacheInvalidation.register(cacheName) {
-        parent.invalidate(it)
-    }
-
-    return object : Cache<String, T> {
-        override suspend fun get(key: String, builder: suspend (key: String) -> T): T = parent.get(key, builder)
-        override suspend fun invalidate(key: String) = run { dbCacheInvalidation.invalidate(cacheName, key) }
-        override suspend fun invalidateAll() = run { dbCacheInvalidation.invalidateAll(cacheName) }
-
-        override suspend fun close() {
-            parent.close()
-            @Suppress("BlockingMethodInNonBlockingContext")
-            closeable.close()
-        }
-    }
-}
