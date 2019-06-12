@@ -86,6 +86,7 @@ class BasicOpsSquashRepoTest: AbstractITTest() {
         val mike2 = mike.copy(updatedAt = Date())
         repo.update(mike2)
         assertEquals(mike2, repo.findById(mike.userId))
+        repo.delete(mike2.userId)
     }
 
     @Test

@@ -7,7 +7,7 @@ import kotlin.internal.*
 
 fun <T : Table> deleteFrom(table: T): DeleteQueryStatement<T> = DeleteQueryStatement(table)
 
-open class DeleteQueryStatement<T : Table>(val table: T) : QueryBuilder(), Statement<Unit> {
+open class DeleteQueryStatement<T : Table>(val table: T) : QueryBuilder(), Statement<Int> {
     val values: MutableMap<Column<*>, Expression<*>> = LinkedHashMap()
 
     operator fun <V, S : V> set(column: Column<@Exact V>, value: Expression<S>) {

@@ -78,15 +78,19 @@ open class ModelRepositorySquash<I : Any, T : Any>(
         return t
     }
 
-    override suspend fun delete(i: I) = domainTransaction { tr ->
-        table.delete(tr) {
-            (idField eq i).toSquash()
+    override suspend fun delete(i: I) {
+        domainTransaction { tr ->
+            table.delete(tr) {
+                (idField eq i).toSquash()
+            }
         }
     }
 
-    override suspend fun deleteBy(q: ModelQuery<T>) = domainTransaction { tr ->
-        table.delete(tr) {
-            q.toSquash()
+    override suspend fun deleteBy(q: ModelQuery<T>) {
+        domainTransaction { tr ->
+            table.delete(tr) {
+                q.toSquash()
+            }
         }
     }
 
