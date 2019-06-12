@@ -57,7 +57,7 @@ open class ModelRepositorySquash<I : Any, T : Any>(
             //squashTr.executeStatement("ALTER TABLE tableNameQuoted ADD PRIMARY KEY (${idProperty.columnName});")
             for (info in properties) {
                 if (info.unique) {
-                    squashTr.executeStatement("CREATE UNIQUE INDEX IF NOT EXISTS unique_${info.columnName} ON $tableNameQuoted (${info.columnName});")
+                    squashTr.executeStatement("CREATE UNIQUE INDEX IF NOT EXISTS unique_${table.tableName}_${info.columnName} ON $tableNameQuoted (${info.columnName});")
                 }
             }
         }
@@ -78,15 +78,19 @@ open class ModelRepositorySquash<I : Any, T : Any>(
         return t
     }
 
-    override suspend fun delete(i: I) = domainTransaction { tr ->
-        table.delete(tr) {
-            (idField eq i).toSquash()
+    override suspend fun delete(i: I) {
+        domainTransaction { tr ->
+            table.delete(tr) {
+                (idField eq i).toSquash()
+            }
         }
     }
 
-    override suspend fun deleteBy(q: ModelQuery<T>) = domainTransaction { tr ->
-        table.delete(tr) {
-            q.toSquash()
+    override suspend fun deleteBy(q: ModelQuery<T>) {
+        domainTransaction { tr ->
+            table.delete(tr) {
+                q.toSquash()
+            }
         }
     }
 

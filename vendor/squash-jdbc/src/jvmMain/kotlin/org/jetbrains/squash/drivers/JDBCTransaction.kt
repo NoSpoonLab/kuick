@@ -49,7 +49,7 @@ open class JDBCTransaction(override val connection: JDBCConnection) : Transactio
 
             is DeleteQueryStatement<*>,
             is UpdateQueryStatement<*> -> {
-                return Unit as T
+                return jdbcStatement.updateCount as T
             }
             else -> error("Cannot extract result for $statement")
         }

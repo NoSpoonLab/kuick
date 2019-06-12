@@ -37,7 +37,9 @@ open class BaseSquashRepository<I: Id, T: Any>(
 
     override suspend fun update(tr: DomainTransaction, t: T): T = schema.update(tr, t) { whereById(getId(t)) }
 
-    override suspend fun detete(tr: DomainTransaction, i: I) = schema.delete(tr) { whereById(i) }
+    override suspend fun detete(tr: DomainTransaction, i: I) {
+        schema.delete(tr) { whereById(i) }
+    }
 
     override suspend fun getById(tr: DomainTransaction, i: I): T? = schema.selectOne(tr) { whereById(i) }
 
@@ -88,7 +90,9 @@ open class BaseSquashTwoKeysRepository<I1: Id, I2: Any, T: Any>(
         whereById(i1, i2)
     }
 
-    override suspend fun detete(tr: DomainTransaction, i1: I1, i2: I2) = schema.delete(tr) { whereById(i1, i2) }
+    override suspend fun detete(tr: DomainTransaction, i1: I1, i2: I2) {
+        schema.delete(tr) { whereById(i1, i2) }
+    }
 
     override suspend fun getById(tr: DomainTransaction, i1: I1, i2: I2): T? = schema.selectOne(tr) { whereById(i1, i2) }
 

@@ -37,7 +37,9 @@ open class SquashContextualRepository<I: Id, T: Any>(
 
     override suspend fun update(t: T): T = domainTransaction { tr -> schema.update(tr, t) { whereById(getId(t)) } }
 
-    override suspend fun detete(i: I) = domainTransaction { tr -> schema.delete(tr) { whereById(i) } }
+    override suspend fun detete(i: I) {
+        domainTransaction { tr -> schema.delete(tr) { whereById(i) } }
+    }
 
     override suspend fun getById(i: I): T? = domainTransaction { tr -> schema.selectOne(tr) { whereById(i) } }
 
