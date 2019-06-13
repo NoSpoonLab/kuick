@@ -123,7 +123,8 @@ open class ORMTableDefinition<T : Any> constructor(
             results.isEmpty() -> null
             results.size == 1 -> results.first()
             else -> {
-                println("WARNING: Returning 1st of several results on a selectOne query: $predicate")
+                System.err.println("WARNING: Returning 1st of several results on a selectOne query: $predicate: ${predicate()}")
+                Thread.dumpStack()
                 results.first()
             }
         }
