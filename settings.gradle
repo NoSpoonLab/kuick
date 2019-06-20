@@ -22,3 +22,5 @@ include ':vendor:squash-postgres'
 
 include ':samples:todo-app'
 include ':samples:todo-app2'
+
+enableFeaturePreview('GRADLE_METADATA')
