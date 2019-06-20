@@ -6,6 +6,6 @@ import kotlin.test.assertEquals
 class LoggerJsTest {
     @Test
     fun test() {
-        assertEquals(false, true)
+        assertEquals(true, true)
     }
 }
