@@ -28,6 +28,11 @@ suspend fun <T : Any> DbPreparable.synchronizeTable(table: TableDefinition<T>) {
                 createIndex(tableName, listOf(column.name), unique = true)
             }
         }
+        if (column.withIndex) {
+            kotlin.runCatching {
+                createIndex(tableName, listOf(column.name), unique = false)
+            }
+        }
     }
 }
 

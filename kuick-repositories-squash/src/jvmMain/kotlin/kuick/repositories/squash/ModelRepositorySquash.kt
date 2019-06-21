@@ -56,10 +56,11 @@ open class ModelRepositorySquash<I : Any, T : Any>(
             val tableNameQuoted = squashTr.connection.dialect.idSQL(table.compoundName)
             //squashTr.executeStatement("ALTER TABLE tableNameQuoted ADD PRIMARY KEY (${idProperty.columnName});")
             for (info in properties) {
+                if (info.unique && info.withIndex) throw Exception("Cannot set both Unique and Index annotations")
                 if (info.unique) {
                     squashTr.executeStatement("CREATE UNIQUE INDEX IF NOT EXISTS unique_${table.tableName}_${info.columnName} ON $tableNameQuoted (${info.columnName});")
                 }
-                if (info.withNotUniqueIndex) {
+                if (info.withIndex) {
                     squashTr.executeStatement("CREATE INDEX IF NOT EXISTS notunique_${table.tableName}_${info.columnName} ON $tableNameQuoted (${info.columnName});")
                 }
 

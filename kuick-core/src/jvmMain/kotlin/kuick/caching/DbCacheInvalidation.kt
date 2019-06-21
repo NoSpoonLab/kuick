@@ -6,7 +6,6 @@ import kuick.concurrent.Lock
 import kuick.models.Id
 import kuick.repositories.ModelRepository
 import kuick.repositories.annotations.DbName
-import kuick.repositories.annotations.Index
 import kuick.repositories.annotations.MaxLength
 import kuick.repositories.annotations.Unique
 import kuick.repositories.eq
@@ -138,7 +137,7 @@ class DbCacheInvalidation @PublishedApi internal constructor(
         @Unique @MaxLength(128) val cacheNameKey: CacheId,
         @MaxLength(64) val cacheName: String,
         @MaxLength(64) val key: String,
-        @Index val invalidationTime: Long
+        val invalidationTime: Long
     ) {
         data class CacheId(override val id: String) : Id
     }
