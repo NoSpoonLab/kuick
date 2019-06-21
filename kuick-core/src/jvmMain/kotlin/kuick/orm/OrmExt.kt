@@ -25,6 +25,7 @@ class ColumnDefinition<T : Any>(val table: TableDefinition<T>, val prop: KProper
     val serialization get() = table.serialization
     val name = prop.findAnnotation<DbName>()?.name ?: prop.name
     val unique = prop.findAnnotation<Unique>() != null
+    val withIndex = prop.findAnnotation<Index>() != null
     val maxLength = prop.findAnnotation<MaxLength>()?.maxLength
     val type = prop.returnType
     val clazz = type.clazz

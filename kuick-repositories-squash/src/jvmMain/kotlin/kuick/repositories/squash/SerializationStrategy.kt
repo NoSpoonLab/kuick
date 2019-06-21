@@ -10,6 +10,7 @@ import kotlin.reflect.jvm.*
 class PropertyInfo<T>(val prop: KProperty<T>) {
     //val primary = prop.javaField?.getAnnotation(Primary::class.java) != null
     val unique = prop.javaField?.getAnnotation(Unique::class.java) != null
+    val withIndex = prop.javaField?.getAnnotation(Index::class.java) != null
     val maxLength = prop.javaField?.getAnnotation(MaxLength::class.java)?.maxLength
     val nullableProp = prop.returnType.isMarkedNullable
     val returnType = prop.returnType.classifier!!.starProjectedType
