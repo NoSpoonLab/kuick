@@ -15,6 +15,10 @@ annotation class Unique
 
 @Retention(AnnotationRetention.RUNTIME)
 @Target(AnnotationTarget.FIELD)
+annotation class WithNotUniqueIndex
+
+@Retention(AnnotationRetention.RUNTIME)
+@Target(AnnotationTarget.FIELD)
 annotation class Index(val order: IndexOrder = IndexOrder.ASC)
 enum class IndexOrder { ASC, DESC }
 

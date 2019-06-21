@@ -59,6 +59,10 @@ open class ModelRepositorySquash<I : Any, T : Any>(
                 if (info.unique) {
                     squashTr.executeStatement("CREATE UNIQUE INDEX IF NOT EXISTS unique_${table.tableName}_${info.columnName} ON $tableNameQuoted (${info.columnName});")
                 }
+                if (info.withNotUniqueIndex) {
+                    squashTr.executeStatement("CREATE INDEX IF NOT EXISTS notunique_${table.tableName}_${info.columnName} ON $tableNameQuoted (${info.columnName});")
+                }
+
             }
         }
     }
