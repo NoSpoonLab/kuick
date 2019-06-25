@@ -105,6 +105,9 @@ class DbRowSet(val columns: DbColumns, val rows: List<DbRow>) : List<DbRow> by r
         val RESULT_TRUE = DbRowSet(RESULT_COLUMNS, listOf(DbRow(RESULT_COLUMNS, listOf(true))))
         fun RESULT_BOOL(value: Boolean) = if (value) RESULT_TRUE else RESULT_FALSE
 
+        fun RESULT_INT(value: Int) = DbRowSet(RESULT_COLUMNS, listOf(DbRow(RESULT_COLUMNS, listOf(value))))
+        fun RESULT_LONG(value: Long) = DbRowSet(RESULT_COLUMNS, listOf(DbRow(RESULT_COLUMNS, listOf(value))))
+
         operator fun invoke(vararg rows: Map<String, Any?>): DbRowSet = invoke(rows.toList())
 
         operator fun invoke(rows: List<Map<String, Any?>>): DbRowSet {

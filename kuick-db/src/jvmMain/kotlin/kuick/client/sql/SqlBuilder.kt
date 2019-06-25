@@ -31,6 +31,10 @@ abstract class SqlBuilder {
     open fun String.quoteIdentifier(): String = quoteGeneric('"')
     open fun String.quoteStringLiteral(): String = quoteGeneric('\'')
 
+    val String.qtable get() = quoteTableName()
+    val String.qid get() = quoteIdentifier()
+    val String.qstring get() = quoteStringLiteral()
+
     @JvmName("quoteTableNameExt") fun quoteTableName(str: String): String = str.quoteTableName()
     @JvmName("quoteStringLiteralExt") fun quoteStringLiteral(str: String): String = str.quoteStringLiteral()
 
@@ -139,17 +143,23 @@ abstract class SqlBuilder {
     }
 
     open fun <T : Any> sqlUpdate(keys: List<String>, q: ModelQuery<T>, table: TableDefinition<T>, out: OutParams = outParams()): QueryAndParams =
-            QueryAndParams(buildString {
-                append("UPDATE ${table.name.quoteTableName()}")
-                append(" SET ")
-                for ((index, key) in keys.withIndex()) {
-                    if (index != 0) append(",")
-                    append("${key.quoteIdentifier()} = ${sqlPlaceholders(1, index + 1)}")
-                }
-                append(" WHERE ")
-                append(where(q, table, out))
-                append(";")
-            }, out.params)
+        sqlUpdateRaw(keys.map { "${it.qid} = ?" }, q, table, out)
+
+    open fun <T : Any> sqlUpdateIncr(sets: List<String>, incrs: List<String>, q: ModelQuery<T>, table: TableDefinition<T>, out: OutParams = outParams()): QueryAndParams =
+        sqlUpdateRaw(sets.map { "${it.qid} = ?" } + incrs.map { "${it.qid} = ${it.qid} + ?" }, q, table, out)
+
+    open fun <T : Any> sqlUpdateRaw(raws: List<String>, q: ModelQuery<T>, table: TableDefinition<T>, out: OutParams = outParams()): QueryAndParams =
+        QueryAndParams(buildString {
+            append("UPDATE ${table.name.quoteTableName()}")
+            append(" SET ")
+            for ((index, raw) in raws.withIndex()) {
+                if (index != 0) append(",")
+                append(raw.replace("?", sqlPlaceholders(1, index + 1)))
+            }
+            append(" WHERE ")
+            append(where(q, table, out))
+            append(";")
+        }, out.params)
 }
 
 object PgSqlBuilder : SqlBuilder() {

@@ -69,8 +69,7 @@ class PostgresPreparedStatement(val transaction: PostgressTransaction, override 
     private fun PgRowSet.toListDbRow(): DbRowSet {
         val columnNames = this.columnsNames()
         if (columnNames == null) {
-            val columns = DbColumns(listOf("result"))
-            return DbRowSet(columns, listOf(DbRow(columns, listOf(this.rowCount()))))
+            return DbRowSet.RESULT_INT(this.rowCount())
         } else {
             val columns = DbColumns(columnNames)
             val columnCount = columns.size

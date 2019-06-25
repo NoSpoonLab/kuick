@@ -26,6 +26,18 @@ open class DbModelRepository<I : Any, T : Any>(
         return t
     }
 
+    override suspend fun update(
+        set: Map<KProperty1<T, *>, Any>,
+        incr: Map<KProperty1<T, Number>, Number>,
+        where: ModelQuery<T>
+    ): Int {
+        val result = dbClient {
+            val query = it.sql.sqlUpdateIncr(set.keys.map { table[it].name }, incr.keys.map { table[it].name }, where, table)
+            it.query(query.sql, *(set.values + incr.values).toTypedArray(), *query.params.toTypedArray())
+        }
+        return result.first().first().toString().toIntOrNull() ?: -1
+    }
+
     override suspend fun deleteBy(q: ModelQuery<T>): Unit = run { dbClient { it.query(it.sql.sqlDelete(q, table, it.sql.outParams())) } }
     override suspend fun findBy(q: ModelQuery<T>): List<T> = dbClient { it.query(table, it.sql.sqlSelect(q, table)) }
     override suspend fun getAll(): List<T> = dbClient { it.query(table, "SELECT * FROM ${it.sql.quoteTableName(table.name)};") }
