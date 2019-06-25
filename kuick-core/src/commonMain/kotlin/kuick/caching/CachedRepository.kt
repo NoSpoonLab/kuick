@@ -33,6 +33,20 @@ open class CachedRepository<I: Any, T: Any, C:Any>(
         return super.update(t)
     }
 
+    override suspend fun update(
+        set: Map<KProperty1<T, *>, Any>,
+        incr: Map<KProperty1<T, Number>, Number>,
+        where: ModelQuery<T>
+    ): Int {
+        if (where is FieldEqs<*, *> && where.field == idField) {
+            @Suppress("UNCHECKED_CAST")
+            (where.value as? C?)?.let { invalidateKey(it) }
+        } else {
+            cache.invalidateAll()
+        }
+        return super.update(set, incr, where)
+    }
+
     override suspend fun delete(i: I) {
         val t = findById(i) ?: throw IllegalArgumentException()
         super.delete(i)
