@@ -78,6 +78,10 @@ open class ModelRepositorySquash<I : Any, T : Any>(
         }
     }
 
+    override suspend fun update(set: Map<KProperty1<T, *>, Any>, incr: Map<KProperty1<T, Number>, Number>, where: ModelQuery<T>): Int = domainTransaction { tr ->
+        table.update(tr.squashTr(), set, incr) { where.toSquash() }
+    }
+
     override suspend fun updateBy(t: T, q: ModelQuery<T>): T {
         domainTransaction { tr -> table.update(tr, t) { q.toSquash() } }
         return t

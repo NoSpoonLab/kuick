@@ -14,6 +14,7 @@ import kotlin.test.*
 
 class SquashRepoTest {
     data class User(@MaxLength(4) val a: String, @MaxLength(2) val b: String)
+    data class Points(val id: String, val points: Long)
 
     @Test
     fun `maxLength is taken into account`(): Unit = runBlocking {
@@ -36,6 +37,25 @@ class SquashRepoTest {
                                     "INSERT INTO \"User\" (a, b) VALUES (?, ?) [22001-197]"
                     )
             )
+        }
+    }
+
+    @Test
+    fun incrementValues(): Unit = runBlocking {
+        val db = H2Connection.createMemoryConnection()
+        val repo = ModelRepositorySquash(Points::class, Points::id)
+        val injector = Guice {
+            bindDatabaseSquash(db)
+        }
+        withInjectorContext(injector) {
+            repo.init()
+            val id = "1234"
+            repo.insert(Points(id, 100L))
+            assertEquals(
+                1,
+                repo.update(incr = mapOf(Points::points to +1), where = Points::id eq id)
+            )
+            assertEquals(101L, repo.findById(id)?.points)
         }
     }
 
