@@ -60,7 +60,8 @@ class JdbcPreparedStatement(override val sql: String, val prepareStatement: Prep
                 if (isSelection) {
                     prepareStatement.executeQuery().toListDbRow()
                 } else {
-                    DbRowSet.RESULT_BOOL(prepareStatement.execute())
+                    prepareStatement.execute()
+                    DbRowSet.RESULT_INT(prepareStatement.updateCount)
                 }
             }
         } catch (e: JdbcSQLException) {

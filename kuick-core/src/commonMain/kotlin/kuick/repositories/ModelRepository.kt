@@ -1,5 +1,6 @@
 package kuick.repositories
 
+import kotlin.reflect.KProperty1
 
 interface ModelRepository<I : Any, T : Any> : ViewRepository<I, T> {
     // Interface
@@ -18,6 +19,7 @@ interface ModelRepository<I : Any, T : Any> : ViewRepository<I, T> {
         }
         return t
     }
+    suspend fun update(set: Map<KProperty1<T, *>, Any> = mapOf(), incr: Map<KProperty1<T, Number>, Number> = mapOf(), where: ModelQuery<T>): Int = TODO()
     suspend fun insertMany(collection: Collection<T>) = collection.forEach { insert(it) }
     suspend fun updateMany(collection: Collection<T>) = collection.forEach { update(it) }
 }

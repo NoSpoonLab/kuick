@@ -169,10 +169,20 @@ open class ORMTableDefinition<T : Any> constructor(
     }
 
     private fun update(tr: Transaction, updated: T, where: () -> Expression<Boolean>): T {
-        update(this).set { it from updated }.where(where).monitorAndExecuteOn(tr)
+        update(this).set {it from updated }.where(where).monitorAndExecuteOn(tr)
         return updated
     }
 
+    fun update(tr: Transaction, set: Map<KProperty1<T, *>, Any> = mapOf(), incr: Map<KProperty1<T, Number>, Number> = mapOf(), where: () -> Expression<Boolean>): Int {
+        val count = update(this).set {
+            for ((k, v) in set) it[this[k]] = v
+            for ((k, v) in incr) {
+                val column = this[k]
+                it[column] = column plus v
+            }
+        }.where(where).monitorAndExecuteOn(tr)
+        return count
+    }
 
     // DELETE ----------------------------
 

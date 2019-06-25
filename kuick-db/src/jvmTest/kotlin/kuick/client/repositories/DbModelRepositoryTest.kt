@@ -47,4 +47,24 @@ class DbModelRepositoryTest {
             }
         }
     }
+
+    @Test
+    fun testUpdateWithIncrement() {
+        data class Entity(val id: String, val counter: Int)
+
+        runBlocking {
+            DbClientPool(1) { JdbcDriver.connectMemoryH2() }.use { pool ->
+                withContext(pool) {
+                    val repo = DbModelRepository(Entity::class, Entity::id)
+                    repo.init()
+                    val id = "test"
+                    val noId = "NO ID"
+                    repo.insert(Entity(id, 100))
+                    assertEquals(1, repo.update(incr = mapOf(Entity::counter to +1), where = Entity::id eq id))
+                    assertEquals(0, repo.update(incr = mapOf(Entity::counter to +1), where = Entity::id eq noId))
+                    assertEquals(101, repo.findById(id)?.counter)
+                }
+            }
+        }
+    }
 }
