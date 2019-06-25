@@ -50,11 +50,11 @@ class SquashRepoTest {
         withInjectorContext(injector) {
             repo.init()
             val id = "1234"
+            val nonExistantId = "777"
             repo.insert(Points(id, 100L))
-            assertEquals(
-                1,
-                repo.update(incr = mapOf(Points::points to +1), where = Points::id eq id)
-            )
+            assertEquals(1, repo.update(incr = mapOf(Points::points to +1), where = Points::id eq id))
+            assertEquals(101L, repo.findById(id)?.points)
+            assertEquals(0, repo.update(incr = mapOf(Points::points to +1), where = Points::id eq nonExistantId))
             assertEquals(101L, repo.findById(id)?.points)
         }
     }
