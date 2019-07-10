@@ -1,25 +1,35 @@
 package kuick.api.rest
 
 
-import com.google.gson.JsonArray
-import com.google.gson.JsonElement
-import com.google.gson.JsonObject
 import com.google.inject.Injector
 import io.ktor.application.call
 import io.ktor.http.ContentType
 import io.ktor.http.HttpMethod
-import io.ktor.http.Parameters
 import io.ktor.request.receiveText
 import io.ktor.response.respondText
 import io.ktor.routing.Route
 import io.ktor.routing.route
 import io.ktor.util.AttributeKey
 import kuick.api.buildArgsFromObject
+import kuick.api.getAsTree
+import kuick.api.rest.parameters.include.IncludeParam
+import kuick.api.rest.parameters.include.includeRelatedResources
+import kuick.api.rest.parameters.preserve.FieldsParam
+import kuick.api.rest.parameters.preserve.preserveFields
 import kuick.json.Json.gson
 import kuick.json.Json.jsonParser
+import java.lang.reflect.ParameterizedType
+import java.lang.reflect.Type
 import kotlin.reflect.KFunction
 import kotlin.reflect.KProperty
 import kotlin.reflect.full.callSuspend
+
+abstract class TypeReference<T> : Comparable<TypeReference<T>> {
+    val type: Type =
+            (javaClass.genericSuperclass as ParameterizedType).actualTypeArguments[0]
+
+    override fun compareTo(other: TypeReference<T>) = 0
+}
 
 
 data class RestRouting(
@@ -29,7 +39,7 @@ data class RestRouting(
         val injector: Injector
 ) {
 
-    fun <T> registerRoute(route: RestRoute<T>): Route =
+    inline fun <reified T : Any?, R : Any?> registerRoute(route: RestRoute<R>): Route =
             parent.route(resourceName, method = route.httpMethod) {
                 println("REST: ${route.httpMethod.value} /$resourceName -> ${route.handler}") // logging
 
@@ -46,56 +56,22 @@ data class RestRouting(
                     val jsonResult = gson.toJsonTree(result)
 
                     val queryParameters = call.request.queryParameters
-                    if (route.config.withFieldsParameter && "\$fields" in queryParameters) {
-                        val fieldsParam = queryParameters.getAsSet("\$fields")
-                        jsonResult.preserveFields(fieldsParam)
-                    }
+
+                    //TODO handle case when we include smth just to cut it out when filtering
                     if (route.config.includeParameterConfiguration != null && "\$include" in queryParameters) {
-                        val includeParam = queryParameters.getAsSet("\$include")
-                        jsonResult.includeRelatedResources(includeParam, route.config.includeParameterConfiguration!!)
+                        val configuration = route.config.includeParameterConfiguration!!
+                        val includeParam = IncludeParam.create(queryParameters.getAsTree("\$include"), T::class.java, configuration)
+                        jsonResult.includeRelatedResources(includeParam, configuration)
+                    }
+
+                    if (route.config.withFieldsParameter && "\$fields" in queryParameters) {
+                        val fieldsParam = FieldsParam.create(queryParameters.getAsTree("\$fields"), T::class.java)
+                        jsonResult.preserveFields(fieldsParam)
                     }
 
                     call.respondText(jsonResult.toString(), ContentType.Application.Json) // serialization
                 }
             }
-
-    private fun String.toJsonArray() = (jsonParser.parse(this) as JsonArray)
-    private fun JsonArray.asStringList() = this.map { it.asString }
-    private fun Parameters.getAsSet(name: String) = this[name]?.toJsonArray()?.asStringList()?.toSet() ?: emptySet()
-
-    private suspend fun JsonElement.preserveFields(fieldsParam: Set<String>) =
-            this.applyToEachObject { jsonObject ->
-                jsonObject.entrySet().removeIf { it.key !in fieldsParam }
-            }
-
-    private suspend fun JsonElement.includeRelatedResources(includeParam: Set<String>, configuration: Map<String, suspend (id: String) -> Any>) =
-            this.applyToEachObject { jsonObject ->
-                jsonObject.entrySet().toList().forEach {
-                    if (it.key in includeParam) {
-                        val method = configuration.getValue(it.key)
-                        jsonObject.remove(it.key)
-                        jsonObject.add(
-                                it.key,
-                                gson.toJsonTree(
-                                        method(it.value.asString)
-                                )
-                        )
-                    }
-                }
-            }
-
-    private suspend fun JsonElement.applyToEachObject(handler: suspend (JsonObject) -> Unit) {
-        when {
-            isJsonObject -> handler(asJsonObject)
-            isJsonArray -> {
-                asJsonArray.forEach {
-                    handler(it.asJsonObject)
-                }
-            }
-            else -> {
-            }
-        }
-    }
 }
 
 class RestRoute<T>(

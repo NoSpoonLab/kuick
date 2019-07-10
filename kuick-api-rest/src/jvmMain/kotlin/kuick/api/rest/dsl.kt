@@ -15,42 +15,49 @@ inline fun <reified T> Route.restRoute(
     return RestRouting(this, resourceName, api, injector).apply(config)
 }
 
-fun <T> RestRouting.route(
+inline fun <reified T, R> RestRouting.route(
         httpMethod: HttpMethod,
-        handler: KFunction<T>,
+        handler: KFunction<R>,
         config: RestRoute.Configuration.() -> Unit = {}
 )
-        : RestRoute<T> =
+        : RestRoute<R> =
         RestRoute(httpMethod, handler)
                 .apply { config(this.config) }
-                .also { registerRoute(it) }
+                .also { registerRoute<T, R>(it) }
 
-fun <T> RestRouting.get(
+
+inline fun <reified T> RestRouting.getMany(
+        handler: KFunction<List<T>>,
+        config: RestRoute.Configuration.() -> Unit = {}
+): RestRoute<List<T>> =
+        route<T, List<T>>(HttpMethod.Get, handler, config)
+
+inline fun <reified T> RestRouting.get(
         handler: KFunction<T>,
         config: RestRoute.Configuration.() -> Unit = {}
 ): RestRoute<T> =
-        route(HttpMethod.Get, handler, config)
+        route<T, T>(HttpMethod.Get, handler, config)
 
-fun <T> RestRouting.put(
+inline fun <reified T> RestRouting.put(
         handler: KFunction<T>,
         config: RestRoute.Configuration.() -> Unit = {}
 ): RestRoute<T> =
-        route(HttpMethod.Put, handler, config)
+        route<T, T>(HttpMethod.Put, handler, config)
 
-fun <T> RestRouting.post(
+inline fun <reified T> RestRouting.post(
         handler: KFunction<T>,
         config: RestRoute.Configuration.() -> Unit = {}
 ): RestRoute<T> =
-        route(HttpMethod.Post, handler, config)
+        route<T, T>(HttpMethod.Post, handler, config)
 
-fun <T> RestRouting.delete(
+inline fun <reified T> RestRouting.delete(
         handler: KFunction<T>,
         config: RestRoute.Configuration.() -> Unit = {}
 ): RestRoute<T> =
-        route(HttpMethod.Delete, handler, config)
+        route<T, T>(HttpMethod.Delete, handler, config)
 
-fun <T> RestRouting.patch(
+inline fun <reified T> RestRouting.patch(
         handler: KFunction<T>,
         config: RestRoute.Configuration.() -> Unit = {}
 ): RestRoute<T> =
-        route(HttpMethod.Patch, handler, config)
+        route<T, T>(HttpMethod.Patch, handler, config)
