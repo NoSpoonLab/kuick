@@ -35,6 +35,9 @@ infix operator fun <V> Expression<@Exact V>.plus(literal: V): Expression<V> = Pl
 infix operator fun <V> Expression<@Exact V>.minus(other: Expression<V>): Expression<V> = MinusExpression(this, other)
 infix operator fun <V> Expression<@Exact V>.minus(literal: V): Expression<V> = MinusExpression(this, LiteralExpression(literal))
 
+infix fun <V> Expression<V>.concat(other: Expression<V>): Expression<V> = ConcatExpression(this, other)
+infix fun <V> Expression<V>.concat(literal: V): Expression<V> = ConcatExpression(this, LiteralExpression(literal))
+
 infix operator fun <V> Expression<@Exact V>.times(other: Expression<V>): Expression<V> = MultiplyExpression(this, other)
 infix operator fun <V> Expression<@Exact V>.times(literal: V): Expression<V> = MultiplyExpression(this, LiteralExpression(literal))
 
