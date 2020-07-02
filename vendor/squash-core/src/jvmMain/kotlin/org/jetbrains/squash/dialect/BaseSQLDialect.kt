@@ -136,6 +136,7 @@ open class BaseSQLDialect(val name: String) : SQLDialect {
             is MinusExpression -> "-"
             is MultiplyExpression -> "*"
             is DivideExpression -> "/"
+            is ConcatExpression -> "||"
             is LikeExpression -> "LIKE"
             else -> error("Expression '$expression' is not supported by ${this@BaseSQLDialect}")
         })

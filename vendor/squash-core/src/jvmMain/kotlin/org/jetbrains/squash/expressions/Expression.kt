@@ -24,6 +24,7 @@ class PlusExpression<out V>(left: Expression<V>, right: Expression<V>) : BinaryE
 class MinusExpression<out V>(left: Expression<V>, right: Expression<V>) : BinaryExpression<V, V, V>(left, right)
 class MultiplyExpression<out V>(left: Expression<V>, right: Expression<V>) : BinaryExpression<V, V, V>(left, right)
 class DivideExpression<out V>(left: Expression<V>, right: Expression<V>) : BinaryExpression<V, V, V>(left, right)
+class ConcatExpression<out V>(left: Expression<V>, right: Expression<V>) : BinaryExpression<V, V, V>(left, right)
 
 class LiteralExpression<out V>(val literal: V) : Expression<V>
 class SubQueryExpression<out V>(val query: Query) : Expression<V>
