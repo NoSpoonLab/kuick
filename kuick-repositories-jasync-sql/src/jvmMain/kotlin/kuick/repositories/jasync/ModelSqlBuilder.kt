@@ -91,7 +91,7 @@ class ModelSqlBuilder<T: Any>(val kClass: KClass<T>, val tableName: String) {
     fun toSqlValue(value: Any?): String = when (value) {
         is Boolean, is Int, is Long, is Float, is Double -> value.toString()
         is Id -> "'${value.id}'"
-        else -> "'${value.toString()}'"
+        else -> "'${value.toString().replace("'", "''")}'" // Escape single quotes
     }
 
 
