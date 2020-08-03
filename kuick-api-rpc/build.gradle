@@ -1,7 +1,12 @@
 dependencies {
-    jvmApi project(":kuick-http")
-    jvmApi project(":kuick-api")
+    jvmApi project(":kuick-core")
+    jvmApi project(":kuick-logging")
 
-    jvmTestImplementation "io.ktor:ktor-server-test-host:$ktor_version"
-    jvmTestImplementation project(":kuick-db")
+    jvmMainApi "io.ktor:ktor-server-cio:$ktor_version"
+
+    jvmMainApi "io.ktor:ktor-client-core:$ktor_version"
+    jvmMainApi "io.ktor:ktor-client-cio:$ktor_version"
+    jvmMainApi "io.ktor:ktor-client-apache:$ktor_version"
+    jvmMainApi "io.ktor:ktor-client-json:$ktor_version"
+    jvmMainApi "io.ktor:ktor-client-gson:$ktor_version"
 }
