@@ -1,0 +1,7 @@
+
+dependencies {
+    jvmMainApi project(":kuick-core")
+    commonMainApi project(":kuick-api-rpc")
+    jvmMainApi project(":kuick-api-rpc")
+    jvmMainApi project(":kuick-repositories-jasync-sql")
+}
