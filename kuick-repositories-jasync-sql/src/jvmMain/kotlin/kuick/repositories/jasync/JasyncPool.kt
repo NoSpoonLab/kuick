@@ -6,7 +6,8 @@ import com.github.jasync.sql.db.asSuspending
 import com.github.jasync.sql.db.pool.ConnectionPool
 import com.github.jasync.sql.db.postgresql.PostgreSQLConnection
 import com.github.jasync.sql.db.postgresql.PostgreSQLConnectionBuilder
-import java.util.Date
+import kuick.env.Environment
+import java.util.*
 
 class JasyncPool(
     host: String,
@@ -70,5 +71,26 @@ class JasyncPool(
 
     private fun debug(msg: String) {
         if (debug) log(msg)
+    }
+
+
+    companion object {
+
+        fun fromEnvironment(prefix: String = ""): JasyncPool {
+
+            fun env(key: String, default: String? = null): String =
+                Environment.env("$prefix$key", default)
+
+            return JasyncPool(
+                host = env("DB_HOST"),
+                port = env("DB_PORT").toInt(),
+                database = env("DB_DATABASE"),
+                username = env("DB_USERNAME"),
+                password = env("DB_PASSWORD"),
+                maxActiveConnections = env("DB_MAX_ACTIVE_CONNECTIONS", "2").toInt(),
+                debug = env("DB_DEBUG", "false").toBoolean()
+            )
+        }
+
     }
 }

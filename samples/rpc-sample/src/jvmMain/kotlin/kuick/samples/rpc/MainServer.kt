@@ -10,15 +10,7 @@ import kuick.samples.rpc.users.UsersRepository
 fun main() = runBlocking {
 
     // DB pool
-    val pool = JasyncPool(
-        "host",
-        5432,
-        "db",
-        "user",
-        "pwd",
-        maxActiveConnections = 10,
-        debug = false
-    )
+    val pool = JasyncPool.fromEnvironment()
 
     // Repos
     val usersRepository = UsersRepository(pool)
