@@ -23,29 +23,35 @@ data class RpcClientJvm(
     val logger = Logger(RpcClientJvm::class.simpleName!!)
 
     override suspend fun <T : Any> call(serviceBaseUrl: String, srvName: String, opName: String, params: List<Any?>, returnType: KClass<T>): T {
+try {
 
-        val endpoint = "$serviceBaseUrl/$srvName/$opName"
 
-        val rpcContext: RpcContext = rpcContext() ?: RpcContext.random()
+    val endpoint = "$serviceBaseUrl/$srvName/$opName"
 
-        val bearerSecret = "<PENDING>"
+    val rpcContext: RpcContext = rpcContext() ?: RpcContext.random()
 
-        val beginAt = System.currentTimeMillis()
-        logger.traceRpc { "Calling $endpoint with context $rpcContext" }
-        logger.traceRpc { "  ==> $params" }
-        val responseJson = client.post<String> {
-            url(endpoint)
-            headers.clear()
-            header("Content-Type", "application/json")
-            header("Authorization", "Bearer $bearerSecret")
-            header(RPC_CONTEXT_HEADER, Json.toJson(rpcContext))
-            body = params
-        }
-        val endAt = System.currentTimeMillis()
-        val lapse = endAt - beginAt
-        logger.traceRpc { "  <== $responseJson as ${returnType} ($lapse ms)" }
+    val bearerSecret = "<PENDING>"
 
-        return Json.fromJson(responseJson, returnType)
+    val beginAt = System.currentTimeMillis()
+    logger.traceRpc { "Calling $endpoint with context $rpcContext" }
+    logger.traceRpc { "  ==> $params" }
+    val responseJson = client.post<String> {
+        url(endpoint)
+        headers.clear()
+        header("Content-Type", "application/json")
+        header("Authorization", "Bearer $bearerSecret")
+        header(RPC_CONTEXT_HEADER, Json.toJson(rpcContext))
+        body = params
+    }
+    val endAt = System.currentTimeMillis()
+    val lapse = endAt - beginAt
+    logger.traceRpc { "  <== $responseJson as ${returnType} ($lapse ms)" }
+
+    return Json.fromJson(responseJson, returnType)
+} catch (t: Throwable) {
+    t.printStackTrace()
+    throw t
+}
     }
 
 

@@ -9,17 +9,11 @@ import kuick.samples.rpc.users.UsersRepository
 
 fun main() = runBlocking {
 
-    // DB pool
-    val pool = JasyncPool.fromEnvironment()
-
-    // Repos
-    val usersRepository = UsersRepository(pool)
-
     // Service
-    val usersApi: UsersApi = UsersApiImpl(usersRepository)
+    val usersApi: UsersApi = UsersApiImpl()
 
     RpcServer("SampleRPC", 8080, listOf(
         usersApi
-    )).start(true)
+    )).start(true, true)
 
 }

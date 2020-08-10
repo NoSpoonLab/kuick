@@ -1,11 +1,8 @@
 package kuick.samples.rpc.users
 
 import kuick.api.rpc.rpcContext
-import kuick.repositories.eq
 
-class UsersApiImpl(
-    val usersRepo: UsersRepository
-): UsersApi {
+class UsersApiImpl(): UsersApi {
 
     override suspend fun testUser(): User =
         User("testUserId", "Test User", "user@test.com", 0L)
@@ -14,8 +11,8 @@ class UsersApiImpl(
         findUserById(rpcContext()!!.userId!!)!!
 
     override suspend fun findUserById(userId: String): User? =
-        usersRepo.findById(userId)
+        User(userId, "User $userId", "$userId@test.com", 0L)
 
     override suspend fun findUserByEmail(email: String): User? =
-        usersRepo.findOneBy(User::email eq email)
+        User("userId-email", "User $email", email, 0L)
 }
