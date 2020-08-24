@@ -1,4 +1,4 @@
-package kuick.util
+package kuick.utils
 
 interface AsyncCloseable {
     suspend fun close()

@@ -1,23 +1,35 @@
 package kuick.env
 
-import java.lang.IllegalArgumentException
+import java.io.File
+import java.util.*
 
-object Environment {
+
+open class BaseEnvironment(val envs: MutableMap<String, String> = System.getenv().toMutableMap()) : MutableMap<String, String> by envs {
+    @Deprecated("", ReplaceWith("this[key]"))
+    operator fun invoke(key: String) = this[key]
 
     fun describe() {
         println("ENVIRONMENT ------")
-        System.getenv()
-            .toList()
-            .sortedBy { it.first }
-            .forEach { (t, u) ->
-                println("$t: $u")
-            }
+        toList().sortedBy { it.first }.forEach { (t, u) -> println("$t: $u") }
         println("/ENVIRONMENT ------")
     }
 
-    fun env(key: String, default: String? = null): String =
-        System.getenv(key)
-            ?: default
-            ?: throw IllegalArgumentException("Missing environment variable [$key]")
 
+    fun env(name: String, default: String? = null) =
+        this[name]
+            ?: default
+            ?: error("Can't find environment '$name'")
+
+    fun load(props: Properties) {
+        for (prop in props) {
+            this[prop.key.toString()] = prop.value.toString()
+        }
+    }
+
+    fun load(file: File) {
+        if (!file.exists()) error("File $file doesn't exists")
+        load(Properties().apply { file.inputStream().use { file -> this.load(file) } })
+    }
 }
+
+object Environment : BaseEnvironment()
