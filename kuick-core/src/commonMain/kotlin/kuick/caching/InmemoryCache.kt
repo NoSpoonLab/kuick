@@ -2,7 +2,6 @@ package kuick.caching
 
 import kotlinx.coroutines.*
 import kuick.concurrent.*
-import kuick.util.*
 import kotlin.coroutines.*
 
 class InmemoryCache<K : Any, V>(override val name: String = "InmemoryCache") : Cache<K, V> {

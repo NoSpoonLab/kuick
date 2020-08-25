@@ -1,4 +1,4 @@
-package kuick.util
+package kuick.utils
 
 // Allocation-Free forEach (no iterator is created). Also *no* ConcurrentModification is thrown.
 inline fun <T> List<T>.fastForEach(callback: (T) -> Unit) {

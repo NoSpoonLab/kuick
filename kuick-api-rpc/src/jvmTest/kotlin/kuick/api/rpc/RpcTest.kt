@@ -15,9 +15,10 @@ class RpcTest {
         val sampleUser = SampleUser("Test", 1, 1.0)
 
         @BeforeClass @JvmStatic fun setup() {
-            rpcServer = RpcServer("SampleRPC", 8080, listOf(SampleServiceIml()))
+            val port = 8437
+            rpcServer = RpcServer("SampleRPC", port, listOf(SampleServiceIml()))
             rpcServer.start(false)
-            sampleSrv = RemoteSampleService("http://localhost:8080", RpcClientJvm())
+            sampleSrv = RemoteSampleService("http://localhost:$port", RpcClientJvm())
         }
 
         @AfterClass @JvmStatic fun teardown() {

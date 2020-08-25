@@ -1,7 +1,7 @@
 package kuick.repositories.squash
 
 import kuick.repositories.annotations.*
-import kuick.util.*
+import kuick.utils.fastForEach
 import org.jetbrains.squash.definition.*
 import kotlin.reflect.*
 import kotlin.reflect.full.*
