@@ -12,7 +12,7 @@ buildscript {
 }
 
 plugins {
-    id "org.jetbrains.kotlin.multiplatform" version "1.3.40" apply false
+    id "org.jetbrains.kotlin.multiplatform" version "1.3.72" apply false
 }
 
 allprojects {
@@ -26,7 +26,6 @@ allprojects {
 }
 
 subprojects {
-    apply plugin: 'maven'
     apply plugin: 'maven-publish'
 
     group = "com.nospoonlab"
@@ -35,7 +34,6 @@ subprojects {
     def multiProject = true
     def includeJs = isKuick
     def mustPublish = !project.path.startsWith(":samples")
-    //println(project.path)
 
     if (multiProject) {
         apply plugin: 'kotlin-multiplatform'
@@ -74,42 +72,6 @@ subprojects {
                 }
             }
 
-            sourceSets {
-                commonMain {
-                    dependencies {
-                        implementation kotlin('stdlib-common')
-                    }
-                }
-                commonTest {
-                    dependencies {
-                        implementation kotlin('test-common')
-                        implementation kotlin('test-annotations-common')
-                    }
-                }
-                jvmMain {
-                    dependencies {
-                        implementation kotlin('stdlib-jdk8')
-                    }
-                }
-                jvmTest {
-                    dependencies {
-                        implementation kotlin('test')
-                        implementation kotlin('test-junit')
-                    }
-                }
-                if (includeJs) {
-                    jsMain {
-                        dependencies {
-                            implementation kotlin('stdlib-js')
-                        }
-                    }
-                    jsTest {
-                        dependencies {
-                            implementation kotlin('test-js')
-                        }
-                    }
-                }
-            }
         }
 
         jvmTest {
@@ -154,6 +116,7 @@ subprojects {
     if (mustPublish) {
         def publishUser = (rootProject.findProperty("BINTRAY_USER") ?: project.findProperty("bintrayUser") ?: System.getenv("BINTRAY_USER"))?.toString()
         def publishPassword = (rootProject.findProperty("BINTRAY_KEY") ?: project.findProperty("bintrayApiKey") ?: System.getenv("BINTRAY_API_KEY"))?.toString()
+        println("Bintray publish: ${publishUser} / ${publishPassword}")
 
         if (publishUser != null && publishPassword != null) {
             publishing {
@@ -167,29 +130,10 @@ subprojects {
                     }
                 }
                 publications {
-                    maven(MavenPublication) {
+                    kotlinMultiplatform {
                         groupId = project.group
                         artifactId = project.name
                         version = project.version
-
-                        from multiProject ? components.kotlin : components.java
-
-                        maven(MavenPublication) {
-                            pom {
-                                name = project.name
-                                description = project.property("project.description")
-                                url = project.property("project.scm.url")
-                                licenses {
-                                    license {
-                                        name = project.property("project.license.name")
-                                        url = project.property("project.license.url")
-                                    }
-                                }
-                                scm {
-                                    url = project.property("project.scm.url")
-                                }
-                            }
-                        }
                     }
                 }
             }
