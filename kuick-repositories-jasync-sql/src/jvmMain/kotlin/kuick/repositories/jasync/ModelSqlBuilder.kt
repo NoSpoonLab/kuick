@@ -47,9 +47,9 @@ class ModelSqlBuilder<T: Any>(val kClass: KClass<T>, val tableName: String) {
         val extraSql = mutableListOf<String>()
 
         q.tryGetAttributed()?.let { q ->
+            if (q.orderBy != null) extraSql.add("ORDER BY ${q.orderBy!!.list.map { "${it.prop.name.toSnakeCase()} ${if (it.ascending) "ASC" else "DESC"}" }.joinToString(", ")}")
             if (q.skip > 0) extraSql.add("SKIP ${q.skip}")
             if (q.limit != null) extraSql.add("LIMIT ${q.limit}")
-            if (q.orderBy != null) extraSql.add("ORDER BY ${q.orderBy!!.list.map { "${it.prop.name.toSnakeCase()} ${if (it.ascending) "ASC" else "DESC"}" }.joinToString(", ")}")
         }
 
         return base.copy("${base.sql} ${extraSql.joinToString(" ")}".trim(), base.values)
