@@ -6,7 +6,7 @@ import kotlinx.coroutines.withContext
 import kuick.client.db.DbConnectionProvider
 import kuick.client.jdbc.JdbcDriver
 import kuick.client.repositories.DbModelRepository
-import kuick.util.use
+import kuick.utils.use
 import kotlin.test.Test
 import kotlin.test.assertEquals
 

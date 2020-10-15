@@ -1,7 +1,7 @@
 package kuick.event
 
 import kuick.concurrent.Lock
-import kuick.util.fastForEach
+import kuick.utils.fastForEach
 import java.io.Closeable
 
 class EventHandler<K, V> {

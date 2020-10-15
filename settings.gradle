@@ -1,17 +1,10 @@
 include ':kuick-core'
 include ':kuick-logging'
-include ':kuick-http'
-include ':kuick-http-ktor'
 include ':kuick-repositories-elasticsearch'
+include ':kuick-repositories-jasync-sql'
 include ':kuick-repositories-squash'
 include ':kuick-db'
-include ':kuick-redis'
-include ':kuick-cache-redis'
-//include ':kuick-cache-db'
-//include ':kuick-cache-repositories-squash'
 
-include ':kuick-api'
-include ':kuick-api-rest'
 include ':kuick-api-rpc'
 
 include ':vendor:squash-core'
@@ -20,7 +13,6 @@ include ':vendor:squash-h2'
 include ':vendor:squash-jdbc'
 include ':vendor:squash-postgres'
 
-include ':samples:todo-app'
-include ':samples:todo-app2'
+include ':samples:rpc-sample'
 
 enableFeaturePreview('GRADLE_METADATA')

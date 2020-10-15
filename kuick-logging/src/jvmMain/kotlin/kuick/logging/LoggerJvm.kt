@@ -10,6 +10,7 @@ internal actual fun LogCreate(name: String): Logger = object : Logger {
     private val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS")
 
     override fun log(level: LogLevel, message: String, tag: String?) {
+        if (!this.enabled(level, tag)) return
         val date = dateFormat.format(Date())
         val printStream = when (level) {
             LogLevel.ERROR, LogLevel.FATAL -> System.err

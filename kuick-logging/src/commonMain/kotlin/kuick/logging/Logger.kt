@@ -52,7 +52,7 @@ object LoggerConfig {
         if (!enabled) return false
         val config = getConfig(logger)
         val configMinLevel = config.minLevel ?: defaultMinLevel
-        if (level > configMinLevel) return false
+        if (level.index > configMinLevel.index) return false
 
         val enabledTags = config.enabledTags
         val disabledTags = config.disabledTags

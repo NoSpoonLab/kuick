@@ -3,11 +3,10 @@ package kuick.orm
 import kuick.json.*
 import kuick.models.*
 import kuick.repositories.annotations.*
-import kuick.util.*
+import kuick.utils.fastForEach
 import java.sql.*
 import java.text.*
 import java.time.*
-import java.util.*
 import java.util.Date
 import kotlin.collections.LinkedHashMap
 import kotlin.reflect.*

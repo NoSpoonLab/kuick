@@ -1,3 +1,0 @@
-dependencies {
-    jvmApi project(":kuick-core")
-}
