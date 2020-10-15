@@ -78,7 +78,7 @@ class ModelSqlBuilderTest {
     @Test
     fun `prepared select complex`() {
         assertEquals(
-            ModelSqlBuilder.PreparedSql("SELECT name, age, married FROM user WHERE name = ? SKIP 1 LIMIT 2 ORDER BY name DESC", listOf("Mike")),
+            ModelSqlBuilder.PreparedSql("SELECT name, age, married FROM user WHERE name = ? ORDER BY name DESC SKIP 1 LIMIT 2", listOf("Mike")),
             mq.selectPreparedSql(AttributedModelQuery(base = User::name eq "Mike", skip = 1, limit = 2, orderBy = User::name.desc()) ))
     }
 
