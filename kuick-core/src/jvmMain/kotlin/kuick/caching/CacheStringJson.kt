@@ -1,8 +1,8 @@
 package kuick.caching
 
 import kuick.json.Json
-import kuick.util.AsyncCloseable
-import kuick.util.Named
+import kuick.utils.AsyncCloseable
+import kuick.utils.Named
 import kotlin.reflect.KClass
 
 fun <T : Any> Cache<String, String>.typeWithJsonNullable(clazz: KClass<T>): Cache<String, T?> {

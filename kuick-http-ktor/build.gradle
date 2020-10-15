@@ -1,8 +1,0 @@
-dependencies {
-    jvmApi project(":kuick-http")
-    jvmMainApi "io.ktor:ktor-server-netty:$ktor_version"
-    jvmMainApi "io.ktor:ktor-locations:$ktor_version"
-    //jvmApi project(":kuick-db")
-    jvmTestImplementation "io.ktor:ktor-server-test-host:$ktor_version"
-    jvmTestImplementation project(":kuick-repositories-squash")
-}

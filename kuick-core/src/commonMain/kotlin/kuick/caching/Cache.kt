@@ -1,6 +1,7 @@
 package kuick.caching
 
-import kuick.util.*
+import kuick.utils.AsyncCloseable
+import kuick.utils.Named
 
 interface Cache<K : Any, V> : Invalidable<K>, AsyncCloseable, Named {
     override val name get() = "UnnamedCache"
