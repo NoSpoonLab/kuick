@@ -15,7 +15,7 @@ class JasyncPool(
     database: String,
     username: String,
     password: String,
-    applicationName: String = "kuik-jaync-pool",
+    applicationName: String = "kuick-jaync-pool",
     maxActiveConnections: Int = 2,
     val debug: Boolean = false
 ) {
@@ -37,6 +37,7 @@ class JasyncPool(
         log("  port                 : $port")
         log("  database             : $database")
         log("  username             : $username")
+        log("  applicationName      : $applicationName")
         log("  maxActiveConnections : $maxActiveConnections")
         log("/JasyncPool ---------------------")
     }
