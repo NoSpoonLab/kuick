@@ -127,6 +127,7 @@ class ModelSqlBuilder<T: Any>(val kClass: KClass<T>, val tableName: String) {
 
 
     fun queryValues(q: ModelQuery<T>): List<Any?> = when (q) {
+        is FieldIsNull<T, *> -> emptyList()
         is FieldWithin<T, *> -> q.value?.toList() ?: emptyList()
         is FieldWithinComplex<T, *> -> q.value?.map { toDbValue(it) } ?: emptyList()
         is FilterExpUnopLogic<T> -> queryValues(q.exp)
