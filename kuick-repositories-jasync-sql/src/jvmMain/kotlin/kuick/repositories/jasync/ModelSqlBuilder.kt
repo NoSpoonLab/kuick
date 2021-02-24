@@ -68,6 +68,7 @@ class ModelSqlBuilder<T: Any>(val kClass: KClass<T>, val tableName: String) {
 
 
     fun toSql(q: ModelQuery<T>, toSqlValue: (Any?) -> String = this::toSqlValue): String = when (q) {
+        is FieldIsNull<T, *> -> "${q.field.name.toSnakeCase()} IS NULL"
         is FieldWithin<T, *> -> "${q.field.name.toSnakeCase()} in (${(q.value ?: emptySet()).map { toSqlValue(it) }.joinToString(", ")})"
         is FieldWithinComplex<T, *> -> "${q.field.name.toSnakeCase()} in (${(q.value ?: emptySet()).map { toSqlValue(it) }.joinToString(", ")})"
         is FilterExpUnopLogic<T> -> "${q.op}(${toSql(q.exp, toSqlValue)})"
