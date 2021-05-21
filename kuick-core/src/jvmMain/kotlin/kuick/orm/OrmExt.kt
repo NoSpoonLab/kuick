@@ -71,7 +71,39 @@ class TableDefinition<T : Any>(val clazz: KClass<T>, val serialization: TableSer
         }
         return constructor.call(*params.toTypedArray())
     }
+
+    fun buildDummy() = DummyInstanceBuilder.build(clazz)
 }
+
+// @TODO: Cache dummy instances
+object DummyInstanceBuilder {
+    fun <T : Any> build(clazz: KClass<T>): T = buildPrivate(clazz) as T
+
+    private fun buildPrivate(type: KType): Any? {
+        if (type.isMarkedNullable) return null
+        return buildPrivate(type.clazz)
+    }
+
+    private fun <T : Any> buildPrivate(clazz: KClass<T>): Any {
+        return when (clazz) {
+            String::class -> ""
+            Boolean::class -> false
+            Byte::class -> 0.toByte()
+            Short::class -> 0.toShort()
+            Int::class -> 0
+            Long::class -> 0L
+            Double::class -> 0.0
+            Float::class -> 0f
+            Map::class, MutableMap::class, LinkedHashMap::class -> LinkedHashMap<Any?, Any?>()
+            List::class, MutableList::class, ArrayList::class -> ArrayList<Any?>()
+            else -> {
+                val constructor = clazz.primaryConstructor ?: clazz.constructors.firstOrNull() ?: error("Class '$clazz' doesn't have constructors")
+                constructor.call(*constructor.valueParameters.map { buildPrivate(it.type) }.toTypedArray())
+            }
+        }
+    }
+}
+
 
 interface TableSerializationStrategy {
     fun resolve(column: ColumnDefinition<*>): TableSerializationStrategy? = this
